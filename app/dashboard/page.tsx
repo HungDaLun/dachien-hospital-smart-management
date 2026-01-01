@@ -2,6 +2,7 @@
  * 儀表板首頁
  * 顯示平台概覽與快速操作
  */
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
@@ -39,34 +40,34 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-lg shadow-soft p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">知識庫</h2>
           <p className="text-gray-600 text-sm mb-4">管理您的知識庫檔案</p>
-          <a
+          <Link
             href="/dashboard/knowledge"
             className="inline-block px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors text-sm"
           >
             查看檔案
-          </a>
+          </Link>
         </div>
 
         <div className="bg-white rounded-lg shadow-soft p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Agent</h2>
           <p className="text-gray-600 text-sm mb-4">建立和管理 AI Agent</p>
-          <a
+          <Link
             href="/dashboard/agents"
             className="inline-block px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors text-sm"
           >
             管理 Agent
-          </a>
+          </Link>
         </div>
 
         <div className="bg-white rounded-lg shadow-soft p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">對話</h2>
           <p className="text-gray-600 text-sm mb-4">與 AI Agent 對話</p>
-          <a
+          <Link
             href="/dashboard/chat"
             className="inline-block px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors text-sm"
           >
             開始對話
-          </a>
+          </Link>
         </div>
       </div>
 

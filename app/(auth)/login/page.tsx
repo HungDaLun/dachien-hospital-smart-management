@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 function LoginForm() {
@@ -133,21 +134,21 @@ function LoginForm() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               還沒有帳號？{' '}
-              <a href="/register" className="text-primary-500 hover:text-primary-600 font-medium">
+              <Link href="/register" className="text-primary-500 hover:text-primary-600 font-medium">
                 立即註冊
-              </a>
+              </Link>
             </p>
           </div>
         </div>
 
         {/* 返回首頁 */}
         <div className="mt-4 text-center">
-          <a
+          <Link
             href="/"
             className="text-sm text-gray-600 hover:text-gray-900"
           >
             ← 返回首頁
-          </a>
+          </Link>
         </div>
       </div>
     </div>

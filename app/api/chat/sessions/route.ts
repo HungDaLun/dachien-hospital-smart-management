@@ -11,6 +11,8 @@ import { AuthenticationError, toApiResponse } from '@/lib/errors';
  * GET /api/chat/sessions
  * 列出使用者的對話 Sessions
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();

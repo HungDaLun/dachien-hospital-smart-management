@@ -11,6 +11,8 @@ import { getCurrentUserProfile, requireSuperAdmin } from '@/lib/permissions';
  * GET /api/system/config
  * 取得系統設定狀態（不暴露實際 API Key）
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET(_request: NextRequest) {
   try {
     // 檢查權限（僅 SUPER_ADMIN）
