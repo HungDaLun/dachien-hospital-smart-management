@@ -1,0 +1,29 @@
+{
+    "common": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "profile": "Profile",
+        "logout": "Logout",
+        "loading": "Loading...",
+        "error": "Error Occurred",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "search": "Search"
+    },
+    "agents": {
+        "title": "Agent Management",
+        "create_new": "Create New Agent",
+        "my_agents": "My Agents",
+        "system_prompt": "System Prompt",
+        "model": "Model Version"
+    },
+    "auth": {
+        "login_title": "Login System",
+        "email_label": "Email",
+        "password_label": "Password",
+        "sign_in": "Sign In"
+    }
+}

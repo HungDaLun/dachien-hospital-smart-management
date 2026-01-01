@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Button, Card, Badge } from '@/components/ui';
 import Link from 'next/link';
+import { AgentStatsCards } from '@/components/agents/AgentStatsCards';
 
 export default async function AgentsPage() {
     const supabase = await createClient();
@@ -41,6 +42,9 @@ export default async function AgentsPage() {
                     </Button>
                 </Link>
             </div>
+
+            {/* 統計卡片 */}
+            <AgentStatsCards />
 
             {/* Agent 列表 */}
             {(!agents || agents.length === 0) ? (
