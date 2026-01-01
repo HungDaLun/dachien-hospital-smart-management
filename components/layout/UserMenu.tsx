@@ -8,9 +8,10 @@ interface UserMenuProps {
     email?: string;
     displayName?: string;
     role?: string;
+    logoutText?: string;
 }
 
-export default function UserMenu({ email, displayName, role }: UserMenuProps) {
+export default function UserMenu({ email, displayName, role, logoutText = '登出' }: UserMenuProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
@@ -63,7 +64,7 @@ export default function UserMenu({ email, displayName, role }: UserMenuProps) {
                 onClick={handleLogout}
                 disabled={loading}
                 className="text-gray-400 hover:text-error-500 transition-colors tooltip flex items-center justify-center p-1.5 hover:bg-error-50 rounded-md disabled:opacity-50"
-                title="登出"
+                title={logoutText}
             >
                 <span className="text-xl">{loading ? '⌛' : '🚪'}</span>
             </button>

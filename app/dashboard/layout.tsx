@@ -7,16 +7,9 @@ import { ToastProvider } from '@/components/ui/Toast';
 import UserMenu from '@/components/layout/UserMenu';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-
-/**
- * 導航項目
- */
-const navItems = [
-  { href: '/dashboard', label: '總覽', icon: '🏠' },
-  { href: '/dashboard/knowledge', label: '知識庫', icon: '📚' },
-  { href: '/dashboard/agents', label: 'Agent', icon: '🤖' },
-  { href: '/dashboard/chat', label: '對話', icon: '💬' },
-];
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default async function DashboardLayout({
   children,
@@ -36,6 +29,19 @@ export default async function DashboardLayout({
     .select('*')
     .eq('id', user.id)
     .single();
+
+  const locale = await getLocale();
+  const dict = await getDictionary(locale);
+
+  /**
+   * 導航項目
+   */
+  const navItems = [
+    { href: '/dashboard', label: dict.navigation.overview, icon: '🏠' },
+    { href: '/dashboard/knowledge', label: dict.navigation.knowledge, icon: '📚' },
+    { href: '/dashboard/agents', label: dict.navigation.agents, icon: '🤖' },
+    { href: '/dashboard/chat', label: dict.navigation.chat, icon: '💬' },
+  ];
 
   return (
     <ToastProvider>
@@ -63,12 +69,17 @@ export default async function DashboardLayout({
               ))}
             </div>
 
-            {/* 使用者選單 */}
-            <UserMenu
-              email={user.email}
-              displayName={profile?.display_name}
-              role={profile?.role}
-            />
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+
+              {/* 使用者選單 */}
+              <UserMenu
+                email={user.email}
+                displayName={profile?.display_name}
+                role={profile?.role}
+                logoutText={dict.common.logout}
+              />
+            </div>
           </div>
         </nav>
 
@@ -76,9 +87,9 @@ export default async function DashboardLayout({
         {profile?.role === 'SUPER_ADMIN' && (
           <div className="bg-gray-100 border-b border-gray-200 px-6 py-2">
             <div className="max-w-7xl mx-auto flex gap-4 text-sm">
-              <span className="font-bold text-gray-500 flex items-center">🛠 系統管理:</span>
-              <Link href="/dashboard/admin/departments" className="hover:text-primary-600 text-gray-600">部門管理</Link>
-              <Link href="/dashboard/admin/users" className="hover:text-primary-600 text-gray-600">使用者管理</Link>
+              <span className="font-bold text-gray-500 flex items-center">🛠 {dict.navigation.system_admin}:</span>
+              <Link href="/dashboard/admin/departments" className="hover:text-primary-600 text-gray-600">{dict.navigation.departments}</Link>
+              <Link href="/dashboard/admin/users" className="hover:text-primary-600 text-gray-600">{dict.navigation.users}</Link>
             </div>
           </div>
         )}
@@ -91,4 +102,3 @@ export default async function DashboardLayout({
     </ToastProvider>
   );
 }
-

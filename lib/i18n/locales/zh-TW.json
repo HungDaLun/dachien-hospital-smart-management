@@ -11,7 +11,10 @@
         "delete": "刪除",
         "edit": "編輯",
         "create": "建立",
-        "search": "搜尋"
+        "search": "搜尋",
+        "subtitle": "企業 AI 知識庫平台",
+        "back_to_home": "返回首頁",
+        "enter_dashboard": "進入儀表板"
     },
     "agents": {
         "title": "Agent 管理",
@@ -24,6 +27,34 @@
         "login_title": "登入系統",
         "email_label": "電子郵件",
         "password_label": "密碼",
-        "sign_in": "登入"
+        "sign_in": "登入",
+        "logining": "登入中...",
+        "login_failed": "登入失敗，請稍後再試",
+        "no_account": "還沒有帳號？",
+        "register_now": "立即註冊",
+        "register_success": "註冊成功！請使用您的帳號登入"
+    },
+    "navigation": {
+        "overview": "總覽",
+        "knowledge": "知識庫",
+        "agents": "Agent",
+        "chat": "對話",
+        "system_admin": "系統管理",
+        "departments": "部門管理",
+        "users": "使用者管理"
+    },
+    "dashboard_home": {
+        "welcome": "歡迎回來，",
+        "role": "您的角色：",
+        "knowledge_card_desc": "管理您的知識庫檔案",
+        "knowledge_card_btn": "查看檔案",
+        "agent_card_desc": "建立和管理 AI Agent",
+        "agent_card_btn": "管理 Agent",
+        "chat_card_desc": "與 AI Agent 對話",
+        "chat_card_btn": "開始對話",
+        "system_status": "系統狀態",
+        "db_connection": "資料庫連線",
+        "gemini_api": "Gemini API",
+        "status_normal": "正常"
     }
 }

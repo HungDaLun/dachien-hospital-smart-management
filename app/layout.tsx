@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Noto_Sans_TC } from 'next/font/google';
 import '@/styles/globals.css';
+import { getLocale } from '@/lib/i18n/server';
 
 // 字體設定
 const inter = Inter({
@@ -34,9 +35,11 @@ interface RootLayoutProps {
  * 根佈局元件
  * 提供全域樣式與字體設定
  */
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const locale = await getLocale();
+
   return (
-    <html lang="zh-TW" className={`${inter.variable} ${notoSansTC.variable}`}>
+    <html lang={locale} className={`${inter.variable} ${notoSansTC.variable}`}>
       <body className="font-sans antialiased">
         {children}
       </body>

@@ -18,9 +18,11 @@ export interface Dictionary {
         save: string;
         cancel: string;
         delete: string;
-        edit: string;
         create: string;
         search: string;
+        subtitle: string;
+        back_to_home: string;
+        enter_dashboard: string;
     };
     agents: {
         title: string;
@@ -34,6 +36,34 @@ export interface Dictionary {
         email_label: string;
         password_label: string;
         sign_in: string;
+        logining: string;
+        login_failed: string;
+        no_account: string;
+        register_now: string;
+        register_success: string;
+    };
+    navigation: {
+        overview: string;
+        knowledge: string;
+        agents: string;
+        chat: string;
+        system_admin: string;
+        departments: string;
+        users: string;
+    };
+    dashboard_home: {
+        welcome: string;
+        role: string;
+        knowledge_card_desc: string;
+        knowledge_card_btn: string;
+        agent_card_desc: string;
+        agent_card_btn: string;
+        chat_card_desc: string;
+        chat_card_btn: string;
+        system_status: string;
+        db_connection: string;
+        gemini_api: string;
+        status_normal: string;
     };
 }
 

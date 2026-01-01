@@ -11,7 +11,10 @@
         "delete": "Delete",
         "edit": "Edit",
         "create": "Create",
-        "search": "Search"
+        "search": "Search",
+        "subtitle": "Enterprise AI Knowledge Agent Platform",
+        "back_to_home": "Back to Home",
+        "enter_dashboard": "Go to Dashboard"
     },
     "agents": {
         "title": "Agent Management",
@@ -24,6 +27,34 @@
         "login_title": "Login System",
         "email_label": "Email",
         "password_label": "Password",
-        "sign_in": "Sign In"
+        "sign_in": "Sign In",
+        "logining": "Signing in...",
+        "login_failed": "Login failed, please try again later",
+        "no_account": "Don't have an account?",
+        "register_now": "Register now",
+        "register_success": "Registration successful! Please sign in."
+    },
+    "navigation": {
+        "overview": "Overview",
+        "knowledge": "Knowledge Base",
+        "agents": "Agents",
+        "chat": "Chat",
+        "system_admin": "System Admin",
+        "departments": "Departments",
+        "users": "Users"
+    },
+    "dashboard_home": {
+        "welcome": "Welcome back, ",
+        "role": "Your Role: ",
+        "knowledge_card_desc": "Manage your knowledge base files",
+        "knowledge_card_btn": "View Files",
+        "agent_card_desc": "Create and manage AI Agents",
+        "agent_card_btn": "Manage Agents",
+        "chat_card_desc": "Chat with AI Agents",
+        "chat_card_btn": "Start Chat",
+        "system_status": "System Status",
+        "db_connection": "Database Connection",
+        "gemini_api": "Gemini API",
+        "status_normal": "Normal"
     }
 }
