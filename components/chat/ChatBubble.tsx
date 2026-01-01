@@ -7,7 +7,6 @@
 
 import { useMemo } from 'react';
 import CitationList, { Citation } from './CitationList';
-import ChatFeedback from './ChatFeedback';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
@@ -82,11 +81,6 @@ export default function ChatBubble({ role, content, agentName, citations, messag
                 {/* 引用來源 */}
                 {!isUser && citations && citations.length > 0 && (
                     <CitationList citations={citations} dict={dict} />
-                )}
-
-                {/* 回饋按鈕（僅顯示在 Assistant 訊息） */}
-                {!isUser && messageId && (
-                    <ChatFeedback messageId={messageId} dict={dict} />
                 )}
             </div>
         </div>

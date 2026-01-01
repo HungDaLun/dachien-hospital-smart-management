@@ -99,7 +99,29 @@ export async function DELETE(
             throw new NotFoundError('對話');
         }
 
-        // 刪除 Session（CASCADE 會刪除相關訊息）
+        // 1. 先取得所有相關的訊息 ID
+        const { data: messages } = await supabase
+            .from('chat_messages')
+            .select('id')
+            .eq('session_id', id);
+
+        const messageIds = messages?.map(m => m.id) || [];
+
+        // 2. 刪除所有相關的對話回饋（chat_feedback）
+        if (messageIds.length > 0) {
+            await supabase
+                .from('chat_feedback')
+                .delete()
+                .in('message_id', messageIds);
+        }
+
+        // 3. 刪除所有相關的對話訊息（chat_messages）
+        await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('session_id', id);
+
+        // 4. 最後刪除 Session 本身
         const { error: deleteError } = await supabase
             .from('chat_sessions')
             .delete()

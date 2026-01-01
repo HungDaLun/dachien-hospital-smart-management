@@ -80,10 +80,30 @@ export async function updateDepartment(id: string, formData: FormData) {
 
 /**
  * 刪除部門
+ * 會先清理所有關聯資料，然後刪除部門
  */
 export async function deleteDepartment(id: string) {
     const supabase = await createClient();
 
+    // 1. 先將所有使用者的部門設為 null
+    await supabase
+        .from('user_profiles')
+        .update({ department_id: null })
+        .eq('department_id', id);
+
+    // 2. 刪除所有該部門的 Agent 存取控制記錄
+    await supabase
+        .from('agent_access_control')
+        .delete()
+        .eq('department_id', id);
+
+    // 3. 將所有該部門的 Agent 的部門設為 null（保留 Agent，只移除部門關聯）
+    await supabase
+        .from('agents')
+        .update({ department_id: null })
+        .eq('department_id', id);
+
+    // 4. 最後刪除部門本身
     const { error } = await supabase
         .from('departments')
         .delete()

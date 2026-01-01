@@ -109,7 +109,7 @@ export default async function AgentsPage() {
                                             {dict.common.settings}
                                         </Button>
                                     </Link>
-                                    <Link href={`/chat?agent=${agent.id}`}>
+                                    <Link href={`/dashboard/chat?agent=${agent.id}`}>
                                         <Button size="sm">
                                             {dict.dashboard_home.chat_card_btn}
                                         </Button>

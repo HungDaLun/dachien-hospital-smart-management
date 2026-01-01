@@ -46,6 +46,7 @@ export default function ChatInterface({ agents, initialAgentId, dict }: ChatInte
      * 選擇 Agent
      */
     const handleSelectAgent = (agent: AgentInfo) => {
+        console.log('選擇 Agent:', agent);
         setSelectedAgent(agent);
     };
 
@@ -80,11 +81,10 @@ export default function ChatInterface({ agents, initialAgentId, dict }: ChatInte
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {agents.map((agent) => (
-                            <button
+                            <div
                                 key={agent.id}
-                                type="button"
                                 onClick={() => handleSelectAgent(agent)}
-                                className="text-left"
+                                className="cursor-pointer"
                             >
                                 <Card interactive padding className="h-full">
                                     <div className="flex items-start gap-4">
@@ -103,7 +103,7 @@ export default function ChatInterface({ agents, initialAgentId, dict }: ChatInte
                                         </div>
                                     </div>
                                 </Card>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}

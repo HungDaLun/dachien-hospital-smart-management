@@ -27,6 +27,9 @@ const retryConfig = {
 export function createGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
 
+  // Debug: 檢查 API Key 是否存在
+  console.log('[Gemini Client] API Key loaded:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+
   if (!apiKey) {
     throw new Error('缺少 GEMINI_API_KEY 環境變數');
   }

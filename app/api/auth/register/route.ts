@@ -4,12 +4,10 @@
  * 建立新使用者帳號並自動建立 user_profiles
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { ValidationError, toApiResponse } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
     const body = await request.json();
     const { email, password, display_name } = body;
 

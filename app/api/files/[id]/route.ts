@@ -135,7 +135,7 @@ export async function PUT(
 
 /**
  * DELETE /api/files/:id
- * 刪除檔案（軟刪除）
+ * 硬刪除檔案及其所有關聯資料（包括 S3 和 Gemini 儲存）
  */
 export async function DELETE(
     _request: NextRequest,
@@ -189,7 +189,14 @@ export async function DELETE(
         // 4. 刪除關聯標籤 (Hard Delete)
         await supabase.from('file_tags').delete().eq('file_id', id);
 
-        // 5. 刪除檔案記錄 (Hard Delete)
+        // 5. 刪除使用者收藏中的此檔案（user_favorites）
+        await supabase
+            .from('user_favorites')
+            .delete()
+            .eq('resource_type', 'FILE')
+            .eq('resource_id', id);
+
+        // 6. 刪除檔案記錄 (Hard Delete)
         const { error: deleteError } = await supabase
             .from('files')
             .delete()

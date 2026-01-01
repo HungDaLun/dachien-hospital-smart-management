@@ -156,6 +156,7 @@ export async function PUT(
 
 /**
  * DELETE /api/agents/[id]
+ * 硬刪除 Agent 及其所有關聯資料
  */
 export async function DELETE(
     _request: NextRequest,
@@ -183,17 +184,70 @@ export async function DELETE(
             }
         }
 
-        // 執行軟刪除
+        // 1. 先取得所有相關的訊息 ID
+        const { data: messages } = await supabase
+            .from('chat_messages')
+            .select('id')
+            .eq('agent_id', params.id);
+
+        const messageIds = messages?.map(m => m.id) || [];
+
+        // 2. 刪除所有關聯的對話回饋（chat_feedback）
+        if (messageIds.length > 0) {
+            await supabase
+                .from('chat_feedback')
+                .delete()
+                .in('message_id', messageIds);
+        }
+
+        // 3. 刪除所有關聯的對話訊息（chat_messages）
+        await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('agent_id', params.id);
+
+        // 4. 刪除所有關聯的對話 Session（chat_sessions）
+        await supabase
+            .from('chat_sessions')
+            .delete()
+            .eq('agent_id', params.id);
+
+        // 5. 刪除 Agent 知識規則（agent_knowledge_rules）
+        await supabase
+            .from('agent_knowledge_rules')
+            .delete()
+            .eq('agent_id', params.id);
+
+        // 6. 刪除 Agent Prompt 版本歷史（agent_prompt_versions）
+        await supabase
+            .from('agent_prompt_versions')
+            .delete()
+            .eq('agent_id', params.id);
+
+        // 7. 刪除 Agent 存取控制（agent_access_control）
+        await supabase
+            .from('agent_access_control')
+            .delete()
+            .eq('agent_id', params.id);
+
+        // 8. 刪除使用者收藏中的此 Agent（user_favorites）
+        await supabase
+            .from('user_favorites')
+            .delete()
+            .eq('resource_type', 'AGENT')
+            .eq('resource_id', params.id);
+
+        // 9. 最後刪除 Agent 本身（硬刪除）
         const { error } = await supabase
             .from('agents')
-            .update({ is_active: false })
+            .delete()
             .eq('id', params.id);
 
         if (error) throw error;
 
         return NextResponse.json({
             success: true,
-            data: { message: 'Agent 已成功停用' },
+            data: { message: 'Agent 已成功刪除' },
         });
     } catch (error) {
         return toApiResponse(error);
