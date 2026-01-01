@@ -24,19 +24,37 @@ function LoginFormContent({ dict }: LoginFormProps) {
             setRegistered(true);
             setTimeout(() => setRegistered(false), 3000);
         }
+        // 注意：session 清除已在 Server Component 中處理，這裡不需要重複清除
     }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // 驗證：確保 email 和 password 都有值
+        if (!email || !password) {
+            setError('請輸入電子郵件和密碼');
+            return;
+        }
+
+        // 驗證：確保 email 格式正確
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError('請輸入有效的電子郵件地址');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
         try {
+            // 先清除任何現有的 session，確保是全新的登入
             const supabase = createClient();
+            await supabase.auth.signOut();
 
+            // 然後進行登入
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+                email: email.trim(),
+                password: password.trim(),
             });
 
             if (signInError) {
@@ -104,6 +122,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                autoComplete="off"
                                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="your@email.com"
                                 disabled={loading}
@@ -120,6 +139,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                autoComplete="off"
                                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="••••••••"
                                 disabled={loading}

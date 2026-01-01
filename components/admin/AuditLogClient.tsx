@@ -67,6 +67,23 @@ export default function AuditLogClient({ dict }: AuditLogClientProps) {
                 </div>
             </div>
 
+            {/* 提示：如果是在找使用者審核 */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl">💡</span>
+                    <div>
+                        <p className="font-medium text-blue-900">正在尋找使用者註冊審核？</p>
+                        <p className="text-sm text-blue-700">使用者權限審核與角色管理位於「使用者管理」頁面。</p>
+                    </div>
+                </div>
+                <a
+                    href="/dashboard/admin/users"
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                >
+                    前往使用者管理 →
+                </a>
+            </div>
+
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
                 <div className="w-full sm:w-auto">
                     <label className="block text-sm font-medium text-gray-700 mb-1">{dict.admin.audit.action}</label>

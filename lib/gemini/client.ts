@@ -78,6 +78,42 @@ export async function uploadFileToGemini(
   }
 }
 
+
+/**
+ * 刪除 Gemini 上的檔案
+ * @param uri 檔案 URI (例如: https://generativelanguage.googleapis.com/v1beta/files/...)
+ */
+export async function deleteFileFromGemini(uri: string): Promise<void> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('缺少 GEMINI_API_KEY 環境變數');
+  }
+
+  // 從 URI 提取檔案名稱 (name)
+  // URI 格式通常為: https://generativelanguage.googleapis.com/v1beta/files/NAME
+  const fileName = uri.split('/').pop();
+  if (!fileName) {
+    console.warn('無法從 URI 解析檔案名稱:', uri);
+    return;
+  }
+
+  // 完整 name 格式通常為 files/NAME，但 API 可能只需要 NAME 或 files/NAME
+  // GoogleAIFileManager deleteFile 接收 `name` (e.g. "files/abc-123")
+
+  // 如果 uri 是完整的 URL，我們嘗試提取 'files/...' 部分
+  // 假設標準格式
+  let name = `files/${fileName}`;
+
+  const fileManager = new GoogleAIFileManager(apiKey);
+
+  try {
+    await fileManager.deleteFile(name);
+  } catch (error) {
+    console.error('Gemini 檔案刪除失敗:', error);
+    // 不拋出錯誤，避免阻斷後續流程
+  }
+}
+
 /**
  * 使用 Gemini 模型進行對話
  * @param modelVersion 模型版本（如 'gemini-2.5-flash'）

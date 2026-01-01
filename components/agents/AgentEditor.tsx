@@ -140,6 +140,30 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         }));
     };
 
+    const handleDelete = async () => {
+        // Use default confirmation message if not in dictionary
+        const confirmMsg = '確定要刪除此 Agent 嗎？此動作無法復原。';
+        if (!confirm(confirmMsg)) return;
+
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/agents/${formData.id}`, {
+                method: 'DELETE',
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                router.push('/dashboard/agents');
+                router.refresh();
+            } else {
+                throw new Error(json.error?.message || dict.common.error);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : dict.common.error);
+            setLoading(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -394,18 +418,31 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 </div>
             </div>
 
-            <div className="flex justify-end gap-3">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.back()}
-                    disabled={loading}
-                >
-                    {dict.common.cancel}
-                </Button>
-                <Button type="submit" disabled={loading} className="min-w-[120px]">
-                    {loading ? <Spinner size="sm" color="white" /> : (isEditing ? dict.common.save : dict.agents.create_new)}
-                </Button>
+            <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+                {isEditing ? (
+                    <Button
+                        type="button"
+                        variant="danger"
+                        onClick={handleDelete}
+                        disabled={loading}
+                    >
+                        {dict.common.delete}
+                    </Button>
+                ) : <div></div>}
+
+                <div className="flex gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => router.back()}
+                        disabled={loading}
+                    >
+                        {dict.common.cancel}
+                    </Button>
+                    <Button type="submit" disabled={loading} className="min-w-[120px]">
+                        {loading ? <Spinner size="sm" color="white" /> : (isEditing ? dict.common.save : dict.agents.create_new)}
+                    </Button>
+                </div>
             </div>
         </form>
     );

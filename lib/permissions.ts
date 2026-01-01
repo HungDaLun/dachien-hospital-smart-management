@@ -45,7 +45,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
       errorCode: error?.code,
       errorMessage: error?.message
     });
-    
+
     try {
       const adminClient = createAdminClient();
       const { data: adminProfile, error: adminError } = await adminClient
@@ -53,7 +53,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
         .select('id, role, department_id, status')
         .eq('id', user.id)
         .single();
-      
+
       if (!adminError && adminProfile) {
         console.log('getCurrentUserProfile: Admin client fallback 成功');
         return {
@@ -71,7 +71,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
     } catch (fallbackError) {
       console.error('getCurrentUserProfile: Admin client fallback 異常:', fallbackError);
     }
-    
+
     throw new AuthenticationError('無法取得使用者資料');
   }
 
@@ -292,7 +292,7 @@ export async function canDeleteFile(
   // 取得檔案資訊
   const { data: file } = await supabase
     .from('files')
-    .select('uploaded_by, file_tags!inner(tag_key, tag_value)')
+    .select('uploaded_by, file_tags(tag_key, tag_value)')
     .eq('id', fileId)
     .single();
 

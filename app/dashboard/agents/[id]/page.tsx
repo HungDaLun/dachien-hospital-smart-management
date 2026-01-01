@@ -52,7 +52,7 @@ export default async function AgentDetailsPage({ params }: AgentDetailsPageProps
             <div className="text-center py-20">
                 <h2 className="text-xl font-bold text-gray-900">{dict.common.error}</h2>
                 <p className="text-gray-600 mt-2">{dict.agents.form.access_control}</p>
-                <Link href="/agents" className="inline-block mt-6">
+                <Link href="/dashboard/agents" className="inline-block mt-6">
                     <Button variant="outline">{dict.common.back}</Button>
                 </Link>
             </div>

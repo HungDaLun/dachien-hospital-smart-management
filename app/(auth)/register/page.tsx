@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -48,12 +49,19 @@ export default function RegisterPage() {
       }
 
       if (data.success) {
+        // 註冊成功後，確保清除任何可能的 session
+        // 使用 Admin API 註冊不會自動登入，但為了安全起見，還是清除一下
+        try {
+          const supabase = createClient();
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          // 如果清除失敗，不影響註冊流程
+          console.warn('清除 session 失敗:', signOutError);
+        }
+        
         setSuccess(true);
-        // 註冊成功後，等待 3 秒後導向登入頁
-        // 顯示需要審核的訊息
-        setTimeout(() => {
-          router.push('/login?registered=pending');
-        }, 3000);
+        setLoading(false);
+        // 註冊成功，顯示成功訊息，讓使用者手動前往登入頁
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '註冊失敗，請稍後再試');
@@ -85,15 +93,25 @@ export default function RegisterPage() {
               <p className="text-sm text-blue-700 font-medium mb-2">
                 ✅ 註冊成功！
               </p>
-              <p className="text-sm text-blue-600">
+              <p className="text-sm text-blue-600 mb-4">
                 您的帳號已建立，但需要等待管理員審核通過後才能使用系統功能。
                 <br />
                 審核通過後，您將收到通知，即可開始使用。
               </p>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => router.push('/login?registered=true')}
+                  className="w-full py-2 px-4 bg-primary-500 text-white rounded-md font-medium hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+                >
+                  前往登入頁面
+                </button>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {!success && (
+            <form onSubmit={handleSubmit} className="space-y-4">
             {/* 顯示名稱輸入（選填） */}
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -157,6 +175,7 @@ export default function RegisterPage() {
               {loading ? '註冊中...' : success ? '註冊成功！' : '註冊'}
             </button>
           </form>
+          )}
 
           {/* 其他選項 */}
           <div className="mt-6 text-center">

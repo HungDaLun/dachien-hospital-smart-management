@@ -83,8 +83,14 @@ export async function middleware(request: NextRequest) {
 
     // API 路由處理
     if (pathname.startsWith('/api/')) {
-        // 健康檢查端點不需要驗證
-        if (pathname.startsWith('/api/health')) {
+        // 公開 API 端點（不需要驗證）
+        const publicApiRoutes = [
+            '/api/health',
+            '/api/auth/register',  // 註冊 API 允許未登入使用者
+            '/api/auth/logout',    // 登出 API 允許未登入使用者（處理已過期的 session）
+        ];
+        
+        if (publicApiRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
             return response;
         }
 
@@ -164,10 +170,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // 頁面路由處理
-    // 如果是公開路由且已登入，導向儀表板
-    if (isPublicRoute && user && (pathname === '/login' || pathname === '/register')) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
+    // 注意：不自動重定向已登入的使用者離開登入/註冊頁面
+    // 登入頁面會在 Server Component 中清除 session，讓使用者可以重新登入
+    // 這樣可以避免因為殘留 session 而無法看到登入頁面的問題
 
     // 如果不是公開路由且未登入，導向登入頁
     if (!isPublicRoute && !user) {

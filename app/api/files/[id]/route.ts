@@ -153,18 +153,53 @@ export async function DELETE(
 
         const supabase = await createClient();
 
-        // 軟刪除：設定 is_active = false
-        const { error: updateError } = await supabase
+        // 1. 取得完整檔案資訊 (為了刪除儲顯)
+        const { data: file, error: fetchError } = await supabase
             .from('files')
-            .update({
-                is_active: false,
-                updated_at: new Date().toISOString(),
-            })
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !file) {
+            // Already gone or error
+            throw new NotFoundError('檔案');
+        }
+
+        // 2. 刪除 S3 檔案
+        if (file.s3_storage_path) {
+            try {
+                // Dynamic import to avoid circular dependency issues if any, keeping it clean
+                const { deleteFromS3 } = await import('@/lib/storage/s3');
+                await deleteFromS3(file.s3_storage_path);
+            } catch (e) {
+                console.error('S3 刪除失敗 (非致命):', e);
+            }
+        }
+
+        // 3. 刪除 Gemini 檔案
+        if (file.gemini_file_uri) {
+            try {
+                const { deleteFileFromGemini } = await import('@/lib/gemini/client');
+                await deleteFileFromGemini(file.gemini_file_uri);
+            } catch (e) {
+                console.error('Gemini 刪除失敗 (非致命):', e);
+            }
+        }
+
+        // 4. 刪除關聯標籤 (Hard Delete)
+        await supabase.from('file_tags').delete().eq('file_id', id);
+
+        // 5. 刪除檔案記錄 (Hard Delete)
+        const { error: deleteError } = await supabase
+            .from('files')
+            .delete()
             .eq('id', id);
 
-        if (updateError) {
-            return toApiResponse(updateError);
+        if (deleteError) {
+            return toApiResponse(deleteError);
         }
+
+
 
         return NextResponse.json({
             success: true,

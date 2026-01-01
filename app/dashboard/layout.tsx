@@ -27,9 +27,16 @@ export default async function DashboardLayout({
   // 使用快取的查詢（在同一個請求中，如果其他地方也查詢相同資料，會重用結果）
   const profile = await getCachedUserProfile(user.id);
 
-  // 如果使用者狀態為 PENDING，導向待審核頁面
+  // 如果使用者狀態為 PENDING，只渲染簡單的 layout（不顯示導航列）
+  // 這樣 /dashboard/pending 頁面可以正常顯示，不會造成重定向循環
   if (profile && profile.status === 'PENDING') {
-    redirect('/dashboard/pending');
+    return (
+      <ToastProvider>
+        <div className="min-h-screen bg-gray-50">
+          {children}
+        </div>
+      </ToastProvider>
+    );
   }
 
   const locale = await getLocale();

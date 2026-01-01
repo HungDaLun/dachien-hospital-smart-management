@@ -40,7 +40,7 @@ export default async function AgentsPage() {
                     <h1 className="text-2xl font-bold text-gray-900">{dict.agents.title}</h1>
                     <p className="text-gray-600">{dict.dashboard_home.agent_card_desc}</p>
                 </div>
-                <Link href="/agents/new">
+                <Link href="/dashboard/agents/new">
                     <Button>
                         <span className="mr-2 text-lg">+</span> {dict.agents.create_new}
                     </Button>
@@ -59,7 +59,7 @@ export default async function AgentsPage() {
                         </div>
                         <h3 className="text-lg font-medium text-gray-900">{dict.common.no_data}</h3>
                         <p className="mt-1">{dict.dashboard_home.agent_card_desc}</p>
-                        <Link href="/agents/new" className="mt-6 inline-block">
+                        <Link href="/dashboard/agents/new" className="mt-6 inline-block">
                             <Button variant="outline">{dict.agents.create_new}</Button>
                         </Link>
                     </div>
@@ -104,7 +104,7 @@ export default async function AgentsPage() {
 
                                 {/* 操作按鈕 */}
                                 <div className="pt-2 flex items-center gap-2">
-                                    <Link href={`/agents/${agent.id}`} className="flex-1">
+                                    <Link href={`/dashboard/agents/${agent.id}`} className="flex-1">
                                         <Button variant="outline" className="w-full" size="sm">
                                             {dict.common.settings}
                                         </Button>

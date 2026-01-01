@@ -29,22 +29,32 @@ export async function POST(request: NextRequest) {
       throw new ValidationError('密碼長度至少需要 6 個字元');
     }
 
-    // 使用 Supabase Auth 建立使用者
-    // 設定不需要郵件驗證，直接啟用帳號
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    // 使用 Admin client 來建立使用者，避免自動登入
+    // 這樣可以確保註冊後不會自動建立 session
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminClient = createAdminClient();
+
+    // 檢查使用者是否已存在
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+    const existingUser = existingUsers.users.find(u => u.email === email);
+    
+    if (existingUser) {
+      throw new ValidationError('此電子郵件已被註冊');
+    }
+
+    // 使用 Admin API 建立使用者（不會自動登入）
+    const { data: authData, error: signUpError } = await adminClient.auth.admin.createUser({
       email,
       password,
-      options: {
-        emailRedirectTo: undefined, // 不需要郵件驗證
-        data: {
-          display_name: display_name || email.split('@')[0], // 預設使用 email 前綴
-        },
+      email_confirm: true, // 自動確認郵件
+      user_metadata: {
+        display_name: display_name || email.split('@')[0],
       },
     });
 
     if (signUpError) {
       // 處理常見錯誤
-      if (signUpError.message.includes('already registered')) {
+      if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
         throw new ValidationError('此電子郵件已被註冊');
       }
       if (signUpError.message.includes('Password')) {
@@ -57,42 +67,37 @@ export async function POST(request: NextRequest) {
       throw new ValidationError('註冊失敗，請稍後再試');
     }
 
-    // 使用 Admin client 來建立 user_profiles，因為新使用者可能無法通過 RLS
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const adminClient = createAdminClient();
+    // 使用 Admin API 建立使用者時已經設定 email_confirm: true
+    // 所以不需要再次確認郵件
 
-    // 如果 Supabase 要求郵件驗證，使用 Admin API 自動確認郵件
-    // 這樣使用者就不需要點擊郵件連結
-    if (!authData.user.email_confirmed_at) {
-      try {
-        await adminClient.auth.admin.updateUserById(authData.user.id, {
-          email_confirm: true, // 自動確認郵件
-        });
-        console.log('已自動確認使用者郵件:', authData.user.email);
-      } catch (confirmError) {
-        console.warn('自動確認郵件失敗（可能不需要）:', confirmError);
-        // 如果失敗，不影響註冊流程，繼續執行
-      }
-    }
-
-    // 自動建立 user_profiles 記錄
+    // 自動建立或更新 user_profiles 記錄
+    // 使用 upsert 來處理觸發器可能已經建立記錄的情況
     // 預設角色為 USER，狀態為 PENDING（待審核）
     const { error: profileError } = await adminClient
       .from('user_profiles')
-      .insert({
+      .upsert({
         id: authData.user.id,
         email: authData.user.email!,
         display_name: display_name || authData.user.email!.split('@')[0],
         role: 'USER', // 預設角色，管理員審核時可以修改
         status: 'PENDING', // 待審核狀態
+      }, {
+        onConflict: 'id', // 如果 id 已存在，則更新
       });
 
     if (profileError) {
       console.error('建立 user_profiles 失敗:', profileError);
       // 如果 user_profiles 建立失敗，嘗試刪除 auth.users 中的記錄
-      // 注意：這需要 service role key，在生產環境中可能需要手動處理
+      try {
+        await adminClient.auth.admin.deleteUser(authData.user.id);
+      } catch (deleteError) {
+        console.error('刪除使用者失敗:', deleteError);
+      }
       throw new ValidationError('建立使用者資料失敗，請聯絡管理員');
     }
+
+    // 注意：使用 Admin API 建立使用者不會自動建立 session
+    // 所以不需要清除 session，使用者需要手動登入
 
     return NextResponse.json({
       success: true,
