@@ -38,6 +38,18 @@ export async function middleware(request: NextRequest) {
         request,
     });
 
+    const pathname = request.nextUrl.pathname;
+
+    // 檢查是否為公開路由（優先檢查，避免不必要的認證查詢）
+    const isPublicRoute = publicRoutes.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+
+    // 對於公開路由且不是登入/註冊頁，直接返回（不需要認證）
+    if (isPublicRoute && pathname !== '/login' && pathname !== '/register') {
+        return response;
+    }
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -66,14 +78,8 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // 取得當前使用者
+    // 取得當前使用者（僅在需要時執行）
     const { data: { user } } = await supabase.auth.getUser();
-    const pathname = request.nextUrl.pathname;
-
-    // 檢查是否為公開路由
-    const isPublicRoute = publicRoutes.some(
-        (route) => pathname === route || pathname.startsWith(`${route}/`)
-    );
 
     // API 路由處理
     if (pathname.startsWith('/api/')) {
@@ -96,7 +102,7 @@ export async function middleware(request: NextRequest) {
             );
         }
 
-        // 檢查是否需要特定角色權限
+        // 檢查是否需要特定角色權限（只查詢一次）
         const { data: profile } = await supabase
             .from('user_profiles')
             .select('role')
@@ -156,29 +162,33 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // 檢查管理員路由
-    if (user && adminRoutes.some((route) => pathname.startsWith(route))) {
+    // 檢查管理員路由（合併查詢，避免重複）
+    const needsAdminCheck = user && (
+        adminRoutes.some((route) => pathname.startsWith(route)) ||
+        superAdminRoutes.some((route) => pathname.startsWith(route))
+    );
+
+    if (needsAdminCheck) {
         const { data: profile } = await supabase
             .from('user_profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-        if (!profile || !['SUPER_ADMIN', 'DEPT_ADMIN'].includes(profile.role)) {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-    }
+        if (profile) {
+            // 檢查管理員路由
+            if (adminRoutes.some((route) => pathname.startsWith(route))) {
+                if (!['SUPER_ADMIN', 'DEPT_ADMIN'].includes(profile.role)) {
+                    return NextResponse.redirect(new URL('/dashboard', request.url));
+                }
+            }
 
-    // 檢查超級管理員專屬路由
-    if (user && superAdminRoutes.some((route) => pathname.startsWith(route))) {
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-        if (!profile || profile.role !== 'SUPER_ADMIN') {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
+            // 檢查超級管理員專屬路由
+            if (superAdminRoutes.some((route) => pathname.startsWith(route))) {
+                if (profile.role !== 'SUPER_ADMIN') {
+                    return NextResponse.redirect(new URL('/dashboard', request.url));
+                }
+            }
         }
     }
 

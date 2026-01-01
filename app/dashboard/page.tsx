@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import { getCachedUserProfile } from '@/lib/cache/user-profile';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -18,12 +19,8 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // 取得使用者資料
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // 使用快取的查詢（如果 layout 已經查詢過，會重用結果）
+  const profile = await getCachedUserProfile(user.id);
 
   const locale = await getLocale();
   const dict = await getDictionary(locale);

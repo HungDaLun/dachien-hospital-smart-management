@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { getCachedUserProfile } from '@/lib/cache/user-profile';
 
 export default async function DashboardLayout({
   children,
@@ -23,12 +24,8 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // 獲取使用者個人資料
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // 使用快取的查詢（在同一個請求中，如果其他地方也查詢相同資料，會重用結果）
+  const profile = await getCachedUserProfile(user.id);
 
   const locale = await getLocale();
   const dict = await getDictionary(locale);
