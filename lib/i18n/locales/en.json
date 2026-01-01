@@ -222,5 +222,22 @@
             "gemini_warning": "⚠️ API Key must be set via GEMINI_API_KEY environment variable",
             "storage_warning": "⚠️ Storage settings must be set via environment variables"
         }
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Manage your profile and preferences",
+        "profile_section": "Profile",
+        "display_name_label": "Display Name",
+        "display_name_placeholder": "Enter your display name",
+        "email_label": "Email",
+        "email_readonly": "Email cannot be changed",
+        "role_label": "Role",
+        "department_label": "Department",
+        "no_department": "(No Department)",
+        "save_success": "Profile updated successfully",
+        "save_error": "Update failed, please try again",
+        "updating": "Updating...",
+        "account_info": "Account Information",
+        "created_at_label": "Created At"
     }
 }

@@ -105,11 +105,25 @@ export async function middleware(request: NextRequest) {
         // 檢查是否需要特定角色權限（只查詢一次）
         const { data: profile } = await supabase
             .from('user_profiles')
-            .select('role')
+            .select('role, status')
             .eq('id', user.id)
             .single();
 
         if (profile) {
+            // 檢查使用者狀態：待審核使用者無法使用 API（除了登出）
+            if (profile.status === 'PENDING' && !pathname.startsWith('/api/auth/logout')) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: {
+                            code: 'PENDING_APPROVAL',
+                            message: '您的帳號正在等待管理員審核，審核通過後即可使用系統功能。'
+                        }
+                    },
+                    { status: 403 }
+                );
+            }
+
             const userRole = profile.role;
 
             // 檢查超級管理員專屬 API
@@ -171,11 +185,16 @@ export async function middleware(request: NextRequest) {
     if (needsAdminCheck) {
         const { data: profile } = await supabase
             .from('user_profiles')
-            .select('role')
+            .select('role, status')
             .eq('id', user.id)
             .single();
 
         if (profile) {
+            // 檢查使用者狀態：待審核使用者無法存取管理員頁面
+            if (profile.status === 'PENDING') {
+                return NextResponse.redirect(new URL('/dashboard/pending', request.url));
+            }
+
             // 檢查管理員路由
             if (adminRoutes.some((route) => pathname.startsWith(route))) {
                 if (!['SUPER_ADMIN', 'DEPT_ADMIN'].includes(profile.role)) {
@@ -189,6 +208,19 @@ export async function middleware(request: NextRequest) {
                     return NextResponse.redirect(new URL('/dashboard', request.url));
                 }
             }
+        }
+    }
+
+    // 檢查一般頁面路由：待審核使用者只能看到待審核頁面
+    if (user && !isPublicRoute && !pathname.startsWith('/dashboard/pending')) {
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('status')
+            .eq('id', user.id)
+            .single();
+
+        if (profile && profile.status === 'PENDING') {
+            return NextResponse.redirect(new URL('/dashboard/pending', request.url));
         }
     }
 

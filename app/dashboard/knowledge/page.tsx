@@ -9,6 +9,7 @@ import FileList from '@/components/files/FileList';
 import FileUploader from '@/components/files/FileUploader';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import { getCachedUserProfile } from '@/lib/cache/user-profile';
 
 export default async function KnowledgePage() {
     const supabase = await createClient();
@@ -22,12 +23,8 @@ export default async function KnowledgePage() {
         redirect('/login');
     }
 
-    // 取得使用者資料
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role, department_id')
-        .eq('id', user.id)
-        .single();
+    // 使用快取的查詢函數（包含 fallback 機制）
+    const profile = await getCachedUserProfile(user.id);
 
     // 判斷是否可以上傳
     const canUpload = profile && ['SUPER_ADMIN', 'DEPT_ADMIN', 'EDITOR'].includes(profile.role);

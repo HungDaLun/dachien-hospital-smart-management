@@ -3,6 +3,7 @@
  * 遵循 EAKAP 權限矩陣規範
  */
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors';
 import type { UserRole } from '@/types';
 
@@ -13,10 +14,12 @@ export interface UserProfile {
   id: string;
   role: UserRole;
   department_id: string | null;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 /**
  * 取得當前使用者的完整資料（包含角色與部門）
+ * 如果查詢失敗，會使用 Admin client 作為 fallback
  */
 export async function getCurrentUserProfile(): Promise<UserProfile> {
   const supabase = await createClient();
@@ -27,14 +30,48 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
     throw new AuthenticationError();
   }
 
-  // 取得使用者資料
+  // 取得使用者資料（包含狀態）
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .select('id, role, department_id')
+    .select('id, role, department_id, status')
     .eq('id', user.id)
     .single();
 
+  // 如果查詢失敗，使用 Admin client 作為 fallback
   if (error || !profile) {
+    // 無論錯誤代碼是什麼，都嘗試使用 Admin client 作為 fallback
+    console.warn('getCurrentUserProfile: 查詢失敗，使用 Admin client fallback:', {
+      userId: user.id,
+      errorCode: error?.code,
+      errorMessage: error?.message
+    });
+    
+    try {
+      const adminClient = createAdminClient();
+      const { data: adminProfile, error: adminError } = await adminClient
+        .from('user_profiles')
+        .select('id, role, department_id, status')
+        .eq('id', user.id)
+        .single();
+      
+      if (!adminError && adminProfile) {
+        console.log('getCurrentUserProfile: Admin client fallback 成功');
+        return {
+          id: adminProfile.id,
+          role: adminProfile.role as UserRole,
+          department_id: adminProfile.department_id,
+          status: adminProfile.status as 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,
+        };
+      } else {
+        console.error('getCurrentUserProfile: Admin client fallback 查詢失敗:', {
+          adminError: adminError?.code,
+          adminErrorMessage: adminError?.message
+        });
+      }
+    } catch (fallbackError) {
+      console.error('getCurrentUserProfile: Admin client fallback 異常:', fallbackError);
+    }
+    
     throw new AuthenticationError('無法取得使用者資料');
   }
 
@@ -42,6 +79,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
     id: profile.id,
     role: profile.role as UserRole,
     department_id: profile.department_id,
+    status: profile.status as 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,
   };
 }
 
@@ -50,6 +88,20 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
  */
 export function hasRole(profile: UserProfile, roles: UserRole[]): boolean {
   return roles.includes(profile.role);
+}
+
+/**
+ * 檢查使用者是否已審核通過
+ */
+export function isApproved(profile: UserProfile): boolean {
+  return profile.status === 'APPROVED';
+}
+
+/**
+ * 檢查使用者是否待審核
+ */
+export function isPending(profile: UserProfile): boolean {
+  return profile.status === 'PENDING';
 }
 
 /**

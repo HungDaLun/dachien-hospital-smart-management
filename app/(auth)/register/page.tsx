@@ -49,10 +49,11 @@ export default function RegisterPage() {
 
       if (data.success) {
         setSuccess(true);
-        // 註冊成功後，等待 2 秒後導向登入頁
+        // 註冊成功後，等待 3 秒後導向登入頁
+        // 顯示需要審核的訊息
         setTimeout(() => {
-          router.push('/login?registered=true');
-        }, 2000);
+          router.push('/login?registered=pending');
+        }, 3000);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '註冊失敗，請稍後再試');
@@ -80,9 +81,14 @@ export default function RegisterPage() {
           )}
 
           {success && (
-            <div className="mb-4 p-3 bg-success-50 border border-success-500 rounded-md">
-              <p className="text-sm text-success-500">
-                註冊成功！正在導向登入頁面...
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-500 rounded-md">
+              <p className="text-sm text-blue-700 font-medium mb-2">
+                ✅ 註冊成功！
+              </p>
+              <p className="text-sm text-blue-600">
+                您的帳號已建立，但需要等待管理員審核通過後才能使用系統功能。
+                <br />
+                審核通過後，您將收到通知，即可開始使用。
               </p>
             </div>
           )}

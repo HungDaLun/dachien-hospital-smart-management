@@ -27,10 +27,14 @@ export function AgentStatsCards({ dict }: AgentStatsCardsProps) {
     useEffect(() => {
         async function fetchStats() {
             try {
-                const res = await fetch('/api/agents/stats');
+                const res = await fetch('/api/agents/stats', {
+                    credentials: 'include', // 確保攜帶 cookies
+                });
                 const json = await res.json();
                 if (json.success) {
                     setStats(json.data);
+                } else {
+                    console.error('Failed to fetch agent stats:', json.error);
                 }
             } catch (error) {
                 console.error('Failed to fetch agent stats:', error);

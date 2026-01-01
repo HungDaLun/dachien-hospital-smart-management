@@ -46,7 +46,19 @@ function LoginFormContent({ dict }: LoginFormProps) {
             }
 
             if (data.user) {
-                router.push('/dashboard');
+                // 檢查使用者狀態，決定導向哪個頁面
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('status')
+                    .eq('id', data.user.id)
+                    .single();
+
+                // 如果狀態為 PENDING，導向待審核頁面
+                if (profile?.status === 'PENDING') {
+                    router.push('/dashboard/pending');
+                } else {
+                    router.push('/dashboard');
+                }
                 router.refresh();
             }
         } catch (err) {
@@ -67,8 +79,11 @@ function LoginFormContent({ dict }: LoginFormProps) {
                     <h2 className="text-2xl font-semibold text-gray-900 mb-6">{dict.auth.sign_in}</h2>
 
                     {registered && (
-                        <div className="mb-4 p-3 bg-success-50 border border-success-500 rounded-md">
-                            <p className="text-sm text-success-500">{dict.auth.register_success}</p>
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-500 rounded-md">
+                            <p className="text-sm text-blue-700 font-medium mb-1">註冊成功！</p>
+                            <p className="text-sm text-blue-600">
+                                您的帳號已建立，請等待管理員審核通過後即可使用系統功能。
+                            </p>
                         </div>
                     )}
 

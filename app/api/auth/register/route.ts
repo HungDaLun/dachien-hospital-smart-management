@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 使用 Supabase Auth 建立使用者
+    // 設定不需要郵件驗證，直接啟用帳號
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: undefined, // 不需要郵件驗證
         data: {
           display_name: display_name || email.split('@')[0], // 預設使用 email 前綴
         },
@@ -55,15 +57,34 @@ export async function POST(request: NextRequest) {
       throw new ValidationError('註冊失敗，請稍後再試');
     }
 
+    // 使用 Admin client 來建立 user_profiles，因為新使用者可能無法通過 RLS
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminClient = createAdminClient();
+
+    // 如果 Supabase 要求郵件驗證，使用 Admin API 自動確認郵件
+    // 這樣使用者就不需要點擊郵件連結
+    if (!authData.user.email_confirmed_at) {
+      try {
+        await adminClient.auth.admin.updateUserById(authData.user.id, {
+          email_confirm: true, // 自動確認郵件
+        });
+        console.log('已自動確認使用者郵件:', authData.user.email);
+      } catch (confirmError) {
+        console.warn('自動確認郵件失敗（可能不需要）:', confirmError);
+        // 如果失敗，不影響註冊流程，繼續執行
+      }
+    }
+
     // 自動建立 user_profiles 記錄
-    // 預設角色為 USER
-    const { error: profileError } = await supabase
+    // 預設角色為 USER，狀態為 PENDING（待審核）
+    const { error: profileError } = await adminClient
       .from('user_profiles')
       .insert({
         id: authData.user.id,
         email: authData.user.email!,
         display_name: display_name || authData.user.email!.split('@')[0],
-        role: 'USER', // 預設角色
+        role: 'USER', // 預設角色，管理員審核時可以修改
+        status: 'PENDING', // 待審核狀態
       });
 
     if (profileError) {
@@ -80,7 +101,8 @@ export async function POST(request: NextRequest) {
           id: authData.user.id,
           email: authData.user.email,
         },
-        message: '註冊成功',
+        message: '註冊成功！您的帳號已建立，請等待管理員審核通過後即可使用。',
+        requiresApproval: true,
       },
     }, { status: 201 });
 

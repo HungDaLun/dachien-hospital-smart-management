@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -59,6 +60,15 @@ export default function UserMenu({ email, displayName, role, logoutText = '登�
             <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 {(displayName?.[0] || email?.[0] || 'U').toUpperCase()}
             </div>
+
+            {/* 設定連結 */}
+            <Link
+                href="/dashboard/settings"
+                className="text-gray-400 hover:text-primary-600 transition-colors flex items-center justify-center p-1.5 hover:bg-primary-50 rounded-md"
+                title="設定"
+            >
+                <span className="text-xl">⚙️</span>
+            </Link>
 
             <button
                 onClick={handleLogout}

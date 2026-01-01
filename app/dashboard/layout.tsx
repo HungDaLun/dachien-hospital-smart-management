@@ -27,6 +27,11 @@ export default async function DashboardLayout({
   // 使用快取的查詢（在同一個請求中，如果其他地方也查詢相同資料，會重用結果）
   const profile = await getCachedUserProfile(user.id);
 
+  // 如果使用者狀態為 PENDING，導向待審核頁面
+  if (profile && profile.status === 'PENDING') {
+    redirect('/dashboard/pending');
+  }
+
   const locale = await getLocale();
   const dict = await getDictionary(locale);
 
@@ -39,6 +44,15 @@ export default async function DashboardLayout({
     { href: '/dashboard/agents', label: dict.navigation.agents, icon: '🤖' },
     { href: '/dashboard/chat', label: dict.navigation.chat, icon: '💬' },
   ];
+
+  // 如果是 SUPER_ADMIN，在「AI 對話」後面加入「系統管理」
+  if (profile?.role === 'SUPER_ADMIN') {
+    navItems.push({
+      href: '/dashboard/admin',
+      label: dict.navigation.system_admin,
+      icon: '🛠️',
+    });
+  }
 
   return (
     <ToastProvider>
@@ -79,17 +93,6 @@ export default async function DashboardLayout({
             </div>
           </div>
         </nav>
-
-        {/* 次級導航 (僅管理員顯示) */}
-        {profile?.role === 'SUPER_ADMIN' && (
-          <div className="bg-gray-100 border-b border-gray-200 px-6 py-2">
-            <div className="max-w-7xl mx-auto flex gap-4 text-sm">
-              <span className="font-bold text-gray-500 flex items-center">🛠 {dict.navigation.system_admin}:</span>
-              <Link href="/dashboard/admin/departments" className="hover:text-primary-600 text-gray-600">{dict.navigation.departments}</Link>
-              <Link href="/dashboard/admin/users" className="hover:text-primary-600 text-gray-600">{dict.navigation.users}</Link>
-            </div>
-          </div>
-        )}
 
         {/* 主內容區 */}
         <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 overflow-auto">

@@ -3,7 +3,7 @@
  * 用於 Server Components 和 API Routes
  */
 import { createServerClient } from '@supabase/ssr';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 
 /**
  * 建立 Supabase 伺服器客戶端
@@ -11,7 +11,6 @@ import { cookies, headers } from 'next/headers';
  */
 export async function createClient() {
   const cookieStore = await cookies();
-  const headersStore = await headers();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -22,12 +21,10 @@ export async function createClient() {
     );
   }
 
+  // 關鍵修復：移除 global.headers.Authorization
+  // 根據 Supabase SSR 文件，JWT token 應該只從 cookies 傳遞
+  // 設定 Authorization header 可能會干擾 cookies 中的 JWT token
   return createServerClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: headersStore.get('Authorization') || '',
-      },
-    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
