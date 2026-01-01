@@ -23,6 +23,16 @@ const adminRoutes = [
     '/dashboard/admin',
 ];
 
+/**
+ * 超級管理員專屬路由（僅 SUPER_ADMIN）
+ */
+const superAdminRoutes = [
+    '/dashboard/admin/system',
+    '/api/system/config',
+];
+
+
+
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
         request,
@@ -32,6 +42,11 @@ export async function middleware(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
+            global: {
+                headers: {
+                    Authorization: request.headers.get('Authorization') || '',
+                },
+            },
             cookies: {
                 getAll() {
                     return request.cookies.getAll();
@@ -53,7 +68,6 @@ export async function middleware(request: NextRequest) {
 
     // 取得當前使用者
     const { data: { user } } = await supabase.auth.getUser();
-
     const pathname = request.nextUrl.pathname;
 
     // 檢查是否為公開路由
@@ -61,17 +75,75 @@ export async function middleware(request: NextRequest) {
         (route) => pathname === route || pathname.startsWith(`${route}/`)
     );
 
-    // 如果是 API 路由（除了 health），需要驗證
-    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/health')) {
+    // API 路由處理
+    if (pathname.startsWith('/api/')) {
+        // 健康檢查端點不需要驗證
+        if (pathname.startsWith('/api/health')) {
+            return response;
+        }
+
+        // 其他 API 路由需要身份驗證
         if (!user) {
             return NextResponse.json(
-                { success: false, error: { code: 'UNAUTHORIZED', message: '請先登入' } },
+                {
+                    success: false,
+                    error: {
+                        code: 'UNAUTHORIZED',
+                        message: '請先登入'
+                    }
+                },
                 { status: 401 }
             );
         }
+
+        // 檢查是否需要特定角色權限
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile) {
+            const userRole = profile.role;
+
+            // 檢查超級管理員專屬 API
+            if (superAdminRoutes.some(route => pathname.startsWith(route))) {
+                if (userRole !== 'SUPER_ADMIN') {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: {
+                                code: 'PERMISSION_DENIED',
+                                message: '此操作需要超級管理員權限'
+                            }
+                        },
+                        { status: 403 }
+                    );
+                }
+            }
+
+            // 檢查管理員專屬 API
+            if (pathname.startsWith('/api/users') && request.method === 'POST') {
+                // 建立使用者需要 SUPER_ADMIN
+                if (userRole !== 'SUPER_ADMIN') {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: {
+                                code: 'PERMISSION_DENIED',
+                                message: '此操作需要超級管理員權限'
+                            }
+                        },
+                        { status: 403 }
+                    );
+                }
+            }
+        }
+
         return response;
     }
 
+    // 頁面路由處理
     // 如果是公開路由且已登入，導向儀表板
     if (isPublicRoute && user && (pathname === '/login' || pathname === '/register')) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -93,6 +165,19 @@ export async function middleware(request: NextRequest) {
             .single();
 
         if (!profile || !['SUPER_ADMIN', 'DEPT_ADMIN'].includes(profile.role)) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+    }
+
+    // 檢查超級管理員專屬路由
+    if (user && superAdminRoutes.some((route) => pathname.startsWith(route))) {
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile || profile.role !== 'SUPER_ADMIN') {
             return NextResponse.redirect(new URL('/dashboard', request.url));
         }
     }

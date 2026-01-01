@@ -3,7 +3,7 @@
  * 用於 Server Components 和 API Routes
  */
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 /**
  * 建立 Supabase 伺服器客戶端
@@ -11,7 +11,8 @@ import { cookies } from 'next/headers';
  */
 export async function createClient() {
   const cookieStore = await cookies();
-  
+  const headersStore = await headers();
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -22,6 +23,11 @@ export async function createClient() {
   }
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: headersStore.get('Authorization') || '',
+      },
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

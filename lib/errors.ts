@@ -141,7 +141,8 @@ export function toApiErrorResponse(error: unknown): ApiErrorResponse {
     success: false,
     error: {
       code: 'UNKNOWN_ERROR',
-      message: '發生未預期的錯誤，我們已收到通知',
+      message: error instanceof Error ? error.message : '發生未預期的錯誤，我們已收到通知',
+      details: error,
     },
   };
 }

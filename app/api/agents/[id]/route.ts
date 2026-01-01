@@ -6,7 +6,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { AuthenticationError, AuthorizationError, NotFoundError, toApiResponse } from '@/lib/errors';
+import { NotFoundError, toApiResponse } from '@/lib/errors';
+import { getCurrentUserProfile, canAccessAgent, requireAdmin } from '@/lib/permissions';
 
 /**
  * GET /api/agents/[id]
@@ -17,9 +18,9 @@ export async function GET(
 ) {
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) throw new AuthenticationError();
+        
+        // 取得使用者資料
+        const profile = await getCurrentUserProfile();
 
         const { data: agent, error } = await supabase
             .from('agents')
@@ -29,8 +30,11 @@ export async function GET(
 
         if (error || !agent) throw new NotFoundError('Agent');
 
-        // 檢查存取權限 (簡易版：所有人可讀取 active 的 Agent，或建立者可讀取)
-        // 實務上應檢查 agent_access_control
+        // 檢查存取權限
+        const hasAccess = await canAccessAgent(profile, params.id);
+        if (!hasAccess) {
+            throw new NotFoundError('Agent'); // 為了安全，不透露 Agent 是否存在
+        }
 
         return NextResponse.json({
             success: true,
@@ -50,31 +54,24 @@ export async function PUT(
 ) {
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) throw new AuthenticationError();
-
-        // 取得使用者角色
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
+        
+        // 取得使用者資料並檢查權限（需要管理員權限）
+        const profile = await getCurrentUserProfile();
+        requireAdmin(profile);
 
         const { data: existingAgent } = await supabase
             .from('agents')
-            .select('created_by, system_prompt')
+            .select('created_by, system_prompt, department_id')
             .eq('id', params.id)
             .single();
 
         if (!existingAgent) throw new NotFoundError('Agent');
 
-        // 權限檢查：SUPER_ADMIN 或 建立者
-        const isOwner = existingAgent.created_by === user.id;
-        const isSuperAdmin = profile?.role === 'SUPER_ADMIN';
-
-        if (!isOwner && !isSuperAdmin) {
-            throw new AuthorizationError('您沒有權限修改此 Agent');
+        // 檢查部門權限（DEPT_ADMIN 只能修改自己部門的 Agent）
+        if (profile.role === 'DEPT_ADMIN') {
+            if (existingAgent.department_id !== profile.department_id) {
+                throw new NotFoundError('Agent'); // 為了安全，不透露 Agent 是否存在
+            }
         }
 
         const body = await request.json();
@@ -103,7 +100,7 @@ export async function PUT(
                 agent_id: params.id,
                 system_prompt: existingAgent.system_prompt,
                 version_number: nextVersion,
-                created_by: user.id
+                created_by: profile.id
             });
         }
 
@@ -166,29 +163,24 @@ export async function DELETE(
 ) {
     try {
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) throw new AuthenticationError();
-
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
+        
+        // 取得使用者資料並檢查權限（需要管理員權限）
+        const profile = await getCurrentUserProfile();
+        requireAdmin(profile);
 
         const { data: existingAgent } = await supabase
             .from('agents')
-            .select('created_by')
+            .select('created_by, department_id')
             .eq('id', params.id)
             .single();
 
         if (!existingAgent) throw new NotFoundError('Agent');
 
-        const isOwner = existingAgent.created_by === user.id;
-        const isSuperAdmin = profile?.role === 'SUPER_ADMIN';
-
-        if (!isOwner && !isSuperAdmin) {
-            throw new AuthorizationError('您沒有權限刪除此 Agent');
+        // 檢查部門權限（DEPT_ADMIN 只能刪除自己部門的 Agent）
+        if (profile.role === 'DEPT_ADMIN') {
+            if (existingAgent.department_id !== profile.department_id) {
+                throw new NotFoundError('Agent'); // 為了安全，不透露 Agent 是否存在
+            }
         }
 
         // 執行軟刪除

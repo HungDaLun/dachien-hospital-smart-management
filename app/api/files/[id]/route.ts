@@ -5,7 +5,8 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthenticationError, NotFoundError, toApiResponse } from '@/lib/errors';
+import { NotFoundError, AuthorizationError, toApiResponse } from '@/lib/errors';
+import { getCurrentUserProfile, canAccessFile, canUpdateFile, canDeleteFile } from '@/lib/permissions';
 
 /**
  * GET /api/files/:id
@@ -17,30 +18,32 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const supabase = await createClient();
+        const profile = await getCurrentUserProfile();
 
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
+        // 檢查存取權限
+        const hasAccess = await canAccessFile(profile, id);
+        if (!hasAccess) {
+            throw new NotFoundError('檔案');
         }
+
+        const supabase = await createClient();
 
         // 查詢檔案
         const { data: file, error } = await supabase
             .from('files')
             .select(`
-        *,
-        file_tags (
-          id,
-          tag_key,
-          tag_value
-        ),
-        user_profiles!uploaded_by (
-          id,
-          display_name,
-          email
-        )
-      `)
+                *,
+                file_tags (
+                  id,
+                  tag_key,
+                  tag_value
+                ),
+                user_profiles!uploaded_by (
+                  id,
+                  display_name,
+                  email
+                )
+            `)
             .eq('id', id)
             .eq('is_active', true)
             .single();
@@ -69,43 +72,15 @@ export async function PUT(
 ) {
     try {
         const { id } = await params;
+        const profile = await getCurrentUserProfile();
+
+        // 檢查更新權限
+        const canUpdate = await canUpdateFile(profile, id);
+        if (!canUpdate) {
+            throw new AuthorizationError('您沒有權限更新此檔案');
+        }
+
         const supabase = await createClient();
-
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
-        }
-
-        // 取得使用者資料
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, department_id')
-            .eq('id', user.id)
-            .single();
-
-        // 檢查檔案是否存在
-        const { data: existingFile } = await supabase
-            .from('files')
-            .select('id, uploaded_by')
-            .eq('id', id)
-            .eq('is_active', true)
-            .single();
-
-        if (!existingFile) {
-            throw new NotFoundError('檔案');
-        }
-
-        // 權限檢查：EDITOR 只能編輯自己上傳的
-        if (
-            profile?.role === 'EDITOR' &&
-            existingFile.uploaded_by !== user.id
-        ) {
-            return NextResponse.json(
-                { success: false, error: { code: 'PERMISSION_DENIED', message: '您只能編輯自己上傳的檔案' } },
-                { status: 403 }
-            );
-        }
 
         // 解析請求內容
         const body = await request.json();
@@ -128,16 +103,12 @@ export async function PUT(
             .single();
 
         if (updateError) {
-            console.error('更新檔案失敗:', updateError);
-            return NextResponse.json(
-                { success: false, error: { code: 'UPDATE_ERROR', message: '更新檔案失敗' } },
-                { status: 500 }
-            );
+            return toApiResponse(updateError);
         }
 
         // 更新標籤（如果提供）
         if (tags !== undefined) {
-            // 刪除舊標籤
+            // 刪除舊標籤 (不刪除系統標籤如 department 如果需要保留的話，但這裡實作是全換)
             await supabase.from('file_tags').delete().eq('file_id', id);
 
             // 新增新標籤
@@ -172,43 +143,15 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
+        const profile = await getCurrentUserProfile();
+
+        // 檢查刪除權限
+        const canDelete = await canDeleteFile(profile, id);
+        if (!canDelete) {
+            throw new AuthorizationError('您沒有權限刪除此檔案');
+        }
+
         const supabase = await createClient();
-
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
-        }
-
-        // 取得使用者資料
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, department_id')
-            .eq('id', user.id)
-            .single();
-
-        // 檢查檔案是否存在
-        const { data: existingFile } = await supabase
-            .from('files')
-            .select('id, uploaded_by, s3_storage_path, gemini_file_uri')
-            .eq('id', id)
-            .eq('is_active', true)
-            .single();
-
-        if (!existingFile) {
-            throw new NotFoundError('檔案');
-        }
-
-        // 權限檢查：EDITOR 只能刪除自己上傳的
-        if (
-            profile?.role === 'EDITOR' &&
-            existingFile.uploaded_by !== user.id
-        ) {
-            return NextResponse.json(
-                { success: false, error: { code: 'PERMISSION_DENIED', message: '您只能刪除自己上傳的檔案' } },
-                { status: 403 }
-            );
-        }
 
         // 軟刪除：設定 is_active = false
         const { error: updateError } = await supabase
@@ -220,24 +163,8 @@ export async function DELETE(
             .eq('id', id);
 
         if (updateError) {
-            console.error('刪除檔案失敗:', updateError);
-            return NextResponse.json(
-                { success: false, error: { code: 'DELETE_ERROR', message: '刪除檔案失敗' } },
-                { status: 500 }
-            );
+            return toApiResponse(updateError);
         }
-
-        // 非同步清理 S3 檔案（可選，軟刪除情境下可能想保留）
-        // 如果要硬刪除，可以取消以下註解
-        /*
-        if (existingFile.s3_storage_path) {
-          try {
-            await deleteFromS3(existingFile.s3_storage_path);
-          } catch (s3Error) {
-            console.warn('S3 檔案刪除失敗:', s3Error);
-          }
-        }
-        */
 
         return NextResponse.json({
             success: true,

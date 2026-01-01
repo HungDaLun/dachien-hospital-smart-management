@@ -7,6 +7,7 @@
 
 import { useMemo } from 'react';
 import CitationList, { Citation } from './CitationList';
+import ChatFeedback from './ChatFeedback';
 
 /**
  * 對話氣泡屬性
@@ -16,6 +17,7 @@ interface ChatBubbleProps {
     content: string;
     agentName?: string;
     citations?: Citation[];
+    messageId?: string; // 用於回饋功能
 }
 
 /**
@@ -38,7 +40,7 @@ function renderMarkdown(content: string): string {
         .replace(/\n/g, '<br />');
 }
 
-export default function ChatBubble({ role, content, agentName, citations }: ChatBubbleProps) {
+export default function ChatBubble({ role, content, agentName, citations, messageId }: ChatBubbleProps) {
     const isUser = role === 'user';
 
     const renderedContent = useMemo(() => {
@@ -78,6 +80,11 @@ export default function ChatBubble({ role, content, agentName, citations }: Chat
                 {/* 引用來源 */}
                 {!isUser && citations && citations.length > 0 && (
                     <CitationList citations={citations} />
+                )}
+
+                {/* 回饋按鈕（僅顯示在 Assistant 訊息） */}
+                {!isUser && messageId && (
+                    <ChatFeedback messageId={messageId} />
                 )}
             </div>
         </div>

@@ -146,6 +146,17 @@ CREATE POLICY "使用者可看授權的 Agent" ON agents
       WHERE id = auth.uid() AND role = 'SUPER_ADMIN'
     )
     OR
+    -- 建立者可看自己的
+    created_by = auth.uid()
+    OR
+    -- 部門管理員可看部門的
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() 
+        AND role = 'DEPT_ADMIN' 
+        AND department_id = agents.department_id
+    )
+    OR
     -- 有存取權限的 Agent
     EXISTS (
       SELECT 1 FROM agent_access_control aac

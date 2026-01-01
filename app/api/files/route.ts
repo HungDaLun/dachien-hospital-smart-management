@@ -6,7 +6,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToS3 } from '@/lib/storage/s3';
-import { ValidationError, AuthenticationError, toApiResponse } from '@/lib/errors';
+import { ValidationError, toApiResponse } from '@/lib/errors';
+import { getCurrentUserProfile, requireRole } from '@/lib/permissions';
 
 /**
  * 支援的檔案格式與限制
@@ -39,18 +40,8 @@ export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();
 
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
-        }
-
-        // 取得使用者資料
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, department_id')
-            .eq('id', user.id)
-            .single();
+        // 取得使用者資料（包含權限檢查）
+        const profile = await getCurrentUserProfile();
 
         // 解析查詢參數
         const { searchParams } = new URL(request.url);
@@ -82,9 +73,9 @@ export async function GET(request: NextRequest) {
         }
 
         // 依角色篩選（RLS 會處理大部分，這裡做額外篩選）
-        if (profile?.role === 'EDITOR') {
+        if (profile.role === 'EDITOR') {
             // EDITOR 只能看自己上傳的或有標籤權限的
-            query = query.eq('uploaded_by', user.id);
+            query = query.eq('uploaded_by', profile.id);
         }
 
         // 分頁
@@ -124,26 +115,9 @@ export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
 
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
-        }
-
-        // 取得使用者資料
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, department_id')
-            .eq('id', user.id)
-            .single();
-
-        // 檢查權限（至少需要 EDITOR 權限）
-        if (!profile || !['SUPER_ADMIN', 'DEPT_ADMIN', 'EDITOR'].includes(profile.role)) {
-            return NextResponse.json(
-                { success: false, error: { code: 'PERMISSION_DENIED', message: '您沒有權限上傳檔案' } },
-                { status: 403 }
-            );
-        }
+        // 取得使用者資料並檢查權限（至少需要 EDITOR 權限）
+        const profile = await getCurrentUserProfile();
+        requireRole(profile, ['SUPER_ADMIN', 'DEPT_ADMIN', 'EDITOR']);
 
         // 解析 FormData
         const formData = await request.formData();
@@ -174,7 +148,7 @@ export async function POST(request: NextRequest) {
         // 產生儲存路徑
         const timestamp = Date.now();
         const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const storagePath = `uploads/${user.id}/${timestamp}_${sanitizedFilename}`;
+        const storagePath = `uploads/${profile.id}/${timestamp}_${sanitizedFilename}`;
 
         // 讀取檔案內容
         const arrayBuffer = await file.arrayBuffer();
@@ -199,7 +173,7 @@ export async function POST(request: NextRequest) {
                 s3_etag: s3Etag,
                 mime_type: mimeType,
                 size_bytes: file.size,
-                uploaded_by: user.id,
+                uploaded_by: profile.id,
                 gemini_state: 'PENDING',
                 is_active: true,
             })

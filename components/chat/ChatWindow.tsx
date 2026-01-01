@@ -213,6 +213,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                         content={message.content}
                         agentName={agent.name}
                         citations={message.citations}
+                        messageId={message.id} // 傳遞 messageId 用於回饋功能
                     />
                 ))}
 

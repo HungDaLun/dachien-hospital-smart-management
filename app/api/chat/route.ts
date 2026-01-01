@@ -5,7 +5,8 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthenticationError, NotFoundError, ValidationError, toApiResponse } from '@/lib/errors';
+import { NotFoundError, ValidationError, toApiResponse } from '@/lib/errors';
+import { getCurrentUserProfile, canAccessAgent } from '@/lib/permissions';
 
 /**
  * POST /api/chat
@@ -15,11 +16,8 @@ export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
 
-        // 驗證使用者身份
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            throw new AuthenticationError();
-        }
+        // 取得使用者資料（包含權限檢查）
+        const profile = await getCurrentUserProfile();
 
         // 解析請求
         const body = await request.json();
@@ -45,6 +43,12 @@ export async function POST(request: NextRequest) {
             throw new NotFoundError('Agent');
         }
 
+        // 檢查使用者是否有權限存取此 Agent
+        const hasAccess = await canAccessAgent(profile, agent_id);
+        if (!hasAccess) {
+            throw new NotFoundError('Agent'); // 為了安全，不透露 Agent 是否存在
+        }
+
         // 取得或建立 Session
         let currentSessionId = session_id;
 
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
                 .from('chat_sessions')
                 .insert({
                     agent_id: agent.id,
-                    user_id: user.id,
+                    user_id: profile.id,
                     title: message.slice(0, 50) + (message.length > 50 ? '...' : ''),
                 })
                 .select()
