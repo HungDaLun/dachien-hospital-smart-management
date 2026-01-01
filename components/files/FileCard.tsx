@@ -8,6 +8,7 @@
 import { Badge, Button, Modal } from '@/components/ui';
 import { useState } from 'react';
 import type { GeminiState } from '@/types';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
  * 檔案資料介面
@@ -38,19 +39,20 @@ interface FileCardProps {
     onSync?: (id: string) => void;
     onDelete?: (id: string) => void;
     onUpdateTags?: (id: string, tags: any[]) => void;
+    dict: Dictionary;
 }
 
 /**
  * 狀態 Badge 配置
  */
-const statusConfig: Record<GeminiState, { variant: 'success' | 'warning' | 'error' | 'info' | 'default'; label: string; dot?: boolean }> = {
-    PENDING: { variant: 'default', label: '待處理' },
-    PROCESSING: { variant: 'info', label: '處理中', dot: true },
-    SYNCED: { variant: 'success', label: '已同步' },
-    NEEDS_REVIEW: { variant: 'warning', label: '需審核' },
-    REJECTED: { variant: 'error', label: '已拒絕' },
-    FAILED: { variant: 'error', label: '失敗' },
-};
+const getStatusConfig = (dict: Dictionary): Record<GeminiState, { variant: 'success' | 'warning' | 'error' | 'info' | 'default'; label: string; dot?: boolean }> => ({
+    PENDING: { variant: 'default', label: dict.knowledge.status_pending },
+    PROCESSING: { variant: 'info', label: dict.knowledge.status_processing, dot: true },
+    SYNCED: { variant: 'success', label: dict.knowledge.status_synced },
+    NEEDS_REVIEW: { variant: 'warning', label: 'Needs Review' },
+    REJECTED: { variant: 'error', label: 'Rejected' },
+    FAILED: { variant: 'error', label: dict.knowledge.status_failed },
+});
 
 /**
  * 檔案類型圖示配置
@@ -89,7 +91,7 @@ function formatDate(dateString: string): string {
     });
 }
 
-export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTags }: FileCardProps) {
+export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTags, dict }: FileCardProps) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showTagModal, setShowTagModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -102,6 +104,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const [newTagValue, setNewTagValue] = useState('');
     const [syncError, setSyncError] = useState<string | null>(null);
 
+    const statusConfig = getStatusConfig(dict);
     const status = statusConfig[file.gemini_state] || statusConfig.PENDING;
     const icon = mimeTypeIcons[file.mime_type] || '📄';
 
@@ -127,7 +130,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             }
         } catch (error) {
             console.error('同步失敗:', error);
-            setSyncError('連線錯誤，請稍後再試');
+            setSyncError(dict.common.error);
             setTimeout(() => setSyncError(null), 5000);
         } finally {
             setIsSyncing(false);
@@ -174,7 +177,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                 onUpdateTags?.(file.id, tags);
                 setShowTagModal(false);
             } else {
-                alert('儲存標籤失敗');
+                alert(dict.common.error);
             }
         } catch (error) {
             console.error('標籤更新失敗:', error);
@@ -232,14 +235,14 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                     </span>
                                 ))
                             ) : (
-                                <span className="text-[10px] text-gray-300 italic">無標籤</span>
+                                <span className="text-[10px] text-gray-300 italic">{dict.common.no_data || 'No tags'}</span>
                             )}
                             {canManage && (
                                 <button
                                     onClick={() => setShowTagModal(true)}
                                     className="text-[10px] text-primary-500 hover:text-primary-700 font-bold"
                                 >
-                                    + 編輯標籤
+                                    + {dict.common.edit} Tags
                                 </button>
                             )}
                         </div>
@@ -263,7 +266,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                         loading={isSyncing}
                                         disabled={isSyncing}
                                     >
-                                        同步至 AI
+                                        {dict.knowledge.sync_gemini}
                                     </Button>
                                 )}
 
@@ -274,7 +277,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                     onClick={() => setShowDeleteModal(true)}
                                     className="text-gray-400 hover:text-error-500"
                                 >
-                                    刪除
+                                    {dict.common.delete}
                                 </Button>
                             </div>
                         )}
@@ -286,11 +289,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             <Modal
                 isOpen={showTagModal}
                 onClose={() => setShowTagModal(false)}
-                title="編輯檔案標籤"
+                title={dict.common.edit + " Tags"}
                 footer={
                     <>
                         <Button variant="ghost" onClick={() => setShowTagModal(false)}>
-                            取消
+                            {dict.common.cancel}
                         </Button>
                         <Button
                             variant="primary"
@@ -298,7 +301,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                             loading={isSavingTags}
                             disabled={isSavingTags}
                         >
-                            確認儲存
+                            {dict.common.save}
                         </Button>
                     </>
                 }
@@ -317,7 +320,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                             value={newTagValue}
                             onChange={(e) => setNewTagValue(e.target.value)}
                         />
-                        <Button size="sm" onClick={addTag}>增加</Button>
+                        <Button size="sm" onClick={addTag}>{dict.common.create}</Button>
                     </div>
 
                     <div className="bg-gray-50 p-3 rounded-lg min-h-[100px] border border-dashed border-gray-200">
@@ -328,7 +331,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                     <button onClick={() => removeTag(i)} className="text-gray-400 hover:text-error-500">×</button>
                                 </span>
                             )) : (
-                                <p className="text-gray-400 text-xs text-center w-full py-8">目前尚無標籤，請於上方輸入後點擊增加</p>
+                                <p className="text-gray-400 text-xs text-center w-full py-8">{dict.common.no_data}</p>
                             )}
                         </div>
                     </div>
@@ -339,11 +342,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             <Modal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
-                title="確認刪除"
+                title={dict.common.delete}
                 footer={
                     <>
                         <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
-                            取消
+                            {dict.common.cancel}
                         </Button>
                         <Button
                             variant="danger"
@@ -351,13 +354,13 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                             loading={isDeleting}
                             disabled={isDeleting}
                         >
-                            確認刪除
+                            {dict.common.confirm}
                         </Button>
                     </>
                 }
             >
                 <p className="text-gray-600">
-                    確定要刪除 <strong>{file.filename}</strong> 嗎？此操作無法復原。
+                    {dict.knowledge.delete_confirm?.replace('{{filename}}', file.filename) || `Delete ${file.filename}?`}
                 </p>
             </Modal>
         </>

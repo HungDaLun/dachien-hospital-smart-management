@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 export interface Citation {
     startIndex?: number;
@@ -17,9 +18,10 @@ export interface Citation {
 
 interface CitationListProps {
     citations: Citation[];
+    dict: Dictionary;
 }
 
-export default function CitationList({ citations }: CitationListProps) {
+export default function CitationList({ citations, dict }: CitationListProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     if (!citations || citations.length === 0) {
@@ -43,7 +45,7 @@ export default function CitationList({ citations }: CitationListProps) {
                 <span className="flex items-center justify-center w-4 h-4 rounded-full border border-gray-300 text-[10px]">
                     i
                 </span>
-                <span>參考了 {uniqueCitations.length} 個來源</span>
+                <span>{dict.chat.citations.ref_count.replace('{{count}}', uniqueCitations.length.toString())}</span>
                 <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
                     ▼
                 </span>
@@ -54,7 +56,7 @@ export default function CitationList({ citations }: CitationListProps) {
                     {uniqueCitations.map((citation, idx) => (
                         <div key={idx} className="bg-white/50 p-2 rounded border border-gray-200">
                             <div className="font-medium text-gray-700 truncate" title={citation.title}>
-                                {idx + 1}. {citation.title || '未命名文件'}
+                                {idx + 1}. {citation.title || dict.chat.citations.untitled}
                             </div>
                             {citation.uri && (
                                 <div className="text-gray-400 mt-1 truncate max-w-full text-[10px]">

@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button } from '@/components/ui';
 import ChatWindow from './ChatWindow';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
  * Agent 基本資訊
@@ -25,9 +26,10 @@ interface AgentInfo {
 interface ChatInterfaceProps {
     agents: AgentInfo[];
     initialAgentId: string | null;
+    dict: Dictionary;
 }
 
-export default function ChatInterface({ agents, initialAgentId }: ChatInterfaceProps) {
+export default function ChatInterface({ agents, initialAgentId, dict }: ChatInterfaceProps) {
     const [selectedAgent, setSelectedAgent] = useState<AgentInfo | null>(null);
 
     // 初始化選擇的 Agent
@@ -60,8 +62,8 @@ export default function ChatInterface({ agents, initialAgentId }: ChatInterfaceP
             <div className="h-full flex flex-col">
                 {/* 標題 */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">選擇 Agent 開始對話</h1>
-                    <p className="text-gray-600">選擇一個 AI Agent 來協助您</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{dict.chat.title}</h1>
+                    <p className="text-gray-600">{dict.chat.select_agent}</p>
                 </div>
 
                 {/* Agent 列表 */}
@@ -71,8 +73,8 @@ export default function ChatInterface({ agents, initialAgentId }: ChatInterfaceP
                             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center text-3xl">
                                 🤖
                             </div>
-                            <p>尚無可用的 Agent</p>
-                            <p className="text-sm mt-2">請聯繫管理員建立 Agent</p>
+                            <p>{dict.common.no_data}</p>
+                            <p className="text-sm mt-2">{dict.common.no_data}</p>
                         </div>
                     </Card>
                 ) : (
@@ -115,7 +117,7 @@ export default function ChatInterface({ agents, initialAgentId }: ChatInterfaceP
             {/* 頂部列 */}
             <div className="flex items-center gap-4 mb-4">
                 <Button variant="ghost" size="sm" onClick={handleBackToSelector}>
-                    ← 返回選擇
+                    ← {dict.common.back}
                 </Button>
 
                 <div className="flex items-center gap-3">
@@ -132,7 +134,7 @@ export default function ChatInterface({ agents, initialAgentId }: ChatInterfaceP
             </div>
 
             {/* 對話視窗 */}
-            <ChatWindow agent={selectedAgent} />
+            <ChatWindow agent={selectedAgent} dict={dict} />
         </div>
     );
 }

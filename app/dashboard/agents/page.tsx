@@ -7,9 +7,13 @@ import { redirect } from 'next/navigation';
 import { Button, Card, Badge } from '@/components/ui';
 import Link from 'next/link';
 import { AgentStatsCards } from '@/components/agents/AgentStatsCards';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export default async function AgentsPage() {
     const supabase = await createClient();
+    const locale = await getLocale();
+    const dict = await getDictionary(locale);
 
     // 1. 驗證使用者身份
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -33,18 +37,18 @@ export default async function AgentsPage() {
             {/* 頁面標題 */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Agent 管理</h1>
-                    <p className="text-gray-600">建立與管理您的 AI Agent 工廠</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{dict.agents.title}</h1>
+                    <p className="text-gray-600">{dict.dashboard_home.agent_card_desc}</p>
                 </div>
                 <Link href="/agents/new">
                     <Button>
-                        <span className="mr-2 text-lg">+</span> 建立新 Agent
+                        <span className="mr-2 text-lg">+</span> {dict.agents.create_new}
                     </Button>
                 </Link>
             </div>
 
             {/* 統計卡片 */}
-            <AgentStatsCards />
+            <AgentStatsCards dict={dict} />
 
             {/* Agent 列表 */}
             {(!agents || agents.length === 0) ? (
@@ -53,10 +57,10 @@ export default async function AgentsPage() {
                         <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center text-4xl">
                             🤖
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900">尚無 Agent</h3>
-                        <p className="mt-1">開始建立您的第一個 AI Agent 來協助處理業務吧！</p>
+                        <h3 className="text-lg font-medium text-gray-900">{dict.common.no_data}</h3>
+                        <p className="mt-1">{dict.dashboard_home.agent_card_desc}</p>
                         <Link href="/agents/new" className="mt-6 inline-block">
-                            <Button variant="outline">立即建立</Button>
+                            <Button variant="outline">{dict.agents.create_new}</Button>
                         </Link>
                     </div>
                 </Card>
@@ -81,20 +85,20 @@ export default async function AgentsPage() {
                                         </div>
                                     </div>
                                     <Badge variant={agent.is_active ? 'success' : 'default'}>
-                                        {agent.is_active ? '運行中' : '已停用'}
+                                        {agent.is_active ? dict.common.status_normal || 'Active' : 'Inactive'}
                                     </Badge>
                                 </div>
 
                                 {/* 描述 */}
                                 <p className="text-sm text-gray-600 line-clamp-2 h-10">
-                                    {agent.description || '暫無描述'}
+                                    {agent.description || dict.common.no_data}
                                 </p>
 
                                 {/* 元資料 */}
                                 <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
                                     <div className="flex items-center gap-4">
-                                        <span>🏢 {agent.department?.name || '跨部門'}</span>
-                                        <span>👤 {agent.creator?.display_name || '系統'}</span>
+                                        <span>🏢 {agent.department?.name || dict.admin.users.department}</span>
+                                        <span>👤 {agent.creator?.display_name || 'System'}</span>
                                     </div>
                                 </div>
 
@@ -102,12 +106,12 @@ export default async function AgentsPage() {
                                 <div className="pt-2 flex items-center gap-2">
                                     <Link href={`/agents/${agent.id}`} className="flex-1">
                                         <Button variant="outline" className="w-full" size="sm">
-                                            管理設定
+                                            {dict.common.settings}
                                         </Button>
                                     </Link>
                                     <Link href={`/chat?agent=${agent.id}`}>
                                         <Button size="sm">
-                                            開始對話
+                                            {dict.dashboard_home.chat_card_btn}
                                         </Button>
                                     </Link>
                                 </div>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface AuditLog {
     id: string;
@@ -22,13 +23,14 @@ interface AuditLog {
 interface AuditLogTableProps {
     logs: AuditLog[];
     isLoading: boolean;
+    dict: Dictionary;
 }
 
-export function AuditLogTable({ logs, isLoading }: AuditLogTableProps) {
+export function AuditLogTable({ logs, isLoading, dict }: AuditLogTableProps) {
     if (isLoading) {
         return (
             <div className="w-full h-64 flex items-center justify-center text-gray-500">
-                載入中...
+                {dict.common.loading}
             </div>
         );
     }
@@ -36,7 +38,7 @@ export function AuditLogTable({ logs, isLoading }: AuditLogTableProps) {
     if (logs.length === 0) {
         return (
             <div className="w-full h-64 flex items-center justify-center text-gray-500 bg-white rounded-lg border border-gray-200">
-                無稽核記錄
+                {dict.admin.audit.no_logs}
             </div>
         );
     }
@@ -47,22 +49,22 @@ export function AuditLogTable({ logs, isLoading }: AuditLogTableProps) {
                 <thead className="bg-gray-50">
                     <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            時間
+                            {dict.admin.audit.timestamp}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            使用者
+                            {dict.admin.audit.user}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            操作類型
+                            {dict.admin.audit.action}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            資源
+                            {dict.admin.audit.resource}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            詳情
+                            {dict.admin.audit.details}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            IP
+                            {dict.admin.audit.ip}
                         </th>
                     </tr>
                 </thead>
@@ -75,7 +77,7 @@ export function AuditLogTable({ logs, isLoading }: AuditLogTableProps) {
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-medium text-gray-900">
-                                        {log.user_profiles?.display_name || '未命名'}
+                                        {log.user_profiles?.display_name || dict.admin.users.unnamed}
                                     </span>
                                     <span className="text-xs text-gray-500">
                                         {log.user_profiles?.email || log.user_id}

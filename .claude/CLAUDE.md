@@ -72,8 +72,8 @@
 - [x] 使用者優化: 我的最愛 (Favorites) - Done
 - [x] i18n 基礎架構 (Dictionaries) - Done
 
-### 🚧 進行中項目
-- [ ] i18n 全面套用至 UI (View Layer Integration)
+- [x] i18n 核心整合 (Server & Client Logic, LanguageSwitcher, Dashboard & Layout Integration) - Done
+- [ ] i18n 全面套用至內頁 UI (View Layer Integration: Knowledge, Agents, Chat)
 
 
 #### 知識庫管理
@@ -129,7 +129,8 @@
 - ⏳ 權限檢查 Middleware
 - ⏳ Gemini 檔案同步實作
 - ⏳ 權限檢查 Middleware
-- ⏳ 國際化（i18n）支援 (字典已建立，待套用)
+- ✅ 國際化（i18n）核心支援 (字典、Switch、Layout、Login 已套用)
+- ⏳ 國際化（i18n）內容填充 (內頁文字翻譯)
 - ✅ 我的最愛 (Favorites)
 
 - ⏳ 完整錯誤處理與重試機制

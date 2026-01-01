@@ -5,6 +5,7 @@
  * 顯示系統配置狀態與 API Key 狀態
  */
 import { useState, useEffect } from 'react';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface SystemConfig {
   supabase: {
@@ -29,7 +30,7 @@ interface SystemConfig {
   };
 }
 
-export default function SystemConfigClient() {
+export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,12 +48,12 @@ export default function SystemConfigClient() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || '載入設定失敗');
+        throw new Error(data.error?.message || dict.common.error);
       }
 
       setConfig(data.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '載入設定失敗');
+      setError(err instanceof Error ? err.message : dict.common.error);
     } finally {
       setLoading(false);
     }
@@ -74,13 +75,13 @@ export default function SystemConfigClient() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || '更新失敗');
+        throw new Error(data.error?.message || dict.common.error);
       }
 
       // 重新載入設定
       await loadConfig();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '更新失敗');
+      setError(err instanceof Error ? err.message : dict.common.error);
     } finally {
       setSaving(false);
     }
@@ -91,7 +92,7 @@ export default function SystemConfigClient() {
       <div className="bg-white rounded-lg shadow-soft p-8">
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{dict.common.loading}</p>
         </div>
       </div>
     );
@@ -115,7 +116,7 @@ export default function SystemConfigClient() {
     <div className="space-y-6">
       {/* Supabase 設定 */}
       <div className="bg-white rounded-lg shadow-soft p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Supabase 設定</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{dict.admin.system.supabase_settings}</h2>
         <div className="space-y-3">
           <ConfigItem
             label="Project URL"
@@ -131,20 +132,21 @@ export default function SystemConfigClient() {
           />
         </div>
         <p className="mt-4 text-sm text-gray-500">
-          ⚠️ API Key 需透過環境變數設定，此處僅顯示配置狀態
+          {dict.admin.system.env_warning}
         </p>
       </div>
 
       {/* Gemini API 設定 */}
       <div className="bg-white rounded-lg shadow-soft p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Gemini API 設定</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{dict.admin.system.gemini_settings}</h2>
         <div className="space-y-3">
           <ConfigItem
             label="API Key"
             configured={config.gemini.api_key_configured}
+            dict={dict}
           />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">模型版本</label>
+            <label className="text-sm font-medium text-gray-700">{dict.admin.system.model_version}</label>
             <select
               value={config.gemini.model_version}
               onChange={(e) => handleModelVersionChange(e.target.value)}
@@ -159,13 +161,13 @@ export default function SystemConfigClient() {
           </div>
         </div>
         <p className="mt-4 text-sm text-gray-500">
-          ⚠️ API Key 需透過環境變數 GEMINI_API_KEY 設定
+          {dict.admin.system.gemini_warning}
         </p>
       </div>
 
       {/* S3/Storage 設定 */}
       <div className="bg-white rounded-lg shadow-soft p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">儲存設定 (S3/MinIO)</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{dict.admin.system.storage_settings}</h2>
         <div className="space-y-3">
           <ConfigItem
             label="S3 Endpoint"
@@ -189,20 +191,20 @@ export default function SystemConfigClient() {
           />
         </div>
         <p className="mt-4 text-sm text-gray-500">
-          ⚠️ 儲存設定需透過環境變數設定
+          {dict.admin.system.storage_warning}
         </p>
       </div>
 
       {/* 應用程式設定 */}
       <div className="bg-white rounded-lg shadow-soft p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">應用程式設定</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{dict.admin.system.app_settings}</h2>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">應用程式 URL</label>
+            <label className="text-sm font-medium text-gray-700">App URL</label>
             <span className="text-sm text-gray-600">{config.app.app_url}</span>
           </div>
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">環境</label>
+            <label className="text-sm font-medium text-gray-700">Env</label>
             <span className="text-sm text-gray-600">{config.app.node_env}</span>
           </div>
         </div>
@@ -214,7 +216,7 @@ export default function SystemConfigClient() {
 /**
  * 設定項目元件
  */
-function ConfigItem({ label, configured }: { label: string; configured: boolean }) {
+function ConfigItem({ label, configured, dict }: { label: string; configured: boolean; dict?: Dictionary }) {
   return (
     <div className="flex items-center justify-between">
       <label className="text-sm font-medium text-gray-700">{label}</label>
@@ -222,12 +224,12 @@ function ConfigItem({ label, configured }: { label: string; configured: boolean 
         {configured ? (
           <>
             <span className="inline-block w-2 h-2 bg-success-500 rounded-full"></span>
-            <span className="text-sm text-success-500">已設定</span>
+            <span className="text-sm text-success-500">{dict?.admin.system.configured || 'Configured'}</span>
           </>
         ) : (
           <>
             <span className="inline-block w-2 h-2 bg-error-500 rounded-full"></span>
-            <span className="text-sm text-error-500">未設定</span>
+            <span className="text-sm text-error-500">{dict?.admin.system.not_configured || 'Not Configured'}</span>
           </>
         )}
       </div>

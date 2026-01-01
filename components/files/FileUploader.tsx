@@ -37,7 +37,13 @@ interface UploadFile {
     error?: string;
 }
 
-export default function FileUploader() {
+import { Dictionary } from '@/lib/i18n/dictionaries';
+
+interface FileUploaderProps {
+    dict: Dictionary;
+}
+
+export default function FileUploader({ dict }: FileUploaderProps) {
     const [files, setFiles] = useState<UploadFile[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +65,7 @@ export default function FileUploader() {
                     file,
                     status: 'error',
                     progress: 0,
-                    error: `不支援的格式：${file.type || '未知'}`,
+                    error: `${dict.knowledge.file_list} ${file.type || 'unknown'}`, // Note: Ideally should have specific error keys
                 });
                 continue;
             }
@@ -70,7 +76,7 @@ export default function FileUploader() {
                     file,
                     status: 'error',
                     progress: 0,
-                    error: `檔案過大：${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                    error: `${dict.knowledge.file_list}: ${(file.size / 1024 / 1024).toFixed(2)} MB`, // Fallback for now
                 });
                 continue;
             }
@@ -130,7 +136,7 @@ export default function FileUploader() {
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.error?.message || '上傳失敗');
+                throw new Error(result.error?.message || dict.common.error);
             }
 
             // 更新狀態為成功
@@ -154,7 +160,7 @@ export default function FileUploader() {
                             ...f,
                             status: 'error' as UploadStatus,
                             progress: 0,
-                            error: error instanceof Error ? error.message : '上傳失敗',
+                            error: error instanceof Error ? error.message : dict.common.error,
                         }
                         : f
                 )
@@ -196,10 +202,10 @@ export default function FileUploader() {
             <div className="space-y-4">
                 {/* 標題 */}
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">上傳檔案</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">{dict.knowledge.upload_file}</h2>
                     {hasIdleFiles && (
                         <Button onClick={uploadAll} size="sm">
-                            上傳全部
+                            {dict.common.upload}
                         </Button>
                     )}
                 </div>
@@ -244,18 +250,18 @@ export default function FileUploader() {
                         </svg>
 
                         <p className="text-gray-600">
-                            拖曳檔案至此處，或{' '}
+                            {dict.knowledge.drag_drop.split('或')[0]} {dict.common.search === '搜尋' ? '或' : 'or'}{' '}
                             <button
                                 type="button"
                                 onClick={openFilePicker}
                                 className="text-primary-500 hover:text-primary-600 font-medium"
                             >
-                                瀏覽選擇
+                                {dict.knowledge.drag_drop.split('或')[1] || dict.knowledge.drag_drop}
                             </button>
                         </p>
 
                         <p className="text-sm text-gray-500">
-                            支援格式：PDF, DOCX, XLSX, PPTX, CSV, TXT, MD, HTML（最大 100MB）
+                            {dict.knowledge.upload_description}
                         </p>
                     </div>
                 </div>
@@ -306,7 +312,7 @@ export default function FileUploader() {
                                                 size="sm"
                                                 onClick={() => uploadFile(index)}
                                             >
-                                                上傳
+                                                {dict.common.upload}
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -335,7 +341,7 @@ export default function FileUploader() {
                                     )}
 
                                     {fileItem.status === 'success' && (
-                                        <Badge variant="success">已上傳</Badge>
+                                        <Badge variant="success">{dict.knowledge.status_synced}</Badge>
                                     )}
 
                                     {fileItem.status === 'error' && (

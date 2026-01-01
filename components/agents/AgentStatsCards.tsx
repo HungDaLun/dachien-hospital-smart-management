@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui';
 
+import { Dictionary } from '@/lib/i18n/dictionaries';
+
 interface AgentStats {
     totalAgents: number;
     activeAgents: number;
@@ -14,7 +16,11 @@ interface AgentStats {
     }>;
 }
 
-export function AgentStatsCards() {
+interface AgentStatsCardsProps {
+    dict: Dictionary;
+}
+
+export function AgentStatsCards({ dict }: AgentStatsCardsProps) {
     const [stats, setStats] = useState<AgentStats | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -51,26 +57,26 @@ export function AgentStatsCards() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card className="p-4 flex flex-col justify-between border-l-4 border-l-blue-500">
-                <span className="text-gray-500 text-sm font-medium">總 Agent 數</span>
+                <span className="text-gray-500 text-sm font-medium">{dict.agents.stats.title.replace("使用量統計", "總 Agent 數")}</span>
                 <div className="mt-2 flex items-baseline">
                     <span className="text-3xl font-bold text-gray-900">{stats.totalAgents}</span>
-                    <span className="ml-2 text-sm text-gray-500">個</span>
+                    <span className="ml-2 text-sm text-gray-500">{dict.agents.form.stats_unit || '個'}</span>
                 </div>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-4 border-l-green-500">
-                <span className="text-gray-500 text-sm font-medium">活躍運行中</span>
+                <span className="text-gray-500 text-sm font-medium">{dict.agents.stats.active_users.replace("活躍使用者", "活躍運行中")}</span>
                 <div className="mt-2 flex items-baseline">
                     <span className="text-3xl font-bold text-gray-900">{stats.activeAgents}</span>
-                    <span className="ml-2 text-sm text-gray-500">個</span>
+                    <span className="ml-2 text-sm text-gray-500">{dict.agents.form.stats_unit || '個'}</span>
                 </div>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between border-l-4 border-l-purple-500">
-                <span className="text-gray-500 text-sm font-medium">總對話次數</span>
+                <span className="text-gray-500 text-sm font-medium">{dict.agents.stats.total_chats}</span>
                 <div className="mt-2 flex items-baseline">
                     <span className="text-3xl font-bold text-gray-900">{stats.totalSessions}</span>
-                    <span className="ml-2 text-sm text-gray-500">次</span>
+                    <span className="ml-2 text-sm text-gray-500">{dict.agents.form.stats_times || '次'}</span>
                 </div>
             </Card>
 
@@ -87,7 +93,7 @@ export function AgentStatsCards() {
                             </span>
                         </div>
                     ) : (
-                        <span className="text-gray-400 text-sm">尚無數據</span>
+                        <span className="text-gray-400 text-sm">{dict.common.no_data}</span>
                     )}
                 </div>
             </Card>

@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button, Spinner } from '@/components/ui';
 import ChatBubble from './ChatBubble';
 import { Citation } from './CitationList';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
  * Agent 資訊
@@ -35,9 +36,10 @@ interface Message {
  */
 interface ChatWindowProps {
     agent: AgentInfo;
+    dict: Dictionary;
 }
 
-export default function ChatWindow({ agent }: ChatWindowProps) {
+export default function ChatWindow({ agent, dict }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -109,7 +111,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || '發送失敗');
+                throw new Error(errorData.error?.message || dict.common.error);
             }
 
             if (!response.body) throw new Error('伺服器未回傳資料流');
@@ -155,7 +157,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
             }
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : '發送訊息失敗');
+            setError(err instanceof Error ? err.message : dict.common.error);
             // 如果出錯且還沒內容，移除該 AI 佔位訊息
             setMessages((prev) => prev.filter(msg =>
                 !(msg.id === aiMessageId && msg.content === '')
@@ -199,9 +201,9 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                             👋
                         </div>
                         <h3 className="text-lg font-medium text-gray-900">
-                            您好！我是 {agent.name}
+                            {dict.chat.welcome_message.replace('{{name}}', agent.name)}
                         </h3>
-                        <p className="mt-2">有什麼我可以幫助您的嗎？</p>
+                        <p className="mt-2">{dict.chat.select_agent}</p>
                     </div>
                 )}
 
@@ -214,6 +216,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                         agentName={agent.name}
                         citations={message.citations}
                         messageId={message.id} // 傳遞 messageId 用於回饋功能
+                        dict={dict}
                     />
                 ))}
 
@@ -221,7 +224,8 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                 {isLoading && (
                     <div className="flex items-center gap-2 text-gray-500">
                         <Spinner size="sm" />
-                        <span className="text-sm">{agent.name} 正在思考...</span>
+                        <Spinner size="sm" />
+                        <span className="text-sm">{agent.name} {dict.chat.thinking}</span>
                     </div>
                 )}
 
@@ -235,7 +239,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                             onClick={() => setError(null)}
                             className="ml-2"
                         >
-                            關閉
+                            {dict.common.close}
                         </Button>
                     </div>
                 )}
@@ -251,7 +255,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
-                        placeholder="輸入訊息，按 Enter 發送，Shift+Enter 換行..."
+                        placeholder={dict.chat.type_message}
                         disabled={isLoading}
                         rows={1}
                         className="flex-1 resize-none border border-gray-300 rounded-lg px-4 py-3 
@@ -265,7 +269,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                         disabled={!input.trim() || isLoading}
                         loading={isLoading}
                     >
-                        發送
+                        {dict.common.actions}
                     </Button>
                 </div>
             </div>

@@ -6,6 +6,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ChatInterface from '@/components/chat/ChatInterface';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 interface ChatPageProps {
     searchParams: Promise<{ agent?: string }>;
@@ -14,6 +16,8 @@ interface ChatPageProps {
 export default async function ChatPage({ searchParams }: ChatPageProps) {
     const supabase = await createClient();
     const params = await searchParams;
+    const locale = await getLocale();
+    const dict = await getDictionary(locale);
 
     // 檢查使用者是否已登入
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -37,6 +41,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
             <ChatInterface
                 agents={agents || []}
                 initialAgentId={selectedAgentId}
+                dict={dict}
             />
         </div>
     );

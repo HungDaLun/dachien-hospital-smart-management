@@ -3,17 +3,18 @@
 import { createDepartment } from '../actions';
 import { Button } from '@/components/ui';
 import { useFormStatus } from 'react-dom';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
-function SubmitButton() {
+function SubmitButton({ dict }: { dict: Dictionary }) {
     const { pending } = useFormStatus();
     return (
         <Button type="submit" size="sm" disabled={pending}>
-            {pending ? '建立中...' : '新增部門'}
+            {pending ? dict.common.loading : dict.admin.departments.create_dept}
         </Button>
     );
 }
 
-export default function CreateDepartmentForm() {
+export default function CreateDepartmentForm({ dict }: { dict: Dictionary }) {
     const handleSubmit = async (formData: FormData) => {
         await createDepartment(formData);
     };
@@ -22,16 +23,16 @@ export default function CreateDepartmentForm() {
         <form action={handleSubmit} className="flex gap-2">
             <input
                 name="name"
-                placeholder="新部門名稱"
+                placeholder={dict.admin.departments.dept_name}
                 className="border rounded px-3 py-2 text-sm"
                 required
             />
             <input
                 name="description"
-                placeholder="描述 (選填)"
+                placeholder={dict.admin.departments.description}
                 className="border rounded px-3 py-2 text-sm"
             />
-            <SubmitButton />
+            <SubmitButton dict={dict} />
         </form>
     );
 }

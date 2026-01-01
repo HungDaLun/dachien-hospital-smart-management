@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Input, Select, Button, Card, Spinner } from '@/components/ui';
 import FileCard, { FileData } from './FileCard';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
  * 檔案列表屬性
@@ -19,16 +20,21 @@ interface FileListProps {
 /**
  * 狀態選項
  */
-const statusOptions = [
-    { value: '', label: '全部狀態' },
-    { value: 'PENDING', label: '待處理' },
-    { value: 'PROCESSING', label: '處理中' },
-    { value: 'SYNCED', label: '已同步' },
-    { value: 'NEEDS_REVIEW', label: '需審核' },
-    { value: 'FAILED', label: '失敗' },
+const getStatusOptions = (dict: Dictionary) => [
+    { value: '', label: dict.knowledge.filter_files.replace('...', '') }, // Using filter_files as generic "All" or similar
+    { value: 'PENDING', label: dict.knowledge.status_pending },
+    { value: 'PROCESSING', label: dict.knowledge.status_processing },
+    { value: 'SYNCED', label: dict.knowledge.status_synced },
+    { value: 'NEEDS_REVIEW', label: 'Needs Review' }, // Missing in dict, adding fallback
+    { value: 'FAILED', label: dict.knowledge.status_failed },
 ];
 
-export default function FileList({ canManage }: FileListProps) {
+interface FileListProps {
+    canManage: boolean;
+    dict: Dictionary;
+}
+
+export default function FileList({ canManage, dict }: FileListProps) {
     const [files, setFiles] = useState<FileData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -62,14 +68,14 @@ export default function FileList({ canManage }: FileListProps) {
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.error?.message || '載入失敗');
+                throw new Error(result.error?.message || dict.common.error);
             }
 
             setFiles(result.data);
             setTotalPages(result.meta?.totalPages || 1);
             setTotal(result.meta?.total || 0);
         } catch (err) {
-            setError(err instanceof Error ? err.message : '載入檔案列表失敗');
+            setError(err instanceof Error ? err.message : dict.common.error);
         } finally {
             setLoading(false);
         }
@@ -133,14 +139,14 @@ export default function FileList({ canManage }: FileListProps) {
                 {/* 標題與篩選 */}
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900">檔案列表</h2>
-                        <p className="text-sm text-gray-500">共 {total} 個檔案</p>
+                        <h2 className="text-lg font-semibold text-gray-900">{dict.knowledge.file_list}</h2>
+                        <p className="text-sm text-gray-500">{dict.knowledge.file_list} {total}</p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         {/* 搜尋框 */}
                         <Input
-                            placeholder="搜尋檔案名稱..."
+                            placeholder={dict.common.search + "..."}
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             inputSize="sm"
@@ -163,7 +169,7 @@ export default function FileList({ canManage }: FileListProps) {
 
                         {/* 狀態篩選 */}
                         <Select
-                            options={statusOptions}
+                            options={getStatusOptions(dict)}
                             value={status}
                             onChange={handleStatusChange}
                             selectSize="sm"
@@ -183,7 +189,7 @@ export default function FileList({ canManage }: FileListProps) {
                     <div className="text-center py-12 text-error-500">
                         <p>{error}</p>
                         <Button variant="outline" size="sm" onClick={fetchFiles} className="mt-4">
-                            重試
+                            {dict.common.refresh}
                         </Button>
                     </div>
                 )}
@@ -206,7 +212,7 @@ export default function FileList({ canManage }: FileListProps) {
                                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                     />
                                 </svg>
-                                <p>尚無檔案</p>
+                                <p>{dict.common.no_data}</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -217,6 +223,7 @@ export default function FileList({ canManage }: FileListProps) {
                                         canManage={canManage}
                                         onSync={handleSync}
                                         onDelete={handleDelete}
+                                        dict={dict}
                                     />
                                 ))}
                             </div>
@@ -231,7 +238,7 @@ export default function FileList({ canManage }: FileListProps) {
                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                                     disabled={page === 1}
                                 >
-                                    上一頁
+                                    {dict.common.back}
                                 </Button>
                                 <span className="text-sm text-gray-600">
                                     第 {page} / {totalPages} 頁
@@ -242,7 +249,7 @@ export default function FileList({ canManage }: FileListProps) {
                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
                                 >
-                                    下一頁
+                                    Next
                                 </Button>
                             </div>
                         )}

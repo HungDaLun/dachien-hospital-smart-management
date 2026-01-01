@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Spinner, Badge } from '@/components/ui';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface KnowledgeRule {
     id?: string;
@@ -40,9 +41,10 @@ interface AgentStats {
 interface AgentEditorProps {
     initialData?: AgentData;
     isEditing?: boolean;
+    dict: Dictionary;
 }
 
-export default function AgentEditor({ initialData, isEditing = false }: AgentEditorProps) {
+export default function AgentEditor({ initialData, isEditing = false, dict }: AgentEditorProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -103,7 +105,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
     };
 
     const handleRestore = (prompt: string) => {
-        if (confirm('確定要還原此版本的 Prompt 嗎？目前的內容將被覆蓋 (但儲存後會產生新版本)。')) {
+        if (confirm('Are you sure you want to restore this version?')) {
             setFormData(prev => ({ ...prev, system_prompt: prompt }));
             setShowHistory(false);
         }
@@ -156,7 +158,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.error?.message || '儲存失敗');
+                throw new Error(result.error?.message || dict.common.error);
             }
 
             // Refresh to update stats or show latest info
@@ -167,11 +169,11 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                 router.push('/dashboard/agents'); // Redirect to list if creating
             } else {
                 // stay on page and maybe show success?
-                alert('儲存成功！');
+                alert(dict.common.success);
             }
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : '發生未知錯誤');
+            setError(err instanceof Error ? err.message : dict.common.error);
         } finally {
             setLoading(false);
         }
@@ -189,10 +191,10 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
             {isEditing && stats && (
                 <div className="flex gap-4 mb-4">
                     <Badge variant="default" className="bg-white border border-gray-200 text-gray-600">
-                        總對話數: <span className="font-bold ml-1">{stats.total_sessions}</span>
+                        {dict.agents.stats.total_chats}: <span className="font-bold ml-1">{stats.total_sessions}</span>
                     </Badge>
                     <Badge variant="default" className="bg-white border border-gray-200 text-gray-600">
-                        總訊息數: <span className="font-bold ml-1">{stats.total_messages}</span>
+                        {dict.agents.stats.total_messages}: <span className="font-bold ml-1">{stats.total_messages}</span>
                     </Badge>
                 </div>
             )}
@@ -201,11 +203,11 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                 {/* 左側：基本設定與知識綁定 */}
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">基本資訊</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900">{dict.common.profile}</h3>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Agent 名稱
+                                    {dict.agents.form.name}
                                 </label>
                                 <input
                                     type="text"
@@ -214,13 +216,13 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                     value={formData.name}
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                                    placeholder="例如：法務助理"
+                                    placeholder={dict.agents.form.name_placeholder}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    描述
+                                    {dict.agents.form.description}
                                 </label>
                                 <textarea
                                     name="description"
@@ -228,13 +230,13 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                     value={formData.description}
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                                    placeholder="簡短描述這個 Agent 的用途"
+                                    placeholder={dict.agents.form.description_placeholder}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    模型版本
+                                    {dict.agents.form.model_version}
                                 </label>
                                 <select
                                     name="model_version"
@@ -250,7 +252,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
-                                    Temperature <span>{formData.temperature}</span>
+                                    {dict.agents.form.temperature} <span>{formData.temperature}</span>
                                 </label>
                                 <input
                                     type="range"
@@ -271,7 +273,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                     </Card>
 
                     <Card>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">知識庫綁定</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900">{dict.agents.form.knowledge_access}</h3>
                         <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
                                 {formData.knowledge_rules?.map((rule, idx) => (
@@ -311,7 +313,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                     className="w-full text-xs"
                                     onClick={addTagRule}
                                 >
-                                    新增規則
+                                    {dict.common.create} Rule
                                 </Button>
                             </div>
                         </div>
@@ -323,7 +325,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                     <Card className="h-full flex flex-col">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-semibold text-gray-900">
-                                {showHistory ? '歷史版本紀錄' : '核心邏輯 (System Prompt)'}
+                                {showHistory ? dict.agents.versions : dict.agents.form.system_prompt}
                             </h3>
 
                             {isEditing && (
@@ -333,7 +335,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                     size="sm"
                                     onClick={toggleHistory}
                                 >
-                                    {showHistory ? '返回編輯' : '🕒 歷史版本'}
+                                    {showHistory ? dict.common.back : '🕒 ' + dict.agents.versions}
                                 </Button>
                             )}
                         </div>
@@ -343,7 +345,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                 {loadingVersions ? (
                                     <div className="text-center py-8"><Spinner /></div>
                                 ) : versions.length === 0 ? (
-                                    <div className="text-center text-gray-500 py-8">尚無歷史版本</div>
+                                    <div className="text-center text-gray-500 py-8">{dict.common.no_data}</div>
                                 ) : (
                                     versions.map((ver) => (
                                         <div key={ver.id} className="border rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors border-gray-200">
@@ -363,7 +365,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                                     onClick={() => handleRestore(ver.system_prompt)}
                                                     className="text-xs h-7"
                                                 >
-                                                    還原此版
+                                                    {dict.agents.restore}
                                                 </Button>
                                             </div>
                                             <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-gray-100 max-h-24 overflow-hidden truncate">
@@ -376,7 +378,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                         ) : (
                             <div className="flex-1 flex flex-col min-h-[400px]">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    定義 Agent 的角色行為、回覆風格與規範
+                                    {dict.agents.form.system_prompt_placeholder}
                                 </label>
                                 <textarea
                                     name="system_prompt"
@@ -384,7 +386,7 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                                     value={formData.system_prompt}
                                     onChange={handleChange}
                                     className="flex-1 w-full p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none"
-                                    placeholder="例如：您是一位資深的法律顧問..."
+                                    placeholder={dict.agents.form.system_prompt}
                                 />
                             </div>
                         )}
@@ -399,10 +401,10 @@ export default function AgentEditor({ initialData, isEditing = false }: AgentEdi
                     onClick={() => router.back()}
                     disabled={loading}
                 >
-                    取消
+                    {dict.common.cancel}
                 </Button>
                 <Button type="submit" disabled={loading} className="min-w-[120px]">
-                    {loading ? <Spinner size="sm" color="white" /> : (isEditing ? '更新 Agent' : '建立 Agent')}
+                    {loading ? <Spinner size="sm" color="white" /> : (isEditing ? dict.common.save : dict.agents.create_new)}
                 </Button>
             </div>
         </form>

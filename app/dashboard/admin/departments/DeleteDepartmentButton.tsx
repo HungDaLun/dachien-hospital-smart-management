@@ -3,8 +3,9 @@
 import { deleteDepartment } from '../actions';
 import { Button } from '@/components/ui';
 import { useFormStatus } from 'react-dom';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
-function DeleteButton() {
+function DeleteButton({ dict }: { dict: Dictionary }) {
     const { pending } = useFormStatus();
     return (
         <Button
@@ -14,19 +15,19 @@ function DeleteButton() {
             type="submit"
             disabled={pending}
         >
-            {pending ? '...' : '刪除'}
+            {pending ? '...' : dict.common.delete}
         </Button>
     );
 }
 
-export default function DeleteDepartmentButton({ id }: { id: string }) {
+export default function DeleteDepartmentButton({ id, dict }: { id: string; dict: Dictionary }) {
     const handleDelete = async () => {
         await deleteDepartment(id);
     };
 
     return (
         <form action={handleDelete}>
-            <DeleteButton />
+            <DeleteButton dict={dict} />
         </form>
     );
 }

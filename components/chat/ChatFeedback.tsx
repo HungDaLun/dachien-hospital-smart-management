@@ -6,19 +6,22 @@
  */
 import { useState } from 'react';
 
+import { Dictionary } from '@/lib/i18n/dictionaries';
+
 interface ChatFeedbackProps {
   messageId: string;
   onFeedbackSubmitted?: () => void;
+  dict: Dictionary;
 }
 
-const FEEDBACK_REASONS = [
-  { code: '答非所問', label: '答非所問' },
-  { code: '資訊錯誤', label: '資訊錯誤' },
-  { code: '來源過時', label: '來源過時' },
-  { code: '其他', label: '其他' },
-] as const;
+export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: ChatFeedbackProps) {
+  const FEEDBACK_REASONS = [
+    { code: 'irrelevant', label: dict.chat.feedback.reason_irrelevant },
+    { code: 'incorrect', label: dict.chat.feedback.reason_incorrect },
+    { code: 'outdated', label: dict.chat.feedback.reason_outdated },
+    { code: 'other', label: dict.chat.feedback.reason_other },
+  ];
 
-export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFeedbackProps) {
   const [rating, setRating] = useState<1 | -1 | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reasonCode, setReasonCode] = useState<string>('');
@@ -72,7 +75,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
 
   const handleSubmitNegativeFeedback = async () => {
     if (!reasonCode && !comment.trim()) {
-      alert('請選擇原因或填寫意見');
+      alert(dict.chat.feedback.select_reason);
       return;
     }
 
@@ -111,7 +114,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
   if (submitted && rating === 1) {
     return (
       <div className="mt-2 text-sm text-success-500">
-        ✓ 感謝您的回饋！
+        ✓ {dict.chat.feedback.success}
       </div>
     );
   }
@@ -119,7 +122,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
   if (submitted && rating === -1) {
     return (
       <div className="mt-2 text-sm text-success-500">
-        ✓ 感謝您的意見，我們會持續改進！
+        ✓ {dict.chat.feedback.success_negative}
       </div>
     );
   }
@@ -142,7 +145,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
           `}
         >
           <span>👍</span>
-          <span>有幫助</span>
+          <span>{dict.chat.feedback.helpful}</span>
         </button>
 
         <button
@@ -159,7 +162,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
           `}
         >
           <span>👎</span>
-          <span>沒幫助</span>
+          <span>{dict.chat.feedback.not_helpful}</span>
         </button>
       </div>
 
@@ -167,7 +170,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
       {showForm && rating === -1 && !submitted && (
         <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
           <p className="text-sm font-medium text-gray-700 mb-2">
-            請告訴我們哪裡需要改進：
+            {dict.chat.feedback.title}
           </p>
 
           <div className="space-y-2">
@@ -195,7 +198,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="請提供更多詳細意見（選填）"
+              placeholder={dict.chat.feedback.comment_placeholder}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={2}
             />
@@ -207,7 +210,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
                 disabled={loading}
                 className="px-4 py-2 text-sm bg-primary-500 text-white rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? '提交中...' : '提交回饋'}
+                {loading ? dict.chat.feedback.submitting : dict.chat.feedback.submit}
               </button>
               <button
                 onClick={() => {
@@ -219,7 +222,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted }: ChatFee
                 disabled={loading}
                 className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                取消
+                {dict.chat.feedback.cancel}
               </button>
             </div>
           </div>

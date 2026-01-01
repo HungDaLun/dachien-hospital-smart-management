@@ -3,11 +3,15 @@ import { Card, Badge } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import CreateDepartmentForm from './CreateDepartmentForm';
 import DeleteDepartmentButton from './DeleteDepartmentButton';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DepartmentsPage() {
     const supabase = await createClient();
+    const locale = await getLocale();
+    const dict = await getDictionary(locale);
 
     // 1. 檢查權限
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,7 +27,7 @@ export default async function DepartmentsPage() {
         return (
             <div className="p-6">
                 <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-                    您沒有權限存取此頁面 (需要 SUPER_ADMIN 權限)
+                    {dict.common.error} (SUPER_ADMIN)
                 </div>
             </div>
         );
@@ -42,12 +46,12 @@ export default async function DepartmentsPage() {
         <div className="p-6 max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">部門管理</h1>
-                    <p className="text-gray-500">管理組織架構與權限邊界</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{dict.admin.departments.title}</h1>
+                    <p className="text-gray-500">{dict.admin.departments.subtitle}</p>
                 </div>
 
                 {/* 新增部門表單 */}
-                <CreateDepartmentForm />
+                <CreateDepartmentForm dict={dict} />
             </div>
 
             <div className="grid gap-4">
@@ -57,11 +61,11 @@ export default async function DepartmentsPage() {
                             <div className="flex items-center gap-3">
                                 <h3 className="font-semibold text-lg">{dept.name}</h3>
                                 <Badge variant="default">
-                                    {dept.user_profiles?.[0]?.count || 0} 人
+                                    {dept.user_profiles?.[0]?.count || 0} {dict.admin.departments.people}
                                 </Badge>
                             </div>
                             <p className="text-gray-500 text-sm mt-1">
-                                {dept.description || '無描述'}
+                                {dept.description || dict.admin.departments.no_desc}
                             </p>
                             <p className="text-xs text-gray-400 mt-2">
                                 ID: {dept.id}
@@ -69,14 +73,14 @@ export default async function DepartmentsPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <DeleteDepartmentButton id={dept.id} />
+                            <DeleteDepartmentButton id={dept.id} dict={dict} />
                         </div>
                     </Card>
                 ))}
 
                 {(!departments || departments.length === 0) && (
                     <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        尚無部門資料
+                        {dict.admin.departments.no_data}
                     </div>
                 )}
             </div>
