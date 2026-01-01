@@ -1,0 +1,128 @@
+/**
+ * 全域樣式與 CSS 變數定義
+ * 遵循 EAKAP 設計系統規範
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== CSS 變數定義 ===== */
+:root {
+  /* 主色調 */
+  --color-primary-500: hsl(230, 85%, 60%);
+  --color-primary-600: hsl(230, 80%, 52%);
+  
+  /* 中性色 */
+  --color-white: hsl(0, 0%, 100%);
+  --color-gray-50: hsl(220, 20%, 98%);
+  --color-gray-600: hsl(220, 12%, 42%);
+  --color-gray-800: hsl(220, 15%, 22%);
+  
+  /* 語意色 */
+  --color-success-500: hsl(145, 65%, 42%);
+  --color-warning-500: hsl(38, 90%, 50%);
+  --color-error-500: hsl(0, 75%, 55%);
+  
+  /* 特效 */
+  --gradient-hero: linear-gradient(135deg, hsl(230, 85%, 60%) 0%, hsl(280, 70%, 60%) 100%);
+  --shadow-soft: 0 4px 20px hsla(230, 50%, 30%, 0.08);
+  --glass-bg: hsla(0, 0%, 100%, 0.7);
+  --glass-blur: blur(12px);
+  
+  /* 間距系統（8px 基礎單位） */
+  --space-2: 0.5rem;   /* 8px */
+  --space-4: 1rem;      /* 16px */
+  --space-6: 2rem;      /* 32px */
+  
+  /* 圓角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* ===== 基礎樣式重置 ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-inter), var(--font-noto-sans-tc), system-ui, sans-serif;
+  color: var(--color-gray-800);
+  background-color: var(--color-gray-50);
+  line-height: 1.6;
+}
+
+/* ===== 無障礙：焦點樣式（必須實作） ===== */
+:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ===== 工具類別 ===== */
+@layer utilities {
+  /* 毛玻璃效果 */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  
+  /* 平滑過場 */
+  .transition-smooth {
+    transition: all 0.2s ease;
+  }
+}
+
+/* ===== 動畫定義 ===== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 動畫工具類別 */
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}

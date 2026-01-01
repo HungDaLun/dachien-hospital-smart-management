@@ -1,0 +1,409 @@
+# EAKAP - Enterprise AI Knowledge Agent Platform
+# Cursor IDE 專案開發規範 v1.1.1
+
+**對應 CLAUDE.md 版本：** 1.1.1
+**最後更新：** 2026-01-01
+
+---
+
+## 語言規範
+
+- **所有回應、註解、文件**：使用繁體中文（台灣用語）
+- **Git commit message**：使用繁體中文
+- **程式碼本體**：保留英文
+- **Docstring 與註解**：使用繁體中文
+
+---
+
+## 技術架構
+
+本專案採用以下技術堆疊，開發時請嚴格遵循：
+
+### 前端
+- **框架**：Next.js 14+ (App Router)
+- **語言**：TypeScript（嚴格模式）
+- **樣式**：Vanilla CSS（優先）或 Tailwind CSS
+- **狀態管理**：Zustand
+- **圖示**：Lucide Icons (20px, stroke-width 1.5)
+
+### 後端
+- **BaaS**：Supabase (PostgreSQL + Auth + Storage)
+- **API 設計**：RESTful，使用 Next.js API Routes
+- **AI 模型**：Google Gemini 1.5/2.0 API
+
+### 儲存 (Dual-Layer Design)
+- **Layer 1 (Hub)**：S3/MinIO - 資料主權，原始檔案儲存
+- **Layer 2 (Spoke)**：Gemini File Storage - AI 運算用
+
+---
+
+## UI/UX 設計規範
+
+### 設計理念
+| 原則 | 說明 |
+|------|------|
+| **Light & Airy** | 明亮白色為基底，柔和漸層 |
+| **Modern Minimalism** | 去除冗餘裝飾，聚焦內容 |
+| **Glassmorphism Accent** | 關鍵區塊使用毛玻璃效果 |
+
+### 色彩系統（CSS 變數）
+```css
+/* 主色調 */
+--color-primary-500: hsl(230, 85%, 60%);
+--color-primary-600: hsl(230, 80%, 52%);
+
+/* 中性色 */
+--color-white: hsl(0, 0%, 100%);
+--color-gray-50: hsl(220, 20%, 98%);
+--color-gray-600: hsl(220, 12%, 42%);
+--color-gray-800: hsl(220, 15%, 22%);
+
+/* 語意色 */
+--color-success-500: hsl(145, 65%, 42%);
+--color-warning-500: hsl(38, 90%, 50%);
+--color-error-500: hsl(0, 75%, 55%);
+
+/* 特效 */
+--gradient-hero: linear-gradient(135deg, hsl(230, 85%, 60%) 0%, hsl(280, 70%, 60%) 100%);
+--shadow-soft: 0 4px 20px hsla(230, 50%, 30%, 0.08);
+--glass-bg: hsla(0, 0%, 100%, 0.7);
+--glass-blur: blur(12px);
+```
+
+### 字體
+```css
+/* 標題 */
+font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+font-weight: 600-700;
+
+/* 程式碼 */
+font-family: 'JetBrains Mono', 'Fira Code', monospace;
+```
+
+### 間距系統（8px 基礎單位）
+```css
+--space-2: 0.5rem;   /* 8px */
+--space-4: 1rem;     /* 16px */
+--space-6: 2rem;     /* 32px */
+
+--radius-sm: 6px;
+--radius-md: 10px;
+--radius-lg: 16px;
+```
+
+### 動畫規範
+| 場景 | 時長 | 曲線 |
+|------|------|------|
+| 按鈕 Hover | 150ms | ease |
+| 卡片 Hover | 200ms | ease-out |
+| 頁面過場 | 300ms | cubic-bezier(0.16, 1, 0.3, 1) |
+| Modal 展開 | 250ms | ease-out-expo |
+
+---
+
+## 程式碼風格
+
+### 命名規範
+```
+React 元件    → PascalCase  (AgentCard.tsx)
+函式/變數     → camelCase   (handleSubmit, agentName)
+常數         → SCREAMING_SNAKE_CASE (MAX_FILE_SIZE)
+型別/介面    → PascalCase  (UserProfile, AgentStatus)
+```
+
+### TypeScript 規範
+- 禁止使用 `any`，使用 `unknown` 並進行型別檢查
+- 所有函式參數與回傳值必須有明確型別
+- 優先使用 `interface` 而非 `type` 定義物件型別
+
+### React 規範
+- 優先使用 Server Components
+- Client Components 必須加上 `'use client'` 指令
+- 使用 React 19 的新特性（use hook, Actions）
+
+---
+
+## Supabase 整合規範
+
+### 後端中立性原則（重要！）
+```typescript
+// ✅ 正確 - 使用環境變數
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+// ❌ 錯誤 - 硬編碼 URL
+const supabaseUrl = 'https://xxx.supabase.co';
+```
+
+### 客戶端使用
+```typescript
+// 瀏覽器端
+import { createBrowserClient } from '@supabase/ssr';
+
+// 伺服器端
+import { createServerClient } from '@supabase/ssr';
+```
+
+### RLS 政策
+- 所有資料表必須啟用 RLS
+- 遵循最小權限原則
+- EDITOR 角色需透過 `user_tag_permissions` 資料表控制標籤存取權限
+
+---
+
+## 使用者角色與權限矩陣
+
+### 角色定義
+| 角色 | 代號 | 權限 |
+|------|------|------|
+| 超級管理員 | SUPER_ADMIN | 全能權限 |
+| 部門管理員 | DEPT_ADMIN | 部門級全權 |
+| 知識維護者 | EDITOR | 僅維護內容 |
+| 一般使用者 | USER | 僅使用 Agent |
+
+### 功能權限矩陣（關鍵！）
+| 功能 | SUPER_ADMIN | DEPT_ADMIN | EDITOR | USER |
+|------|:-----------:|:----------:|:------:|:----:|
+| 新增/停用帳號 | ✅ | ⚠️ 僅本部門 | ❌ | ❌ |
+| 上傳文件 | ✅ | ✅ | ✅ | ❌ |
+| 刪除文件 | ✅ | ⚠️ 僅本部門 | ⚠️ 僅自己 | ❌ |
+| 建立 Agent | ✅ | ✅ | ❌ | ❌ |
+| 編輯 System Prompt | ✅ | ⚠️ 僅本部門 | ❌ | ❌ |
+| 使用 Agent 對話 | ✅ | ✅ | ✅ | ⚠️ 僅授權 |
+| 管理 API Key | ✅ | ❌ | ❌ | ❌ |
+
+> ⚠️ = 有條件限制
+
+---
+
+## 資料管線與檔案狀態
+
+### gemini_state 狀態值（6 種）
+```typescript
+type GeminiState = 
+  | 'PENDING'       // 上傳中/等待處理
+  | 'PROCESSING'    // 背景處理中
+  | 'SYNCED'        // 已同步至 Gemini
+  | 'NEEDS_REVIEW'  // 品質未達標準
+  | 'REJECTED'      // 管理員拒絕
+  | 'FAILED';       // 系統處理失敗
+```
+
+### 支援檔案格式與限制
+| 格式 | 最大大小 | 驗證規則 |
+|------|----------|----------|
+| PDF | 100MB | 頁數 ≤ 500、非加密 |
+| DOCX | 100MB | 頁數 ≤ 500 |
+| XLSX | 50MB | 列數 ≤ 100,000 |
+| PPTX | 100MB | 投影片 ≤ 200 |
+| CSV | 50MB | UTF-8 編碼 |
+| MD/TXT/HTML | 10MB | UTF-8 編碼 |
+
+---
+
+## AI 治理規範
+
+### AI 品質指標閾值
+| 指標 | 健康閾值 | 告警條件 |
+|------|----------|----------|
+| 引用率 | ≥ 80% | < 70% 連續 1 小時 |
+| 空回答率 | ≤ 5% | > 10% 連續 30 分鐘 |
+| 平均回應時間 | ≤ 2 秒 | > 4 秒 連續 5 分鐘 |
+| 錯誤率 | ≤ 1% | > 5% |
+
+### 回饋機制
+- 每個 Agent 回答必須提供 👍/👎 評價按鈕
+- 負評需展開原因選項：`答非所問` / `資訊錯誤` / `來源過時` / `其他`
+
+---
+
+## API 設計
+
+### 端點命名
+```
+GET    /api/agents          # 列出
+POST   /api/agents          # 建立
+GET    /api/agents/:id      # 取得單一
+PUT    /api/agents/:id      # 更新
+DELETE /api/agents/:id      # 刪除
+GET    /api/health          # 健康檢查
+```
+
+### 回應格式
+```typescript
+// 成功
+{ success: true, data: T, meta?: { page, limit, total } }
+
+// 失敗
+{ success: false, error: { code, message, details? } }
+```
+
+### API 端點權限
+| 端點 | 最低角色 |
+|------|----------|
+| `/api/users` GET | DEPT_ADMIN |
+| `/api/users` POST | SUPER_ADMIN |
+| `/api/files` GET/POST | EDITOR |
+| `/api/agents` GET | USER |
+| `/api/agents` POST | DEPT_ADMIN |
+| `/api/chat/:agentId` POST | USER |
+| `/api/system/config` | SUPER_ADMIN |
+
+---
+
+## 錯誤處理
+
+### 自訂錯誤類別
+- `ValidationError` (400)
+- `AuthenticationError` (401)
+- `AuthorizationError` (403)
+- `NotFoundError` (404)
+
+### 重試策略
+```typescript
+const retryConfig = {
+  geminiApi: {
+    maxRetries: 3,
+    initialDelayMs: 1000,
+    backoffMultiplier: 2,
+    retryableErrors: [429, 500, 502, 503, 504]
+  },
+  storageSync: {
+    maxRetries: 5,
+    initialDelayMs: 2000
+  },
+  database: {
+    maxRetries: 3,
+    initialDelayMs: 500
+  }
+};
+```
+
+### 用戶端錯誤訊息
+| 錯誤代碼 | 顯示訊息 |
+|----------|----------|
+| AUTH_EXPIRED | 您的登入已過期，請重新登入 |
+| PERMISSION_DENIED | 您沒有權限執行此操作 |
+| FILE_TOO_LARGE | 檔案過大，請壓縮後重試 |
+| AI_UNAVAILABLE | AI 服務暫時忙碌中，請稍後再試 |
+| RATE_LIMITED | 請求太頻繁，請稍後再試 |
+
+---
+
+## 國際化與無障礙
+
+### 多語言支援
+| 語言 | 代碼 | 優先級 |
+|------|------|--------|
+| 繁體中文 | zh-TW | MVP |
+| 英文 | en | Phase 2 |
+
+### 無障礙規範 (WCAG 2.1 AA)
+- 色彩對比 ≥ 4.5:1
+- 所有圖片提供 `alt` 文字
+- 所有功能可用鍵盤操作
+- 使用語意化 HTML 標籤
+
+### 鍵盤導航
+| 按鍵 | 功能 |
+|------|------|
+| Tab | 移動焦點至下一個元素 |
+| Enter/Space | 觸發按鈕 |
+| Escape | 關閉 Modal |
+| `/` | 聚焦搜尋框 |
+
+### 焦點樣式（必須實作）
+```css
+:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+```
+
+---
+
+## 檔案結構
+
+```
+src/
+├── app/              # Next.js App Router
+│   ├── (auth)/       # 身份驗證頁面
+│   ├── (dashboard)/  # 主控台頁面
+│   └── api/          # API Routes
+├── components/       # React 元件
+│   ├── ui/           # 基礎 UI
+│   └── [功能]/       # 功能元件
+├── lib/              # 工具函式
+│   ├── supabase/     # Supabase 客戶端
+│   ├── gemini/       # Gemini API
+│   ├── storage/      # 儲存層抽象
+│   └── errors.ts     # 自訂錯誤類別
+├── hooks/            # 自訂 Hooks
+├── stores/           # Zustand stores
+├── types/            # TypeScript 型別
+├── styles/           # 全域樣式與 CSS 變數
+└── locales/          # 翻譯檔案
+    ├── zh-TW/
+    └── en/
+```
+
+---
+
+## Git Commit 規範
+
+格式：`<類型>: <描述>`
+
+類型：
+- `feat`: 新增功能
+- `fix`: 修復錯誤
+- `docs`: 文件更新
+- `style`: 格式調整
+- `refactor`: 重構
+- `test`: 測試
+- `chore`: 建置/工具
+
+範例：
+```
+feat: 新增 Agent 建立功能
+fix: 修復檔案上傳權限驗證問題
+docs: 更新 API 文件
+```
+
+---
+
+## 安全性
+
+1. **永不暴露 API Keys** - 使用環境變數
+2. **全站 HTTPS** - TLS 1.3
+3. **檔案存取** - 使用 Signed URL，不直接暴露 URI
+4. **權限檢查** - 每個 API 端點都要驗證權限
+5. **RLS 啟用** - 所有資料表必須啟用 Row Level Security
+
+---
+
+## 效能優化
+
+1. 優先使用 React Server Components
+2. 使用 `dynamic()` 動態載入大型元件
+3. 圖片使用 `next/image` 自動最佳化
+4. 使用 `unstable_cache` 快取頻繁查詢
+5. AI 回應使用 Streaming 模式
+
+---
+
+## 參考文件
+
+詳細規範請參考專案根目錄的 `.claude/CLAUDE.md` 文件，包含：
+- 完整資料庫 Schema（含 RLS 政策）
+- Gemini API 整合程式碼
+- Docker 部署設定
+- 故障排除指南
+- 備份與災難恢復 SOP
+
+---
+
+⚠️ **重要提醒**：
+1. 開發前請先閱讀 `.claude/CLAUDE.md` 完整文件
+2. 遵循 Supabase 後端中立性原則，確保 Cloud/Self-hosted 可切換
+3. 所有文件與註解使用繁體中文
+4. 實作功能前務必確認權限矩陣
+5. UI 元件必須符合無障礙規範
