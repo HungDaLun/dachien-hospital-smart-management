@@ -170,7 +170,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             });
 
             if (response.ok) {
-                const result = await response.json();
+                await response.json();
                 onUpdateTags?.(file.id, tags);
                 setShowTagModal(false);
             } else {

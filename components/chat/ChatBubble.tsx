@@ -6,6 +6,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import CitationList, { Citation } from './CitationList';
 
 /**
  * 對話氣泡屬性
@@ -14,6 +15,7 @@ interface ChatBubbleProps {
     role: 'user' | 'assistant';
     content: string;
     agentName?: string;
+    citations?: Citation[];
 }
 
 /**
@@ -36,7 +38,7 @@ function renderMarkdown(content: string): string {
         .replace(/\n/g, '<br />');
 }
 
-export default function ChatBubble({ role, content, agentName }: ChatBubbleProps) {
+export default function ChatBubble({ role, content, agentName, citations }: ChatBubbleProps) {
     const isUser = role === 'user';
 
     const renderedContent = useMemo(() => {
@@ -72,6 +74,11 @@ export default function ChatBubble({ role, content, agentName }: ChatBubbleProps
           `}
                     dangerouslySetInnerHTML={{ __html: renderedContent }}
                 />
+
+                {/* 引用來源 */}
+                {!isUser && citations && citations.length > 0 && (
+                    <CitationList citations={citations} />
+                )}
             </div>
         </div>
     );

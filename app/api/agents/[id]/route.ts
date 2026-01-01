@@ -63,7 +63,7 @@ export async function PUT(
 
         const { data: existingAgent } = await supabase
             .from('agents')
-            .select('created_by')
+            .select('created_by, system_prompt')
             .eq('id', params.id)
             .single();
 
@@ -87,6 +87,25 @@ export async function PUT(
             is_active,
             knowledge_rules
         } = body;
+
+        // 1.5 若 System Prompt 有變更，儲存版本歷史
+        if (system_prompt && system_prompt !== existingAgent.system_prompt) {
+            // 取得目前的版本數
+            const { count } = await supabase
+                .from('agent_prompt_versions')
+                .select('*', { count: 'exact', head: true })
+                .eq('agent_id', params.id);
+
+            const nextVersion = (count || 0) + 1;
+
+            // 儲存舊版本
+            await supabase.from('agent_prompt_versions').insert({
+                agent_id: params.id,
+                system_prompt: existingAgent.system_prompt,
+                version_number: nextVersion,
+                created_by: user.id
+            });
+        }
 
         // 1. 更新 Agent 基本資訊
         const { data: updatedAgent, error: updateError } = await supabase

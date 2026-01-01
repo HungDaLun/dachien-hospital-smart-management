@@ -6,14 +6,16 @@ import { createClient } from '@/lib/supabase/server';
 import { downloadFromS3 } from '@/lib/storage/s3';
 import { uploadFileToGemini } from './client';
 import { AppError } from '@/lib/errors';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * 將指定檔案同步至 Gemini
  * @param fileId 檔案 ID
+ * @param supabaseClient 選用的 Supabase Client (若未提供則使用預設 Server Client)
  * @returns 同步結果
  */
-export async function syncFileToGemini(fileId: string) {
-    const supabase = await createClient();
+export async function syncFileToGemini(fileId: string, supabaseClient?: SupabaseClient) {
+    const supabase = supabaseClient || await createClient();
 
     // 1. 取得檔案資訊
     const { data: file, error: fetchError } = await supabase
@@ -99,9 +101,11 @@ export async function syncFileToGemini(fileId: string) {
 /**
  * 批量同步待處理檔案
  * (可用於背景任務)
+ * @param limit 每次處理數量
+ * @param supabaseClient 選用的 Supabase Client (建議傳入 Admin Client)
  */
-export async function syncPendingFiles(limit: number = 5) {
-    const supabase = await createClient();
+export async function syncPendingFiles(limit: number = 5, supabaseClient?: SupabaseClient) {
+    const supabase = supabaseClient || await createClient();
 
     // 取得待處理或失敗的檔案
     const { data: pendingFiles } = await supabase
@@ -116,7 +120,7 @@ export async function syncPendingFiles(limit: number = 5) {
     }
 
     const results = await Promise.allSettled(
-        pendingFiles.map(f => syncFileToGemini(f.id))
+        pendingFiles.map(f => syncFileToGemini(f.id, supabase))
     );
 
     return {

@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button, Spinner } from '@/components/ui';
 import ChatBubble from './ChatBubble';
+import { Citation } from './CitationList';
 
 /**
  * Agent 資訊
@@ -26,6 +27,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     created_at: string;
+    citations?: Citation[];
 }
 
 /**
@@ -140,6 +142,11 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                             if (data.session_id) {
                                 setSessionId(data.session_id);
                             }
+                            if (data.citations) {
+                                setMessages((prev) => prev.map(msg =>
+                                    msg.id === aiMessageId ? { ...msg, citations: data.citations } : msg
+                                ));
+                            }
                         } catch (e) {
                             console.error('解析位元流失敗:', e);
                         }
@@ -205,6 +212,7 @@ export default function ChatWindow({ agent }: ChatWindowProps) {
                         role={message.role}
                         content={message.content}
                         agentName={agent.name}
+                        citations={message.citations}
                     />
                 ))}
 

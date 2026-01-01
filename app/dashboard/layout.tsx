@@ -72,6 +72,17 @@ export default async function DashboardLayout({
           </div>
         </nav>
 
+        {/* 次級導航 (僅管理員顯示) */}
+        {profile?.role === 'SUPER_ADMIN' && (
+          <div className="bg-gray-100 border-b border-gray-200 px-6 py-2">
+            <div className="max-w-7xl mx-auto flex gap-4 text-sm">
+              <span className="font-bold text-gray-500 flex items-center">🛠 系統管理:</span>
+              <Link href="/dashboard/admin/departments" className="hover:text-primary-600 text-gray-600">部門管理</Link>
+              <Link href="/dashboard/admin/users" className="hover:text-primary-600 text-gray-600">使用者管理</Link>
+            </div>
+          </div>
+        )}
+
         {/* 主內容區 */}
         <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 overflow-auto">
           {children}
