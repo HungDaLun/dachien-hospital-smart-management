@@ -5,8 +5,7 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import FileList from '@/components/files/FileList';
-import FileUploader from '@/components/files/FileUploader';
+import KnowledgeBaseClient from '@/components/files/KnowledgeBaseClient';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
@@ -39,15 +38,7 @@ export default async function KnowledgePage() {
                 </p>
             </div>
 
-            {/* 上傳區域 */}
-            {canUpload && (
-                <div className="mb-8">
-                    <FileUploader dict={dict} />
-                </div>
-            )}
-
-            {/* 檔案列表 */}
-            <FileList canManage={canUpload || false} dict={dict} />
+            <KnowledgeBaseClient canUpload={canUpload || false} dict={dict} />
         </div>
     );
 }

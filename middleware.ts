@@ -88,8 +88,9 @@ export async function middleware(request: NextRequest) {
             '/api/health',
             '/api/auth/register',  // 註冊 API 允許未登入使用者
             '/api/auth/logout',    // 登出 API 允許未登入使用者（處理已過期的 session）
+            '/api/openai',         // OpenAI Bridge 允許外部工具連線 (Bearer Token 驗證)
         ];
-        
+
         if (publicApiRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
             return response;
         }

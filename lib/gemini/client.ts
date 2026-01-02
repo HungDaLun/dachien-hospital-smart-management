@@ -185,6 +185,36 @@ export async function chatWithGemini(
 }
 
 /**
+ * 產生內容 (非串流)
+ * 用於 AI Librarian 等後台任務
+ */
+export async function generateContent(
+  modelName: string,
+  prompt: string,
+  fileUri?: string,
+  mimeType?: string
+): Promise<string> {
+  const genAI = createGeminiClient();
+  const model = genAI.getGenerativeModel({ model: modelName });
+
+  const parts: any[] = [];
+  if (fileUri && mimeType) {
+    parts.push({
+      fileData: {
+        fileUri: fileUri,
+        mimeType: mimeType,
+      },
+    });
+  }
+  parts.push({ text: prompt });
+
+  const result = await model.generateContent(parts);
+  const response = await result.response;
+  return response.text();
+}
+
+
+/**
  * 重試機制輔助函式
  * 匯出供其他模組使用
  */

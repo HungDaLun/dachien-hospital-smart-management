@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Button, Card, Spinner, Badge } from '@/components/ui';
+import { Dictionary } from '@/lib/i18n/dictionaries';
 
 /**
  * 支援的檔案格式
@@ -28,25 +29,30 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 /**
  * 上傳狀態類型
  */
-type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
+type UploadStatus = 'idle' | 'uploading' | 'syncing' | 'success' | 'error';
 
 interface UploadFile {
+    id: string;
     file: File;
     status: UploadStatus;
     progress: number;
     error?: string;
 }
 
-import { Dictionary } from '@/lib/i18n/dictionaries';
-
 interface FileUploaderProps {
     dict: Dictionary;
+    onUploadSuccess?: () => void;
 }
 
-export default function FileUploader({ dict }: FileUploaderProps) {
+export default function FileUploader({ dict, onUploadSuccess }: FileUploaderProps) {
     const [files, setFiles] = useState<UploadFile[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    /**
+     * 產生唯一 ID
+     */
+    const generateId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
     /**
      * 處理檔案選擇
@@ -62,10 +68,11 @@ export default function FileUploader({ dict }: FileUploaderProps) {
             // 驗證檔案格式
             if (!Object.keys(ACCEPTED_FORMATS).includes(file.type)) {
                 newFiles.push({
+                    id: generateId(),
                     file,
                     status: 'error',
                     progress: 0,
-                    error: `${dict.knowledge.file_list} ${file.type || 'unknown'}`, // Note: Ideally should have specific error keys
+                    error: `${dict.knowledge.file_list} ${file.type || 'unknown'}`,
                 });
                 continue;
             }
@@ -73,15 +80,17 @@ export default function FileUploader({ dict }: FileUploaderProps) {
             // 驗證檔案大小
             if (file.size > MAX_FILE_SIZE) {
                 newFiles.push({
+                    id: generateId(),
                     file,
                     status: 'error',
                     progress: 0,
-                    error: `${dict.knowledge.file_list}: ${(file.size / 1024 / 1024).toFixed(2)} MB`, // Fallback for now
+                    error: `${dict.knowledge.file_list}: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
                 });
                 continue;
             }
 
             newFiles.push({
+                id: generateId(),
                 file,
                 status: 'idle',
                 progress: 0,
@@ -89,7 +98,7 @@ export default function FileUploader({ dict }: FileUploaderProps) {
         }
 
         setFiles((prev) => [...prev, ...newFiles]);
-    }, []);
+    }, [dict]);
 
     /**
      * 拖曳事件處理
@@ -113,20 +122,23 @@ export default function FileUploader({ dict }: FileUploaderProps) {
     /**
      * 上傳單一檔案
      */
-    const uploadFile = async (index: number) => {
-        const uploadFile = files[index];
-        if (!uploadFile || uploadFile.status !== 'idle') return;
+    const uploadFile = async (id: string) => {
+        const fileIndex = files.findIndex(f => f.id === id);
+        if (fileIndex === -1) return;
+
+        const currentFile = files[fileIndex];
+        if (currentFile.status !== 'idle') return;
 
         // 更新狀態為上傳中
         setFiles((prev) =>
-            prev.map((f, i) =>
-                i === index ? { ...f, status: 'uploading' as UploadStatus, progress: 0 } : f
+            prev.map((f) =>
+                f.id === id ? { ...f, status: 'uploading' as UploadStatus, progress: 0 } : f
             )
         );
 
         try {
             const formData = new FormData();
-            formData.append('file', uploadFile.file);
+            formData.append('file', currentFile.file);
 
             const response = await fetch('/api/files', {
                 method: 'POST',
@@ -139,23 +151,44 @@ export default function FileUploader({ dict }: FileUploaderProps) {
                 throw new Error(result.error?.message || dict.common.error);
             }
 
-            // 更新狀態為成功
+            // 自動觸發同步 (Auto-sync)
             setFiles((prev) =>
-                prev.map((f, i) =>
-                    i === index ? { ...f, status: 'success' as UploadStatus, progress: 100 } : f
+                prev.map((f) =>
+                    f.id === id ? { ...f, status: 'syncing' as UploadStatus, progress: 50 } : f
                 )
             );
 
+            try {
+                // 呼叫同步 API，但不等待太久，或僅觸發
+                // 這裡我們等待它完成以確保狀態正確，但如果後端很久，可能需要優化
+                await fetch(`/api/files/${result.data.id}/sync`, {
+                    method: 'POST',
+                });
+            } catch (syncError) {
+                console.warn('Auto-sync trigger failed:', syncError);
+                // 同步觸發失敗不視為上傳失敗
+            }
+
+            // 更新狀態為成功
+            setFiles((prev) =>
+                prev.map((f) =>
+                    f.id === id ? { ...f, status: 'success' as UploadStatus, progress: 100 } : f
+                )
+            );
+
+            // 通知父元件更新列表
+            onUploadSuccess?.();
+
             // 3 秒後移除成功項目
             setTimeout(() => {
-                setFiles((prev) => prev.filter((_, i) => i !== index));
+                setFiles((prev) => prev.filter((f) => f.id !== id));
             }, 3000);
 
         } catch (error) {
             // 更新狀態為失敗
             setFiles((prev) =>
-                prev.map((f, i) =>
-                    i === index
+                prev.map((f) =>
+                    f.id === id
                         ? {
                             ...f,
                             status: 'error' as UploadStatus,
@@ -172,20 +205,22 @@ export default function FileUploader({ dict }: FileUploaderProps) {
      * 上傳所有待上傳檔案
      */
     const uploadAll = async () => {
-        const pendingIndexes = files
-            .map((f, i) => (f.status === 'idle' ? i : -1))
-            .filter((i) => i !== -1);
+        // 先取得當前所有 idle 狀態的 ID
+        const pendingIds = files
+            .filter(f => f.status === 'idle')
+            .map(f => f.id);
 
-        for (const index of pendingIndexes) {
-            await uploadFile(index);
+        for (const id of pendingIds) {
+            // 每次迴圈重新檢查該 ID 是否還在 (雖然我們使用 ID 應該很安全)
+            await uploadFile(id);
         }
     };
 
     /**
      * 移除檔案
      */
-    const removeFile = (index: number) => {
-        setFiles((prev) => prev.filter((_, i) => i !== index));
+    const removeFile = (id: string) => {
+        setFiles((prev) => prev.filter((f) => f.id !== id));
     };
 
     /**
@@ -269,9 +304,9 @@ export default function FileUploader({ dict }: FileUploaderProps) {
                 {/* 檔案列表 */}
                 {files.length > 0 && (
                     <div className="space-y-2">
-                        {files.map((fileItem, index) => (
+                        {files.map((fileItem) => (
                             <div
-                                key={`${fileItem.file.name}-${index}`}
+                                key={fileItem.id}
                                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                             >
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -310,14 +345,14 @@ export default function FileUploader({ dict }: FileUploaderProps) {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => uploadFile(index)}
+                                                onClick={() => uploadFile(fileItem.id)}
                                             >
                                                 {dict.common.upload}
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => removeFile(index)}
+                                                onClick={() => removeFile(fileItem.id)}
                                             >
                                                 <svg
                                                     className="w-4 h-4"
@@ -337,7 +372,17 @@ export default function FileUploader({ dict }: FileUploaderProps) {
                                     )}
 
                                     {fileItem.status === 'uploading' && (
-                                        <Spinner size="sm" />
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">Uploading...</span>
+                                            <Spinner size="sm" />
+                                        </div>
+                                    )}
+
+                                    {fileItem.status === 'syncing' && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-blue-500">Syncing...</span>
+                                            <Spinner size="sm" />
+                                        </div>
                                     )}
 
                                     {fileItem.status === 'success' && (
@@ -350,7 +395,7 @@ export default function FileUploader({ dict }: FileUploaderProps) {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => removeFile(index)}
+                                                onClick={() => removeFile(fileItem.id)}
                                             >
                                                 <svg
                                                     className="w-4 h-4"

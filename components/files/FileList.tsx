@@ -32,9 +32,10 @@ const getStatusOptions = (dict: Dictionary) => [
 interface FileListProps {
     canManage: boolean;
     dict: Dictionary;
+    refreshTrigger?: number;
 }
 
-export default function FileList({ canManage, dict }: FileListProps) {
+export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileListProps) {
     const [files, setFiles] = useState<FileData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export default function FileList({ canManage, dict }: FileListProps) {
     // 初始載入與篩選變更時重新載入
     useEffect(() => {
         fetchFiles();
-    }, [fetchFiles]);
+    }, [fetchFiles, refreshTrigger]);
 
     /**
      * 搜尋防抖處理

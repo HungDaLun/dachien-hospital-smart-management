@@ -41,7 +41,7 @@ function renderMarkdown(content: string): string {
         .replace(/\n/g, '<br />');
 }
 
-export default function ChatBubble({ role, content, agentName, citations, messageId, dict }: ChatBubbleProps) {
+export default function ChatBubble({ role, content, agentName, citations, dict }: ChatBubbleProps) {
     const isUser = role === 'user';
 
     const renderedContent = useMemo(() => {

@@ -134,6 +134,12 @@
 - ✅ 我的最愛 (Favorites)
 
 - ⏳ 完整錯誤處理與重試機制
+- ✅ **企業大腦 API (OpenAI Bridge)**
+  - ✅ `/api/openai/v1/chat/completions` 實作
+  - ✅ Server-side Prompt Injection 邏輯
+- ✅ **AI 館長 (Librarian) Pipeline**
+  - ✅ 自動轉譯 PDF 至 Markdown 邏輯
+  - ✅ JSON 結構化萃取 Prompt (via `/api/files/[id]/etl`)
 
 ---
 
@@ -645,6 +651,21 @@ GET    /api/chat/sessions/:id   # ✅ 取得對話歷史
 DELETE /api/chat/sessions/:id   # ✅ 刪除對話
 POST   /api/chat                # ✅ 發送訊息 (支援 Streaming)
 ```
+
+#### 企業大腦橋接 (OpenAI Bridge)
+
+```
+GET    /api/openai/v1/models            # ⏳ 列出所有 Agent (作為 Models)
+POST   /api/openai/v1/chat/completions  # ⏳ 標準 OpenAI 格式對話介面
+```
+
+**實作重點：**
+1.  **Model Mapping**：將 Request 中的 `model` 參數 (如 "marketing_agent") 對應到 DB 中的 `agents` table。
+2.  **Prompt Injection**：
+    *   讀取 `agents.system_prompt` (K-0) 插入 `messages[0]`。
+    *   執行 RAG 檢索，將相關 Context 插入 `messages` 系統區塊。
+3.  **Request Translation**：OpenAI JSON schema -> Gemini API schema。
+4.  **Response Translation**：Gemini Candidate -> OpenAI Choice (含 Streaming 轉換)。
 
 ### API 回應格式
 

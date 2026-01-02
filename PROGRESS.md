@@ -211,6 +211,15 @@
    - 評估導入 `next-intl`
    - 錯誤監控與日誌收集 (Sentry)
 
+4. **新功能完成 (2026-01-02)**
+ - ✅ 完整錯誤處理與重試機制
+- ✅ **企業大腦 API (OpenAI Bridge)**
+  - ✅ `/api/openai/v1/chat/completions` 實作
+  - ✅ Server-side Prompt Injection 邏輯
+- ✅ **AI 館長 (Librarian) Pipeline**
+  - ✅ 自動轉譯 PDF 至 Markdown 邏輯
+  - ✅ JSON 結構化萃取 Prompt (via `/api/files/[id]/etl`)DF 自動轉譯為 Markdown。
+
 ### 技術債務
 
 - ⚠️ **測試覆蓋率**：目前缺乏自動化測試，需建立 Jest/Vitest 測試框架
