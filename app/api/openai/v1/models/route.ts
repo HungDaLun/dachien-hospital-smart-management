@@ -1,6 +1,8 @@
-
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
@@ -16,6 +18,7 @@ export async function GET() {
             console.error('Error fetching agents:', error);
             return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
+
 
         // Map agents to OpenAI models format
         // We use agent.name as the ID so Open WebUI displays it nicely.
@@ -33,6 +36,13 @@ export async function GET() {
         return NextResponse.json({
             object: 'list',
             data: models,
+        }, {
+            headers: {
+                // Ensure Open WebUI and browsers do not cache the model list
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            }
         });
     } catch (error) {
         console.error('Error in models route:', error);

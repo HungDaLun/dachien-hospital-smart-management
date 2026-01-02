@@ -1,160 +1,131 @@
-# Open WebUI SSE 串流解析錯誤 (Unexpected token 'd') 完整故障排除報告
+# Open WebUI 串接問題完整故障排除報告 (SSE 串流錯誤 & Agent 列表隱形)
 
-## 1. 問題描述 (Problem Description)
+> **最後更新日期**: 2026-01-02
+> 主要解決兩大議題：
+> 1. SSE 串流解析錯誤 (`Unexpected token 'd'`)
+> 2. Open WebUI 找不到 Agent (Model List 不更新)
 
-### 症狀
-在將 Open WebUI 連接至自定義的 Next.js (OpenAI-Compatible) API 時，若啟用 Streaming (`stream: true`)，Open WebUI 前端會報錯：
+---
+
+## 議題一：SSE 串流解析錯誤 (Unexpected token 'd')
+
+### 1. 問題描述
+在將 Open WebUI 連接至自定義的 Next.js API 時，若啟用 Streaming (`stream: true`)，Open WebUI 前端會報錯：
 > **`Unexpected token 'd', "data: {"id"... is not valid JSON`**
 
-### 環境
-*   **Open WebUI**: Docker (`ghcr.io/open-webui/open-webui:main`)
-*   **Backend**: Next.js App Router (localhost:3002)
-*   **API Protocol**: OpenAI Chat Completions API (`POST /v1/chat/completions`)
-*   **Error Context**: Open WebUI 將 SSE 串流 (`data: ...`) 誤判為 JSON 並嘗試解析失敗。
+這通常是因為 Open WebUI 的後端 Proxy 將 SSE 串流誤判為 JSON 並嘗試解析失敗。
+
+### 2. 根本原因
+1.  **Open WebUI Proxy 判斷過嚴**：依賴 `Content-Type` Header 判斷是否為 Stream。若 Header 在傳輸中遺失（常見於 Docker/Nginx 環境），則預設走 JSON 解析流程。
+2.  **Next.js Runtime 行為**：部分 Runtime 會緩衝輸出，導致 Header 延遲發送。
+
+### 3. 解決方案 (三位一體修復)
+
+#### A. 優化 Next.js API (Server-Side)
+修改 `app/api/openai/v1/chat/completions/route.ts`：
+1.  鎖定 Node.js Runtime (`export const runtime = 'nodejs';`)
+2.  使用 `AsyncGenerator` 輸出標準 SSE 格式。
+3.  設定正確的 `Content-Type` 與 `X-Accel-Buffering: no`。
+
+#### B. 修補 Open WebUI 後端 (Proxy Patch)
+修改 Open WebUI 容器內的 `/app/backend/open_webui/routers/openai.py`，加入 Fallback 機制：
+若 Header 判斷失敗但內容包含 `data:`，強制進入串流模式。
+
+#### C. 排除客戶端干擾
+建議使用無痕模式測試，排除 AdBlocker 干擾。
 
 ---
 
-## 2. 根本原因分析 (Root Cause Analysis)
+## 議題二：Open WebUI 找不到 Agent (Agent 列表隱形)
 
-經過多輪測試 (Curl, Python Script, Server Logs)，我們確認問題並非單一原因，而是多層因素疊加：
+### 1. 問題描述
+即使 Agent 已經在資料庫建立且 `is_active: true`，Open WebUI 的模型列表仍然看不到新建立的 Agent，或者只顯示過期的舊 Agent。
 
-1.  **Open WebUI Proxy 判斷邏輯過於嚴格**：
-    Open WebUI 的後端 (`backend/open_webui/routers/openai.py`) 依賴 `aiohttp` 讀取 `Content-Type` Header 來決定是否進入 "Streaming Mode"。若因為網路層 (Docker/Nginx/Localhost) 導致 Header 遺失或變異，Open WebUI 會預設進入 "JSON Mode"，導致解析以 `data:` 開頭的字串時失敗。
+### 2. 根本原因
+**嚴重級的 Server-Side Caching 問題**。
+Next.js App Router 對於後端的 `fetch` 請求有非常激進的預設快取機制。
+即使你在 API Route (`app/api/openai/v1/models/route.ts`) 宣告了 `export const dynamic = 'force-dynamic'`，Next.js 底層或是 Supabase Client 仍然可能快取了對資料庫的查詢結果。
 
-2.  **Next.js App Router 的 Runtime 行為**：
-    預設的 Edge Runtime 或未明確宣告的 Runtime 可能會導致 SSE 被緩衝 (Buffering) 或以 `Transfer-Encoding: chunked` 的非標準方式傳輸，讓某些 Client (如 Python aiohttp) 困惑。
+這導致 API 雖然每次都被呼叫，但從 Supabase 拿到的永遠是「昨天的資料」。
 
-3.  **瀏覽器干擾 (Client-Side Interference)**：
-    瀏覽器擴充功能 (AdBlockers, Privacy tools) 或快取機制可能介入並緩存 SSE 串流，導致前端接收到的不是即時流，而是一整塊 Response，進一步引發解析錯誤。
+### 3. 解決方案 (雙重快取阻斷)
 
----
+要徹底解決此問題，必須從 API 層與 Client 層同時下手。
 
-## 3. 綜合解決方案 (Comprehensive Solution)
+#### A. 第一層：API 回應標頭 (Response Headers)
+告訴 Open WebUI 與瀏覽器「不要快取這個 API 的回應」。
 
-要徹底解決此問題，我們執行了「三位一體」的修復工程。
-
-### 步驟一：優化 Next.js API (Server-Side)
-
-確保 API 回傳最標準、最原始的 SSE 格式，並鎖定 Node.js Runtime 以避免非預期行為。
-
-**修改檔案**: `app/api/openai/v1/chat/completions/route.ts`
-
-**關鍵改動**:
-1.  **鎖定 Runtime**: `export const runtime = 'nodejs';`
-2.  **使用 AsyncGenerator**: 放棄 `ReadableStream`，改用 `async function*` 配合 `new Response(iterator)`，確保輸出最純淨的 Byte Stream。
+修改 `app/api/openai/v1/models/route.ts`：
 
 ```typescript
-// 1. 強制設定
-export const runtime = 'nodejs'; 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// 2. Generator 實作
-const streamIterator = async function* () {
-    const encoder = new TextEncoder();
-    try {
-        while (true) {
-            // ... 讀取邏輯 ...
-            yield encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`);
+export async function GET() {
+    // ... 查詢邏輯 ...
+
+    return NextResponse.json({
+        object: 'list',
+        data: models,
+    }, {
+        headers: {
+            // 嚴格禁止任何形式的快取
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
         }
-        yield encoder.encode('data: [DONE]\n\n');
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-// 3. 回傳 Response
-return new Response(streamIterator(), {
-    headers: {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no', // 針對 Nginx/Proxy
-    },
-});
+    });
+}
 ```
 
-### 步驟二：修補 Open WebUI 後端 (Proxy Patch)
+#### B. 第二層：強制停用 Supabase Client 快取 (關鍵修復)
+這是最重要的一步。即使 API 路由是動態的，`fetch` 還是會被快取。我們需要在建立 Supabase Client 時全域禁用它。
 
-這是最關鍵的一步。我們在 Open WebUI 容器內加入了一個 "Fallback" 機制：當 Header 判斷失敗但內容疑似 SSE 時，強制啟用串流。
+修改 `lib/supabase/admin.ts`：
 
-**修改檔案**: `/app/backend/open_webui/routers/openai.py` (在容器內)
-
-**Patch 邏輯**:
-在 `session.request` 之後，`if "text/event-stream"` 判斷失敗的 `else` 分支前，插入以下邏輯：
-
-```python
-        # 原有判斷
-        if "text/event-stream" in r.headers.get("Content-Type", ""):
-            streaming = True
-            # ... (原有 StreamingResponse) ...
-        
-        # [NEW] Patch Start: Fallback for missing/malformed headers
-        elif form_data.get("stream") is True and r.status == 200:
-            log.warning("Open WebUI: stream=True mismatch. Attempting fallback.")
-            
-            async def peek_and_proxy(reader):
-                chunk = await reader.read(1024) # Peek first chunk
-                if chunk:
-                    # Check for SSE signature "data:"
-                    if chunk.startswith(b"data:") or b"\ndata: " in chunk:
-                        yield chunk
-                        async for c in reader.iter_chunked(4096):
-                            yield c
-                    else:
-                        yield chunk
-                        async for c in reader.iter_chunked(4096):
-                            yield c
-            
-            streaming = True
-            headers = dict(r.headers)
-            headers["Content-Type"] = "text/event-stream" # Force fix header
-            
-            return StreamingResponse(
-                peek_and_proxy(r.content),
-                status_code=r.status,
-                headers=headers,
-                background=BackgroundTask(cleanup_response, response=r, session=session),
-            )
-        # [NEW] Patch End
-        
-        else:
-            # ... (原有 JSON 處理) ...
+```typescript
+export function createAdminClient() {
+    // ...
+    return createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        },
+        // [關鍵修復] 強制覆寫全域 fetch 行為，加入 no-store
+        global: {
+            fetch: (url, options) => {
+                return fetch(url, {
+                    ...options,
+                    cache: 'no-store',       // 禁用標準 HTTP 快取
+                    next: { revalidate: 0 }  // 禁用 Next.js Data Cache
+                });
+            }
+        }
+    });
+}
 ```
 
-**操作指令** (若 Open WebUI 運行在 Docker):
-```bash
-# 1. 複製檔案出來
-docker cp open-webui:/app/backend/open_webui/routers/openai.py ./openai.py
-# 2. 編輯檔案加入上述 Patch
-# 3. 複製回去並重啟
-docker cp ./openai.py open-webui:/app/backend/open_webui/routers/openai.py
-docker restart open-webui
-```
-
-### 步驟三：排除客戶端干擾 (Client-Side)
-
-即使後端都修好了，瀏覽器擴充功能仍可能攔截 Stream。
-
-1.  **使用無痕模式 (Incognito Mode)**：這能最快速排除擴充功能與快取問題。
-2.  **停用干擾插件**：檢查 AdBlock, Privacy Badger, VPN 等插件。
+### 4. 驗證結果
+經過上述修正後：
+1.使用 `curl -v` 測試 `/api/openai/v1/models`，確認回傳 Header 包含 `no-cache`。
+2.新建立的 Agent 會在「毫秒級」內出現在 API 回應中，Open WebUI 重新整理即可看見。
 
 ---
 
-## 4. 驗證結果 (Outcome)
+## 附錄：常用測試指令
 
-經過上述三步驟修正後：
-1.  **Next.js API** 穩定輸出標準 SSE。
-2.  **Open WebUI** 即使在 Header 丟失的情況下，也能透過 Fallback 機制正確識別並轉發 Stream。
-3.  **前端介面** 成功顯示打字機效果，不再出現 `Unexpected token 'd'` 錯誤。
+### 檢查 Models API
+```bash
+curl -v http://localhost:3000/api/openai/v1/models
+```
 
-## 5. 附錄：測試腳本 (Diagnostic Script)
-
-使用此 Python 腳本可在 Open WebUI 容器內直接測試連線，驗證是否為 Proxy 問題。
-
-```python
-import asyncio, aiohttp
-async def main():
-    url = "http://host.docker.internal:3002/api/openai/v1/chat/completions"
-    payload = {"model": "Marketing Genius", "messages": [{"role": "user", "content": "hi"}], "stream": True}
-    # ... (完整腳本見專案 test_aiohttp.py)
+### 檢查 Chat Completion
+```bash
+curl -X POST http://localhost:3000/api/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "你的 Agent 名稱",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": true
+  }'
 ```

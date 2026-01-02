@@ -122,7 +122,7 @@ CREATE TABLE agents (
   description TEXT,
   avatar_url TEXT,
   system_prompt TEXT NOT NULL,
-  model_version VARCHAR(50) DEFAULT 'gemini-2.5-flash',
+  model_version VARCHAR(50) DEFAULT 'gemini-1.5-pro',
   temperature DECIMAL(2,1) DEFAULT 0.7 CHECK (temperature >= 0 AND temperature <= 2),
   department_id UUID REFERENCES departments(id),
   created_by UUID REFERENCES user_profiles(id),

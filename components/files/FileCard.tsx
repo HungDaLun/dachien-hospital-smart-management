@@ -9,6 +9,7 @@ import { Badge, Button, Modal } from '@/components/ui';
 import { useState } from 'react';
 import type { GeminiState } from '@/types';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import ReviewMetadataModal from './ReviewMetadataModal';
 
 /**
  * 檔案資料介面
@@ -23,6 +24,7 @@ export interface FileData {
     quality_score: number | null;
     created_at: string;
     uploaded_by: string;
+    metadata_analysis?: any; // Start using loose type for JSONB
     file_tags?: Array<{ id: string; tag_key: string; tag_value: string }>;
     user_profiles?: {
         display_name: string | null;
@@ -97,6 +99,8 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isSavingTags, setIsSavingTags] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+
 
     // 標籤狀態
     const [tags, setTags] = useState(file.file_tags || []);
@@ -107,6 +111,27 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const statusConfig = getStatusConfig(dict);
     const status = statusConfig[file.gemini_state] || statusConfig.PENDING;
     const icon = mimeTypeIcons[file.mime_type] || '📄';
+
+    const handleReviewConfirm = async (data: { filename: string; tags: string[] }) => {
+        try {
+            const response = await fetch(`/api/files/${file.id}/metadata`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                // Manually update local state or trigger sync
+                onSync?.(file.id); // Re-use onSync to trigger refresh in parent
+                setShowReviewModal(false);
+            } else {
+                alert('Update failed');
+            }
+        } catch (e) {
+            console.error(e);
+            alert(dict.common.error);
+        }
+    };
 
     /**
      * 處理同步
@@ -257,8 +282,20 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                         {/* 操作按鈕 */}
                         {canManage && (
                             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
+                                {/* Review 按鈕 (New) */}
+                                {file.gemini_state === 'NEEDS_REVIEW' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-white bg-amber-500 border-amber-600 hover:bg-amber-600 hover:border-amber-700"
+                                        onClick={() => setShowReviewModal(true)}
+                                    >
+                                        🔍 {dict.common.confirm || 'Review'}
+                                    </Button>
+                                )}
+
                                 {/* 同步按鈕 */}
-                                {['PENDING', 'FAILED', 'NEEDS_REVIEW'].includes(file.gemini_state) && (
+                                {['PENDING', 'FAILED'].includes(file.gemini_state) && (
                                     <Button
                                         variant="primary"
                                         size="sm"
@@ -363,6 +400,16 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                     {dict.knowledge.delete_confirm?.replace('{{filename}}', file.filename) || `Delete ${file.filename}?`}
                 </p>
             </Modal>
+
+            {/* Review Modal (Phase 2) */}
+            <ReviewMetadataModal
+                isOpen={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onConfirm={handleReviewConfirm}
+                originalFilename={file.filename}
+                metadata={file.metadata_analysis || {}}
+                dict={dict}
+            />
         </>
     );
 }

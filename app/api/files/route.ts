@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { uploadToS3 } from '@/lib/storage/s3';
 import { ValidationError, toApiResponse } from '@/lib/errors';
 import { getCurrentUserProfile, requireRole } from '@/lib/permissions';
+import { processUploadedFile } from '@/lib/knowledge/ingestion';
 
 /**
  * 支援的檔案格式與限制
@@ -204,6 +205,16 @@ export async function POST(request: NextRequest) {
             } catch (tagError) {
                 console.warn('標籤解析失敗:', tagError);
             }
+        }
+
+        // 觸發知識汲取流程 (Ingestion Pipeline)
+        // 注意：為了 Demo 效果與確保執行，這裡暫時使用 await (會增加請求時間)
+        // 實務上應使用 Background Job 或 Queue
+        try {
+            await processUploadedFile(newFile.id, buffer);
+        } catch (ingestionError) {
+            console.error('Ingestion Trigger Failed:', ingestionError);
+            // 不阻斷上傳流程，由背景重試或手動重試
         }
 
         return NextResponse.json({

@@ -188,13 +188,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             // Refresh to update stats or show latest info
             router.refresh(); // Refresh server components
 
-            // Redirect or Notify
-            if (!isEditing) {
-                router.push('/dashboard/agents'); // Redirect to list if creating
-            } else {
-                // stay on page and maybe show success?
-                alert(dict.common.success);
-            }
+            // Redirect to list page whether creating or editing
+            router.push('/dashboard/agents');
 
         } catch (err) {
             setError(err instanceof Error ? err.message : dict.common.error);

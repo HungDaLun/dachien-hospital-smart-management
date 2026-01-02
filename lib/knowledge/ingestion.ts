@@ -1,0 +1,120 @@
+/**
+ * Knowledge Ingestion Pipeline
+ * 負責處理檔案上傳後的自動化流程：
+ * 1. 上傳至 Gemini (Spoke)
+ * 2. 轉譯為 Markdown (Cleaning)
+ * 3. 提取 Metadata (Governance)
+ * 4. 寫回資料庫
+ */
+import { createClient } from '@/lib/supabase/server';
+import {
+    uploadFileToGemini,
+    generateContent
+} from '@/lib/gemini/client';
+import { downloadFromS3 } from '@/lib/storage/s3';
+import { MARKDOWN_CONVERSION_PROMPT, METADATA_ANALYSIS_PROMPT } from './prompts';
+
+/**
+ * 處理已上傳的檔案
+ * @param fileId 資料庫中的檔案 ID
+ * @param fileBuffer (選填) 檔案 Buffer，如果有傳入則不需從 S3 下載
+ */
+export async function processUploadedFile(fileId: string, fileBuffer?: Buffer) {
+    const supabase = await createClient();
+
+    // 1. 取得檔案記錄
+    const { data: file, error } = await supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+    if (error || !file) {
+        console.error(`[Ingestion] File not found: ${fileId}`, error);
+        return;
+    }
+
+    try {
+        // Debug: Log start
+        await supabase.from('files').update({
+            gemini_state: 'PROCESSING',
+            markdown_content: 'DEBUG: Starting ingestion...'
+        }).eq('id', fileId);
+
+        // 2. 準備檔案內容
+        let buffer = fileBuffer;
+        if (!buffer) {
+            await supabase.from('files').update({ markdown_content: 'DEBUG: Fetching from S3...' }).eq('id', fileId);
+            if (file.s3_etag && !file.s3_etag.startsWith('mock-')) {
+                try {
+                    buffer = await downloadFromS3(file.s3_storage_path);
+                } catch (s3Error) {
+                    throw new Error('無法取得檔案內容 (S3 下載失敗)');
+                }
+            } else {
+                throw new Error('無法取得檔案內容 (無 S3 記錄且無 Buffer)');
+            }
+        }
+
+        // 3. 上傳至 Gemini File API
+        await supabase.from('files').update({ markdown_content: `DEBUG: Uploading to Gemini (${file.filename})...` }).eq('id', fileId);
+        console.log(`[Ingestion] Uploading to Gemini: ${file.filename}`);
+        const geminiFile = await uploadFileToGemini(buffer, file.mime_type, file.filename);
+
+        // 更新 DB 記錄 Gemini URI
+        await supabase.from('files').update({
+            gemini_file_uri: geminiFile.uri,
+            markdown_content: `DEBUG: Uploaded to Gemini. URI: ${geminiFile.uri}. Waiting...`
+        }).eq('id', fileId);
+
+        // 等待 Gemini 檔案處理完成
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // 4. 執行轉譯 (File -> Markdown)
+        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Markdown (Model: gemini-1.5-flash)...` }).eq('id', fileId);
+        const markdown = await generateContent(
+            'gemini-1.5-flash',
+            MARKDOWN_CONVERSION_PROMPT,
+            geminiFile.uri,
+            file.mime_type
+        );
+
+        // 5. 執行 Metadata 分析
+        await supabase.from('files').update({ markdown_content: `DEBUG: Analyzing Metadata...` }).eq('id', fileId);
+        const metadataJsonString = await generateContent(
+            'gemini-1.5-flash',
+            METADATA_ANALYSIS_PROMPT,
+            geminiFile.uri,
+            file.mime_type
+        );
+
+        const cleanedJsonString = metadataJsonString.replace(/```json\n?|\n?```/g, '').trim();
+        let metadata = {};
+        try {
+            metadata = JSON.parse(cleanedJsonString);
+        } catch (e) {
+            console.error('[Ingestion] JSON Parse Error:', e);
+            metadata = { raw_analysis: cleanedJsonString };
+        }
+
+        // 6. 寫回資料庫
+        await supabase.from('files').update({
+            markdown_content: markdown,
+            metadata_analysis: metadata,
+            gemini_state: 'NEEDS_REVIEW',
+        }).eq('id', fileId);
+
+        console.log(`[Ingestion] Completed for ${file.filename}`);
+
+    } catch (err: any) {
+        console.error(`[Ingestion] Failed for ${fileId}:`, err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        // Append error to markdown content so we can see it
+        await supabase.from('files').update({
+            gemini_state: 'FAILED', // Keep FAILED
+            metadata_analysis: { error: errorMessage, stage: 'ingestion_catch' },
+            markdown_content: `DEBUG: FAILED. Error: ${errorMessage}`
+        }).eq('id', fileId);
+    }
+}

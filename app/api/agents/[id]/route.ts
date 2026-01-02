@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NotFoundError, toApiResponse } from '@/lib/errors';
 import { getCurrentUserProfile, canAccessAgent, requireAdmin } from '@/lib/permissions';
 
@@ -18,7 +19,7 @@ export async function GET(
 ) {
     try {
         const supabase = await createClient();
-        
+
         // 取得使用者資料
         const profile = await getCurrentUserProfile();
 
@@ -54,7 +55,7 @@ export async function PUT(
 ) {
     try {
         const supabase = await createClient();
-        
+
         // 取得使用者資料並檢查權限（需要管理員權限）
         const profile = await getCurrentUserProfile();
         requireAdmin(profile);
@@ -158,13 +159,17 @@ export async function PUT(
  * DELETE /api/agents/[id]
  * 硬刪除 Agent 及其所有關聯資料
  */
+/**
+ * DELETE /api/agents/[id]
+ * 硬刪除 Agent 及其所有關聯資料
+ */
 export async function DELETE(
     _request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
         const supabase = await createClient();
-        
+
         // 取得使用者資料並檢查權限（需要管理員權限）
         const profile = await getCurrentUserProfile();
         requireAdmin(profile);
@@ -184,61 +189,64 @@ export async function DELETE(
             }
         }
 
+        // 使用 Admin Client 進行刪除，以繞過 RLS 限制，確保能刪除所有關聯資料 (即使是其他使用者的)
+        const adminSupabase = await createAdminClient();
+
         // 1. 先取得所有相關的訊息 ID
-        const { data: messages } = await supabase
+        const { data: messages } = await adminSupabase
             .from('chat_messages')
             .select('id')
             .eq('agent_id', params.id);
 
-        const messageIds = messages?.map(m => m.id) || [];
+        const messageIds = messages?.map((m: { id: string }) => m.id) || [];
 
         // 2. 刪除所有關聯的對話回饋（chat_feedback）
         if (messageIds.length > 0) {
-            await supabase
+            await adminSupabase
                 .from('chat_feedback')
                 .delete()
                 .in('message_id', messageIds);
         }
 
         // 3. 刪除所有關聯的對話訊息（chat_messages）
-        await supabase
+        await adminSupabase
             .from('chat_messages')
             .delete()
             .eq('agent_id', params.id);
 
         // 4. 刪除所有關聯的對話 Session（chat_sessions）
-        await supabase
+        await adminSupabase
             .from('chat_sessions')
             .delete()
             .eq('agent_id', params.id);
 
         // 5. 刪除 Agent 知識規則（agent_knowledge_rules）
-        await supabase
+        await adminSupabase
             .from('agent_knowledge_rules')
             .delete()
             .eq('agent_id', params.id);
 
         // 6. 刪除 Agent Prompt 版本歷史（agent_prompt_versions）
-        await supabase
+        await adminSupabase
             .from('agent_prompt_versions')
             .delete()
             .eq('agent_id', params.id);
 
         // 7. 刪除 Agent 存取控制（agent_access_control）
-        await supabase
+        await adminSupabase
             .from('agent_access_control')
             .delete()
             .eq('agent_id', params.id);
 
         // 8. 刪除使用者收藏中的此 Agent（user_favorites）
-        await supabase
+        await adminSupabase
             .from('user_favorites')
             .delete()
             .eq('resource_type', 'AGENT')
             .eq('resource_id', params.id);
 
         // 9. 最後刪除 Agent 本身（硬刪除）
-        const { error } = await supabase
+        const { error } = await adminSupabase
             .from('agents')
             .delete()
             .eq('id', params.id);

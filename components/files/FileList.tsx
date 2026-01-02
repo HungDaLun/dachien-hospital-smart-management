@@ -130,8 +130,23 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
      * 處理刪除完成
      */
     const handleDelete = (id: string) => {
-        setFiles((prev) => prev.filter((f) => f.id !== id));
-        setTotal((prev) => prev - 1);
+        setFiles((prev) => {
+            const newFiles = prev.filter((f) => f.id !== id);
+
+            // 如果當前頁面所有檔案都刪除了，且不是第一頁，則回到上一頁
+            if (newFiles.length === 0 && page > 1) {
+                setPage((p) => p - 1);
+            }
+
+            return newFiles;
+        });
+
+        setTotal((prev) => {
+            const newTotal = Math.max(0, prev - 1);
+            // 更新總頁數
+            setTotalPages(Math.ceil(newTotal / 12) || 1);
+            return newTotal;
+        });
     };
 
     return (

@@ -151,23 +151,13 @@ export default function FileUploader({ dict, onUploadSuccess }: FileUploaderProp
                 throw new Error(result.error?.message || dict.common.error);
             }
 
-            // 自動觸發同步 (Auto-sync)
+            // Auto-trigger handled by backend now.
+            // setFiles status to syncing/success to show progress
             setFiles((prev) =>
                 prev.map((f) =>
-                    f.id === id ? { ...f, status: 'syncing' as UploadStatus, progress: 50 } : f
+                    f.id === id ? { ...f, status: 'success' as UploadStatus, progress: 100 } : f
                 )
             );
-
-            try {
-                // 呼叫同步 API，但不等待太久，或僅觸發
-                // 這裡我們等待它完成以確保狀態正確，但如果後端很久，可能需要優化
-                await fetch(`/api/files/${result.data.id}/sync`, {
-                    method: 'POST',
-                });
-            } catch (syncError) {
-                console.warn('Auto-sync trigger failed:', syncError);
-                // 同步觸發失敗不視為上傳失敗
-            }
 
             // 更新狀態為成功
             setFiles((prev) =>
