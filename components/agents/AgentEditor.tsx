@@ -8,10 +8,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Spinner, Badge } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import ArchitectModal from './ArchitectModal';
 
 interface KnowledgeRule {
     id?: string;
-    rule_type: 'TAG' | 'FOLDER';
+    rule_type: 'TAG' | 'FOLDER' | 'DEPARTMENT'; // Updated type
     rule_value: string;
 }
 
@@ -57,6 +58,9 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     // Stats State
     const [stats, setStats] = useState<AgentStats | null>(null);
 
+    // Architect Modal State
+    const [isArchitectOpen, setIsArchitectOpen] = useState(false);
+
     const [formData, setFormData] = useState<AgentData>(initialData || {
         name: '',
         description: '',
@@ -67,6 +71,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     });
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
+    const [newDept, setNewDept] = useState(''); // State for new department rule
 
     // Fetch Stats & Versions if editing
     useEffect(() => {
@@ -131,6 +136,35 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             ]
         }));
         setNewTag({ key: '', value: '' });
+    };
+
+    const addDeptRule = () => {
+        if (!newDept) return;
+        // Check if already exists
+        if (formData.knowledge_rules?.some(r => r.rule_type === 'DEPARTMENT' && r.rule_value === newDept)) return;
+
+        setFormData(prev => ({
+            ...prev,
+            knowledge_rules: [
+                ...(prev.knowledge_rules || []),
+                { rule_type: 'DEPARTMENT', rule_value: newDept }
+            ]
+        }));
+        setNewDept('');
+    };
+
+    const handleArchitectApply = (blueprint: any) => {
+        setFormData(prev => ({
+            ...prev,
+            name: blueprint.name,
+            description: blueprint.description,
+            system_prompt: blueprint.system_prompt,
+            knowledge_rules: [
+                ...(prev.knowledge_rules || []),
+                ...blueprint.suggested_knowledge_rules
+            ]
+        }));
+        setIsArchitectOpen(false);
     };
 
     const removeRule = (index: number) => {
@@ -222,7 +256,17 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 {/* 左側：基本設定與知識綁定 */}
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">{dict.common.profile}</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">{dict.common.profile}</h3>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="bg-gradient-to-r from-violet-600 to-indigo-600 border-0 text-white hover:from-violet-700 hover:to-indigo-700"
+                                onClick={() => setIsArchitectOpen(true)}
+                            >
+                                ✨ AI Architect
+                            </Button>
+                        </div>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -296,7 +340,13 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                         <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
                                 {formData.knowledge_rules?.map((rule, idx) => (
-                                    <div key={idx} className="flex items-center gap-1 bg-primary-50 text-primary-700 px-2 py-1 rounded-md text-xs border border-primary-100">
+                                    <div key={idx} className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border ${rule.rule_type === 'DEPARTMENT'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : 'bg-primary-50 text-primary-700 border-primary-100'
+                                        }`}>
+                                        <span className="font-bold mr-1">
+                                            {rule.rule_type === 'DEPARTMENT' ? '🏢' : '🏷️'}
+                                        </span>
                                         <span>{rule.rule_value}</span>
                                         <button
                                             type="button"
@@ -308,32 +358,59 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                     </div>
                                 ))}
                             </div>
-                            <div className="space-y-2 pt-2 border-t border-gray-100">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Key"
-                                        value={newTag.key}
-                                        onChange={(e) => setNewTag(prev => ({ ...prev, key: e.target.value }))}
-                                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Value"
-                                        value={newTag.value}
-                                        onChange={(e) => setNewTag(prev => ({ ...prev, value: e.target.value }))}
-                                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                                    />
+                            <div className="space-y-3 pt-4 border-t border-gray-100">
+                                {/* Tag Input */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-gray-500">Bind by Tag</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Key"
+                                            value={newTag.key}
+                                            onChange={(e) => setNewTag(prev => ({ ...prev, key: e.target.value }))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Value"
+                                            value={newTag.value}
+                                            onChange={(e) => setNewTag(prev => ({ ...prev, value: e.target.value }))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs px-2"
+                                            onClick={addTagRule}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
                                 </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full text-xs"
-                                    onClick={addTagRule}
-                                >
-                                    {dict.common.create} Rule
-                                </Button>
+
+                                {/* Department Input */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-gray-500">Bind by Department</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Department Name (e.g. Finance)"
+                                            value={newDept}
+                                            onChange={(e) => setNewDept(e.target.value)}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs px-2"
+                                            onClick={addDeptRule}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -439,6 +516,12 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     </Button>
                 </div>
             </div>
-        </form>
+
+            <ArchitectModal
+                isOpen={isArchitectOpen}
+                onClose={() => setIsArchitectOpen(false)}
+                onApply={handleArchitectApply}
+            />
+        </form >
     );
 }

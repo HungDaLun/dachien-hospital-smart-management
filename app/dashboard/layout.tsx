@@ -48,6 +48,7 @@ export default async function DashboardLayout({
   const navItems = [
     { href: '/dashboard', label: dict.navigation.overview, icon: '🏠' },
     { href: '/dashboard/knowledge', label: dict.navigation.knowledge, icon: '📚' },
+    { href: '/dashboard/brain', label: dict.navigation.brain, icon: '🌌' },
     { href: '/dashboard/agents', label: dict.navigation.agents, icon: '🤖' },
     { href: '/dashboard/chat', label: dict.navigation.chat, icon: '💬' },
   ];

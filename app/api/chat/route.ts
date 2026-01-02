@@ -92,38 +92,68 @@ export async function POST(request: NextRequest) {
         // 取得 Agent 知識綁定規則
         const { data: rules } = await supabase
             .from('agent_knowledge_rules')
-            .select('rule_value')
+            .select('rule_type, rule_value')
             .eq('agent_id', agent.id);
 
         let fileUris: Array<{ uri: string; mimeType: string }> = [];
 
         if (rules && rules.length > 0) {
-            // 解析規則並查詢符合標籤的檔案
-            // 規則格式為 "key:value"
-            const tagFilters = rules.map(r => {
-                const [key, value] = r.rule_value.split(':');
-                return { key, value };
-            });
+            // 分類規則
+            const tagRules = rules.filter(r => r.rule_type === 'TAG');
+            const deptRules = rules.filter(r => r.rule_type === 'DEPARTMENT');
 
-            // 查詢符合標籤且已同步的檔案
-            // 注意：這裡使用聯集 (OR) 的邏輯，只要符合任一標籤即可
-            // 實務上可依需求調整為交集 (AND)
-            const { data: files } = await supabase
-                .from('files')
-                .select('id, gemini_file_uri, mime_type')
-                .eq('gemini_state', 'SYNCED')
-                .in('id', (
-                    await supabase
-                        .from('file_tags')
-                        .select('file_id')
-                        .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','))
-                ).data?.map(t => t.file_id) || []);
+            let matchedFileIds: Set<string> = new Set();
 
-            if (files) {
-                fileUris = files.map(f => ({
-                    uri: f.gemini_file_uri!,
-                    mimeType: f.mime_type
-                }));
+            // 1. 處理 TAG 規則
+            if (tagRules.length > 0) {
+                const tagFilters = tagRules.map(r => {
+                    const [key, value] = r.rule_value.split(':');
+                    return { key, value };
+                });
+
+                const { data: tagFiles } = await supabase
+                    .from('file_tags')
+                    .select('file_id')
+                    .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','));
+
+                tagFiles?.forEach(f => matchedFileIds.add(f.file_id));
+            }
+
+            // 2. 處理 DEPARTMENT 規則
+            if (deptRules.length > 0) {
+                const deptNames = deptRules.map(r => r.rule_value);
+                // 先找出這些部門名稱對應的 ID
+                const { data: departments } = await supabase
+                    .from('departments')
+                    .select('id')
+                    .in('name', deptNames);
+
+                if (departments && departments.length > 0) {
+                    const deptIds = departments.map(d => d.id);
+                    const { data: deptFiles } = await supabase
+                        .from('files')
+                        .select('id')
+                        .in('department_id', deptIds)
+                        .eq('gemini_state', 'SYNCED');
+
+                    deptFiles?.forEach(f => matchedFileIds.add(f.id));
+                }
+            }
+
+            // 3. 統一查詢檔案 URI (如果沒有任何匹配，就不用查了)
+            if (matchedFileIds.size > 0) {
+                const { data: files } = await supabase
+                    .from('files')
+                    .select('id, gemini_file_uri, mime_type')
+                    .eq('gemini_state', 'SYNCED')
+                    .in('id', Array.from(matchedFileIds));
+
+                if (files) {
+                    fileUris = files.map(f => ({
+                        uri: f.gemini_file_uri!,
+                        mimeType: f.mime_type
+                    }));
+                }
             }
         }
 

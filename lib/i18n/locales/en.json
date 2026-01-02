@@ -50,7 +50,8 @@
         "system_admin": "System Admin",
         "departments": "Departments",
         "users": "User Management",
-        "audit_logs": "Audit Logs"
+        "audit_logs": "Audit Logs",
+        "brain": "Enterprise Brain"
     },
     "dashboard_home": {
         "welcome": "Welcome back, ",

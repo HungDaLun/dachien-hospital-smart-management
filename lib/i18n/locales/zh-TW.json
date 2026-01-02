@@ -50,7 +50,8 @@
         "system_admin": "系統管理",
         "departments": "部門管理",
         "users": "使用者管理",
-        "audit_logs": "稽核日誌"
+        "audit_logs": "稽核日誌",
+        "brain": "企業大腦"
     },
     "dashboard_home": {
         "welcome": "歡迎回來，",

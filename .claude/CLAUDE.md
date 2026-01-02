@@ -21,6 +21,8 @@
 - ✅ Agent 管理 (`/api/agents`) - CRUD 與 System Prompt 編輯
 - ✅ 基礎對話功能 (`/api/chat`) - 支援 Gemini 與串流 (SSE)
 - ✅ 企業大腦橋接 (`/api/openai/v1/chat/completions`) - 相容 OpenAI 介面
+- ✅ Agent 工廠升級 (Agent Factory 2.0)
+- ✅ DIKW 視覺化 (DIKW Visualization) - 星系圖與動態框架
 
 ### 🚧 進行中項目 (Phase 2: DIKW Visualization)
 
@@ -45,14 +47,14 @@
 - [ ] **Departments List**: 星系圖增加部門切換濾鏡 (Department Filter)
 
 #### Agent 工廠升級 (Agent Factory 2.0)
-- [ ] **規則引擎擴充**: 支援 `DEPARTMENT` 類型的 Knowledge Rule
-- [ ] **AI 建構顧問 (Architect)**: 
-  - 實作「意圖分析」Prompt
-  - 建議最相關的知識來源 (Top-K Files & Documents)
-  - **Meta-Prompting Engine**: 
-    - 輸入：使用者意圖 + 建議的知識清單
-    - 輸出：符合 `K-0` 標準的結構化 System Prompt (包含角色、任務對照表、合規檢查、思考路徑)
-    - 技術：使用 Gemini 2.0 Flash 進行 "Prompt-to-Prompt" 生成
+- [x] **規則引擎擴充**: 支援 `DEPARTMENT` 類型的 Knowledge Rule
+- [x] **AI 建構顧問 (Architect)**: 
+  - [x] 實作「意圖分析」Prompt
+  - [x] 建議最相關的知識來源 (Top-K Files & Documents)
+  - [x] **Meta-Prompting Engine**: 
+    - [x] 輸入：使用者意圖 + 建議的知識清單
+    - [x] 輸出：符合 `K-0` 標準的結構化 System Prompt (包含角色、任務對照表、合規檢查、思考路徑)
+    - [x] 技術：使用 Gemini 2.0 Flash 進行 "Prompt-to-Prompt" 生成
 
 ---
 

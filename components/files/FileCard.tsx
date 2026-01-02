@@ -100,6 +100,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const [isSyncing, setIsSyncing] = useState(false);
     const [isSavingTags, setIsSavingTags] = useState(false);
     const [showReviewModal, setShowReviewModal] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
 
     // 標籤狀態
@@ -182,6 +183,34 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             console.error('刪除失敗:', error);
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    /**
+     * 處理智慧分析 (Mapper Agent)
+     */
+    const handleAnalyze = async () => {
+        if (isAnalyzing) return;
+        setIsAnalyzing(true);
+        try {
+            const response = await fetch(`/api/files/${file.id}/analyze`, {
+                method: 'POST',
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                // Success feedback? Maybe sync handled it or just toast?
+                // Ideally refresh parent or show success state
+                alert(`Analysis Started: ${result.message}`);
+                onSync?.(file.id); // Trigger refresh
+            } else {
+                alert(`Analysis Failed: ${result.error || result.message}`);
+            }
+        } catch (error) {
+            console.error('Analysis error:', error);
+            alert(dict.common.error);
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -303,7 +332,20 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                         loading={isSyncing}
                                         disabled={isSyncing}
                                     >
-                                        {dict.knowledge.sync_gemini}
+                                    </Button>
+                                )}
+
+                                {/* 分析按鈕 (Synced & Active only) */}
+                                {file.gemini_state === 'SYNCED' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAnalyze}
+                                        loading={isAnalyzing}
+                                        disabled={isAnalyzing}
+                                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                                    >
+                                        ✨ 分析
                                     </Button>
                                 )}
 

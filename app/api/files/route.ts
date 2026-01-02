@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
                 mime_type: mimeType,
                 size_bytes: file.size,
                 uploaded_by: profile.id,
+                department_id: profile.department_id, // 【NEW】自動歸戶至部門
                 gemini_state: 'PENDING',
                 is_active: true,
             })

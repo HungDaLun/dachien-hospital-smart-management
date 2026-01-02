@@ -35,6 +35,21 @@
 - ✅ 設定文件（`SUPABASE_SETUP.md`）
 - ✅ 環境變數指南（`ENV_VARIABLES_GUIDE.md`）
 
+### Phase 3: DIKW Visualization (100%)
+- [x] **Dynamic Framework Engine**
+    - [x] Database Schema (`knowledge_frameworks`, `knowledge_instances`)
+    - [x] Framework API
+    - [x] Mapper Agent (Auto-ETL)
+- [x] **Enterprise Galaxy Graph**
+    - [x] React Flow Integration
+    - [x] Visual Data Lineage
+    - [x] Departmental Filtering
+    - [x] Dashboard Page (`/dashboard/brain`)
+    - [x] **UI Refinements (100%)**
+        - [x] Knowledge Node Detail Sidebar (Slide-over)
+        - [x] Department Filter (Admin View)
+        - [x] Manual Analysis Trigger (File Action)
+
 ### 4. 核心模組（100%）
 
 - ✅ 錯誤處理模組（`lib/errors.ts`）
@@ -141,7 +156,19 @@
 - ✅ 對話介面（含串流支援）
 - ✅ SSE 串流回應實作
 - ✅ 歷史上下文整合
-- ✅ 對話回饋機制（👍/👎 按鈕與回饋表單）
+- [x] 對話回饋機制（👍/👎 按鈕與回饋表單）
+
+3.5 **部門知識圍籬 (Departmental Silos)** (100% - 2026-01-02 Completed)
+- ✅ 資料庫部門欄位與 RLS 政策 (`20260107000000_add_dept_silos.sql`)
+- ✅ 檔案上傳流程自動綁定部門
+- ✅ Agent 建構器支援「綁定至部門」
+- ✅ Chat API 支援部門級知識檢索 (RAG Filter)
+
+3.6 **AI 建構顧問 (Agent Architect)** (100% - 2026-01-02 Completed)
+- ✅ Meta-Prompting 引擎實作 (`Gemini 2.0 Flash`)
+- ✅ Agent 意圖分析與結構化指令生成 API
+- ✅ 前端顧問互動視窗 (`ArchitectModal`)
+
 
 ### 中優先級（功能完善）
 
@@ -239,6 +266,8 @@
 - [x] 對話功能 - 串流與歷史整合 (95%)
 - [x] Agent 管理 - 版本控制與權限 (90%)
 - [x] UI 元件庫 (80%)
+- [x] Phase 2: Agent Factory 2.0 (100%)
+- [x] Phase 3: DIKW Visualization (100%)
 
 ---
 
@@ -250,7 +279,8 @@
 - **Agent 工廠 (Agent Factory)**: 90%
 - **對話功能 (Chat & AI)**: 95%
 - **系統管理與日誌 (System & Audit)**: 90%
-- **UI 元件庫 (Component Library)**: 80%
+- **智能建構 (Agent Architect)**: 100%
+- **UI 元件庫 (Component Library)**: 85%
 
 ---
 
