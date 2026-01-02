@@ -40,13 +40,8 @@ interface AgentCardProps {
  * 模型版本顯示名稱
  */
 const modelLabels: Record<string, string> = {
-    'gemini-2.5-flash': 'Gemini 2.5 Flash',
-    'gemini-2.5-pro': 'Gemini 2.5 Pro',
-    'gemini-2.0-flash': 'Gemini 2.0 Flash',
-    'gemini-2.0-flash-exp': 'Gemini 2.0 Flash Exp',
-    // 保留舊版本以向後相容
-    'gemini-1.5-pro': 'Gemini 1.5 Pro',
-    'gemini-1.5-flash': 'Gemini 1.5 Flash',
+    'gemini-3-flash': 'Gemini 3 Flash',
+    'gemini-3-pro': 'Gemini 3 Pro',
 };
 
 export default function AgentCard({ agent, canManage, onEdit, onDelete, onChat }: AgentCardProps) {

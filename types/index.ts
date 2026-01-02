@@ -109,7 +109,7 @@ export interface KnowledgeFramework {
   code: string;
   name: string;
   description: string | null;
-  structure_schema: {
+  schema: {
     sections: Array<{
       key: string;
       label: string;
@@ -130,10 +130,10 @@ export interface KnowledgeFramework {
 export interface KnowledgeInstance {
   id: string;
   framework_id: string;
-  target_subject: string | null;
-  content_data: Record<string, any>; // 對應 structure_schema 的 key
-  completeness_score: number;
-  confidence_score: number;
+  title: string | null;
+  data: Record<string, any>; // 對應 schema 的 key
+  completeness: number;
+  confidence: number;
   source_file_ids: string[] | null;
   created_at: string;
   updated_at: string;

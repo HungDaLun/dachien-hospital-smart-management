@@ -19,7 +19,7 @@ async function testConnection() {
     try {
         const genAI = createGeminiClient();
 
-        const modelsToTest = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+        const modelsToTest = ['gemini-3-flash', 'gemini-3-pro'];
 
         for (const modelName of modelsToTest) {
             try {

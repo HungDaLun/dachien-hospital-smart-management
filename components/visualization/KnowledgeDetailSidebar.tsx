@@ -90,15 +90,9 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                             {isFramework && (
                                                 <div className="grid gap-6">
                                                     {/* This is a simple generic renderer for the framework data */}
+                                                    {/* Attributes */}
                                                     {Object.entries(data).map(([key, value]) => {
-                                                        if (['label', 'frameworkName', 'frameworkCode', 'uiConfig', 'confidence', 'completeness'].includes(key)) return null;
-
-                                                        // If it's the actual content data, usually passed as spread props or inside a 'content' field depending on API.
-                                                        // Based on api/knowledge/graph/route.ts, we spread `...n.data`. 
-                                                        // But wait, the API returns:
-                                                        // data: { label, frameworkCode, frameworkName, uiConfig, completeness, confidence }
-                                                        // It seems I forgot to include the ACTUAL `content_data` payload in the graph API response!
-                                                        // I need to add that to the API first.
+                                                        if (['label', 'frameworkName', 'frameworkCode', 'uiConfig', 'confidence', 'completeness', 'contentData'].includes(key)) return null;
 
                                                         return (
                                                             <div key={key} className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
@@ -111,6 +105,25 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                             </div>
                                                         );
                                                     })}
+
+                                                    {/* Content Data (The actual filled framework data) */}
+                                                    {data.contentData && (
+                                                        <div className="bg-blue-50/50 rounded-lg border border-blue-100 p-4 shadow-sm">
+                                                            <h4 className="text-sm font-semibold text-blue-900 uppercase tracking-wide mb-2 border-b border-blue-200 pb-1">
+                                                                Core Content
+                                                            </h4>
+                                                            <div className="grid gap-4">
+                                                                {Object.entries(data.contentData).map(([k, v]) => (
+                                                                    <div key={k}>
+                                                                        <span className="block text-xs font-semibold text-blue-700 mb-1 uppercase opacity-75">{k.replace(/_/g, ' ')}</span>
+                                                                        <div className="text-sm text-gray-800 bg-white p-2 rounded border border-blue-100 whitespace-pre-wrap">
+                                                                            {typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v)}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 

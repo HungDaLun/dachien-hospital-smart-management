@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
                 framework:knowledge_frameworks(code, name, ui_config),
                 completeness,
                 confidence,
-                content_data,
+                data,
                 source_file_ids,
                 created_at
             `);
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
                     uiConfig: (inst.framework as any)?.ui_config,
                     completeness: inst.completeness,
                     confidence: inst.confidence,
-                    contentData: (inst as any).content_data // Cast simply for now as we didn't add type to query var
+                    contentData: (inst as any).data // Cast simply for now as we didn't add type to query var
                 }
             });
 

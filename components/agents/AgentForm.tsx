@@ -23,10 +23,8 @@ interface AgentFormProps {
  * 模型版本選項
  */
 const modelOptions = [
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (快速，推薦)' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (最強大)' },
-    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (穩定版)' },
-    { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash Exp (實驗版)' },
+    { value: 'gemini-3-flash', label: 'Gemini 3 Flash (快速，推薦)' },
+    { value: 'gemini-3-pro', label: 'Gemini 3 Pro (最強大)' },
 ];
 
 /**
@@ -47,7 +45,7 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
     const [name, setName] = useState(agent?.name || '');
     const [description, setDescription] = useState(agent?.description || '');
     const [systemPrompt, setSystemPrompt] = useState(agent?.system_prompt || '');
-    const [modelVersion, setModelVersion] = useState(agent?.model_version || 'gemini-2.5-flash');
+    const [modelVersion, setModelVersion] = useState(agent?.model_version || 'gemini-3-flash');
     const [temperature, setTemperature] = useState(String(agent?.temperature || 0.7));
 
     // 載入狀態
@@ -61,7 +59,7 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
         setName('');
         setDescription('');
         setSystemPrompt('');
-        setModelVersion('gemini-2.5-flash');
+        setModelVersion('gemini-3-flash');
         setTemperature('0.7');
         setError(null);
     };

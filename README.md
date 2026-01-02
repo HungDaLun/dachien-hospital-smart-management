@@ -24,7 +24,7 @@ EAKAP 是一個企業級的「AI Agent 工廠與知識運籌中心」，旨在�
 ### 後端
 - Supabase (PostgreSQL + Auth + Storage)
 - Next.js API Routes
-- Google Gemini 1.5/2.0 API
+- Google Gemini 3 API (gemini-3-flash, gemini-3-pro)
 
 ### 儲存
 - Layer 1: S3/MinIO (資料主權)

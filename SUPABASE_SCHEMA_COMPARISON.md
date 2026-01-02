@@ -23,13 +23,13 @@
 ### 1. `agents.model_version` 預設值不一致 ✅ 已修復
 
 **問題描述：**
-- Migration 檔案中定義為 `'gemini-2.5-flash'`
-- 資料庫實際值為 `'gemini-1.5-pro'`
+- Migration 檔案中定義為 `'gemini-3-pro'`
+- 資料庫實際值由 `'gemini-1.5-pro'` 更新為 `'gemini-3-pro'`
 
 **修復狀態：**
-- ✅ 已更新 `20240101000000_initial_schema.sql` 中的預設值為 `'gemini-1.5-pro'`
+- ✅ 已更新 `20240101000000_initial_schema.sql` 中的預設值為 `'gemini-3-pro'`
 - ✅ 已執行 migration `20260105000000_fix_agents_model_version_default.sql`
-- ✅ 資料庫預設值已確認統一為 `'gemini-1.5-pro'`
+- ✅ 資料庫預設值已確認統一為 `'gemini-3-pro'`
 
 ### 2. 測試用 RLS 政策 ✅ 已移除
 
@@ -184,9 +184,9 @@
 ### ✅ 1. 修復 model_version 預設值不一致
 
 **執行內容：**
-- ✅ 更新 `20240101000000_initial_schema.sql` 中的預設值為 `'gemini-1.5-pro'`
+- ✅ 更新 `20240101000000_initial_schema.sql` 中的預設值為 `'gemini-3-pro'`
 - ✅ 建立並執行 migration `20260105000000_fix_agents_model_version_default.sql`
-- ✅ 驗證資料庫預設值已統一
+- ✅ 驗證資料庫預設值已統一為 `'gemini-3-pro'`
 
 ### ✅ 2. 清理測試用 RLS 政策
 
@@ -206,7 +206,7 @@
 整體而言，資料庫結構與 migration 檔案**完全一致**！
 
 **修復狀態：**
-- ✅ `agents.model_version` 預設值已統一為 `'gemini-1.5-pro'`
+- ✅ `agents.model_version` 預設值已統一為 `'gemini-3-pro'`
 - ✅ 測試用 RLS 政策已移除
 - ✅ 所有 migration 檔案已同步更新
 

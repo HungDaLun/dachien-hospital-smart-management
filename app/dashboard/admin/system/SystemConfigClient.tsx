@@ -153,10 +153,8 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
               disabled={saving}
               className="px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
             >
-              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-              <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>
+              <option value="gemini-3-flash">gemini-3-flash</option>
+              <option value="gemini-3-pro">gemini-3-pro</option>
             </select>
           </div>
         </div>

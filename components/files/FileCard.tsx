@@ -51,7 +51,7 @@ const getStatusConfig = (dict: Dictionary): Record<GeminiState, { variant: 'succ
     PENDING: { variant: 'default', label: dict.knowledge.status_pending },
     PROCESSING: { variant: 'info', label: dict.knowledge.status_processing, dot: true },
     SYNCED: { variant: 'success', label: dict.knowledge.status_synced },
-    NEEDS_REVIEW: { variant: 'warning', label: 'Needs Review' },
+    NEEDS_REVIEW: { variant: 'warning', label: dict.knowledge.status_needs_review || 'Needs Review' },
     REJECTED: { variant: 'error', label: 'Rejected' },
     FAILED: { variant: 'error', label: dict.knowledge.status_failed },
 });
@@ -280,6 +280,21 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                             </Badge>
                         </div>
 
+                        {/* 失敗原因顯示 */}
+                        {file.gemini_state === 'FAILED' && (file.metadata_analysis as any)?.error && (
+                            <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-100 shadow-sm transition-all animate-in fade-in slide-in-from-top-1 duration-300">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-red-500 flex-shrink-0 mt-0.5">⚠️</span>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="text-[11px] text-red-700 font-medium mb-1">分析失敗</p>
+                                        <p className="text-[10px] text-red-600 font-mono leading-tight break-words line-clamp-3">
+                                            {String((file.metadata_analysis as any).error).replace(/\[GoogleGenerativeAI Error\]:?\s*/, '').split('\n')[0]}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 標籤顯示 */}
                         <div className="flex flex-wrap gap-1 mt-2">
                             {file.file_tags && file.file_tags.length > 0 ? (
@@ -316,7 +331,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="text-white bg-amber-500 border-amber-600 hover:bg-amber-600 hover:border-amber-700"
+                                        className="text-gray-900 bg-amber-400 border-amber-500 hover:bg-amber-500 hover:border-amber-600 font-bold shadow-sm"
                                         onClick={() => setShowReviewModal(true)}
                                     >
                                         🔍 {dict.common.confirm || 'Review'}
@@ -332,6 +347,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                         loading={isSyncing}
                                         disabled={isSyncing}
                                     >
+                                        🔄 重新同步
                                     </Button>
                                 )}
 

@@ -52,7 +52,7 @@ async function verifyGeminiKey(): Promise<void> {
   } else {
     console.log('✅ 環境變數已設定');
     // 顯示前 15 個字元以便確認是否為最新值
-    const maskedKey = apiKey.length > 20 
+    const maskedKey = apiKey.length > 20
       ? `${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 4)}`
       : `${apiKey.substring(0, 10)}...`;
     console.log(`   API Key：${maskedKey}`);
@@ -64,17 +64,17 @@ async function verifyGeminiKey(): Promise<void> {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    
+
     // 先嘗試列出可用模型
     console.log('   正在檢查可用模型...');
     let availableModels: string[] = [];
-    
+
     try {
       // 嘗試使用 REST API 列出模型（如果 SDK 支援）
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.models && Array.isArray(data.models)) {
@@ -90,22 +90,18 @@ async function verifyGeminiKey(): Promise<void> {
     } catch (err) {
       console.log('   ℹ️  無法列出模型列表，將直接測試常用模型');
     }
-    
+
     // 嘗試使用不同的模型名稱（優先使用新版本）
-    const modelNames = availableModels.length > 0 
+    const modelNames = availableModels.length > 0
       ? availableModels.slice(0, 3)
       : [
-          'gemini-2.5-flash',
-          'gemini-2.5-pro',
-          'gemini-2.0-flash',
-          'gemini-2.0-flash-exp',
-          'gemini-1.5-flash',
-          'gemini-1.5-pro',
-        ];
-    
+        'gemini-3-flash',
+        'gemini-3-pro',
+      ];
+
     let model = null;
     let workingModelName = null;
-    
+
     for (const modelName of modelNames) {
       try {
         console.log(`   正在測試模型：${modelName}...`);
@@ -126,7 +122,7 @@ async function verifyGeminiKey(): Promise<void> {
         continue;
       }
     }
-    
+
     if (!model || !workingModelName) {
       throw new Error('所有測試的模型都無法使用。請確認已啟用 Generative Language API。');
     }
@@ -147,11 +143,11 @@ async function verifyGeminiKey(): Promise<void> {
 
     // 步驟 3: 檢查其他模型可用性
     console.log('📊 檢查其他模型可用性...');
-    
-    const otherModels = ['gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash'];
+
+    const otherModels = ['gemini-3-pro'];
     for (const modelName of otherModels) {
       if (modelName === workingModelName) continue;
-      
+
       try {
         const testModel = genAI.getGenerativeModel({ model: modelName });
         await testModel.generateContent('test');
@@ -169,7 +165,7 @@ async function verifyGeminiKey(): Promise<void> {
     if (error instanceof Error) {
       // 顯示完整錯誤訊息
       console.error(`   完整錯誤訊息：${error.message}`);
-      
+
       // 嘗試從錯誤物件中提取更多資訊
       const errorObj = error as any;
       if (errorObj.status) {

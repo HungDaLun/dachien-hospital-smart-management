@@ -87,6 +87,7 @@
         "status_processing": "Processing",
         "status_synced": "Synced",
         "status_failed": "Failed",
+        "status_needs_review": "Needs Review",
         "filter_files": "Filter files...",
         "view_details": "View Details"
     },

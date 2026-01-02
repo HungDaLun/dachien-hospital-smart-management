@@ -50,8 +50,8 @@ export async function POST(
       5. Output ONLY the Markdown content. Do not include introductory text like "Here is the markdown...".
     `;
 
-        // Use a capable model for reading documents
-        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-2.5-flash';
+        // Use Gemin 3 Flash for efficient document reading and cleaning
+        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash';
 
         const structuredContent = await generateContent(
             modelVersion,

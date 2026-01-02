@@ -243,7 +243,7 @@ async function runTests() {
   const agentPayload = {
     name: `Test Agent ${newTimestamp}`,
     system_prompt: 'You are a test agent.',
-    model_version: 'gemini-2.5-flash'
+    model_version: 'gemini-3-flash'
   };
 
   if (tokens.superAdmin)

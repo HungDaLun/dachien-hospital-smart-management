@@ -209,14 +209,10 @@ export async function POST(request: NextRequest) {
         }
 
         // 觸發知識汲取流程 (Ingestion Pipeline)
-        // 注意：為了 Demo 效果與確保執行，這裡暫時使用 await (會增加請求時間)
-        // 實務上應使用 Background Job 或 Queue
-        try {
-            await processUploadedFile(newFile.id, buffer);
-        } catch (ingestionError) {
-            console.error('Ingestion Trigger Failed:', ingestionError);
-            // 不阻斷上傳流程，由背景重試或手動重試
-        }
+        // 使用背景非同步處理，不阻塞 HTTP 回應
+        processUploadedFile(newFile.id, buffer).catch(err => {
+            console.error('[Background Ingestion] Trigger Failed:', err);
+        });
 
         return NextResponse.json({
             success: true,

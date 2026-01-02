@@ -87,6 +87,7 @@
         "status_processing": "處理中",
         "status_synced": "已同步",
         "status_failed": "失敗",
+        "status_needs_review": "待審核",
         "filter_files": "篩選檔案...",
         "view_details": "查看詳情"
     },

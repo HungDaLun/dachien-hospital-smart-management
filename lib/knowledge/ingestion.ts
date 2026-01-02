@@ -7,20 +7,34 @@
  * 4. 寫回資料庫
  */
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { SupabaseClient } from '@supabase/supabase-js';
 import {
     uploadFileToGemini,
-    generateContent
+    generateContent,
+    retryWithBackoff
 } from '@/lib/gemini/client';
 import { downloadFromS3 } from '@/lib/storage/s3';
 import { MARKDOWN_CONVERSION_PROMPT, METADATA_ANALYSIS_PROMPT } from './prompts';
+import { autoMapDocumentToFrameworks } from './mapper';
 
 /**
  * 處理已上傳的檔案
  * @param fileId 資料庫中的檔案 ID
  * @param fileBuffer (選填) 檔案 Buffer，如果有傳入則不需從 S3 下載
  */
-export async function processUploadedFile(fileId: string, fileBuffer?: Buffer) {
-    const supabase = await createClient();
+export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, supabaseClient?: SupabaseClient) {
+    let supabase = supabaseClient;
+
+    if (!supabase) {
+        try {
+            supabase = await createClient();
+        } catch (e) {
+            // Fallback for scripts/cron where cookies() is not available
+            console.log('[Ingestion] Falling back to Admin Client...');
+            supabase = createAdminClient();
+        }
+    }
 
     // 1. 取得檔案記錄
     const { data: file, error } = await supabase
@@ -71,25 +85,25 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer) {
         await new Promise(resolve => setTimeout(resolve, 5000));
 
         // 4. 執行轉譯 (File -> Markdown)
-        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Markdown (Model: gemini-1.5-flash)...` }).eq('id', fileId);
-        const markdown = await generateContent(
-            'gemini-1.5-flash',
+        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Markdown (Model: gemini-3-flash)...` }).eq('id', fileId);
+        const markdown = await retryWithBackoff(() => generateContent(
+            'gemini-3-flash',
             MARKDOWN_CONVERSION_PROMPT,
             geminiFile.uri,
             file.mime_type
-        );
+        ));
 
         // 5. 執行 Metadata 分析
         await supabase.from('files').update({ markdown_content: `DEBUG: Analyzing Metadata...` }).eq('id', fileId);
-        const metadataJsonString = await generateContent(
-            'gemini-1.5-flash',
+        const metadataJsonString = await retryWithBackoff(() => generateContent(
+            'gemini-3-flash',
             METADATA_ANALYSIS_PROMPT,
             geminiFile.uri,
             file.mime_type
-        );
+        ));
 
         const cleanedJsonString = metadataJsonString.replace(/```json\n?|\n?```/g, '').trim();
-        let metadata = {};
+        let metadata: any = {};
         try {
             metadata = JSON.parse(cleanedJsonString);
         } catch (e) {
@@ -101,10 +115,30 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer) {
         await supabase.from('files').update({
             markdown_content: markdown,
             metadata_analysis: metadata,
-            gemini_state: 'NEEDS_REVIEW',
+            gemini_state: 'SYNCED', // Skip NEEDS_REVIEW for auto-processing
         }).eq('id', fileId);
 
+        // 7. 自動寫入標籤
+        if (metadata.tags && Array.isArray(metadata.tags)) {
+            const tagInserts = metadata.tags.map((t: string) => ({
+                file_id: fileId,
+                tag_key: 'topic',
+                tag_value: t
+            }));
+            await supabase.from('file_tags').insert(tagInserts);
+        }
+
         console.log(`[Ingestion] Completed for ${file.filename}`);
+
+        // 8. 最終步驟：自動觸發「分析」(Mapper Agent)
+        // 既然使用者希望自動化到底，我們就自動把檔案對映到知識星系
+        console.log(`[Ingestion] Auto-triggering Analysis for ${file.id}`);
+        try {
+            await autoMapDocumentToFrameworks(fileId, supabase);
+        } catch (mapErr) {
+            console.error(`[Ingestion] Auto-mapping failed for ${fileId}:`, mapErr);
+            // 分析失敗不影響前面的同步結果
+        }
 
     } catch (err: any) {
         console.error(`[Ingestion] Failed for ${fileId}:`, err);

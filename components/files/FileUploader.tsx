@@ -151,28 +151,20 @@ export default function FileUploader({ dict, onUploadSuccess }: FileUploaderProp
                 throw new Error(result.error?.message || dict.common.error);
             }
 
-            // Auto-trigger handled by backend now.
-            // setFiles status to syncing/success to show progress
+            // 更新狀態為成功，觸發移除計時器
             setFiles((prev) =>
                 prev.map((f) =>
                     f.id === id ? { ...f, status: 'success' as UploadStatus, progress: 100 } : f
                 )
             );
 
-            // 更新狀態為成功
-            setFiles((prev) =>
-                prev.map((f) =>
-                    f.id === id ? { ...f, status: 'success' as UploadStatus, progress: 100 } : f
-                )
-            );
-
-            // 通知父元件更新列表
+            // 通知父元件立刻更新列表
             onUploadSuccess?.();
 
-            // 3 秒後移除成功項目
+            // 1 秒後自動隱藏上傳成功項目，讓使用者感覺更快切換到清單
             setTimeout(() => {
                 setFiles((prev) => prev.filter((f) => f.id !== id));
-            }, 3000);
+            }, 1000);
 
         } catch (error) {
             // 更新狀態為失敗

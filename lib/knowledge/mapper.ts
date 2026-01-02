@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { createGeminiClient } from '@/lib/gemini/client';
 import { FRAMEWORK_SELECTION_PROMPT, FRAMEWORK_EXTRACTION_PROMPT } from './prompts';
 
@@ -8,8 +10,18 @@ import { FRAMEWORK_SELECTION_PROMPT, FRAMEWORK_EXTRACTION_PROMPT } from './promp
  * 
  * @param fileId The ID of the file to analyze
  */
-export async function autoMapDocumentToFrameworks(fileId: string): Promise<{ success: boolean; message: string; instanceId?: string }> {
-    const supabase = await createClient();
+export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient?: SupabaseClient): Promise<{ success: boolean; message: string; instanceId?: string }> {
+    let supabase = supabaseClient;
+
+    if (!supabase) {
+        try {
+            supabase = await createClient();
+        } catch (e) {
+            console.log('[Mapper] Falling back to Admin Client...');
+            supabase = createAdminClient();
+        }
+    }
+
     const gemini = createGeminiClient();
 
     // 1. Fetch File Content
@@ -52,7 +64,7 @@ export async function autoMapDocumentToFrameworks(fileId: string): Promise<{ suc
     // For simplicity, we assume `gemini.generateContent` returns text and we parse it.
 
     // Reuse the model instance from client
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = gemini.getGenerativeModel({ model: 'gemini-3-flash' });
 
     try {
         const selectionResult = await model.generateContent([

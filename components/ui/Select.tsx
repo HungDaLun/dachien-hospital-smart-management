@@ -53,8 +53,8 @@ const sizeStyles = {
  * <Select
  *   label="模型版本"
  *   options={[
- *     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
- *     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+ *     { value: 'gemini-3-flash', label: 'Gemini 3 Flash' },
+ *     { value: 'gemini-3-pro', label: 'Gemini 3 Pro' },
  *   ]}
  *   placeholder="選擇模型版本"
  * />

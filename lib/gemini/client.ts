@@ -119,7 +119,7 @@ export async function deleteFileFromGemini(uri: string): Promise<void> {
 
 /**
  * 使用 Gemini 模型進行對話
- * @param modelVersion 模型版本（如 'gemini-2.5-flash'）
+ * @param modelVersion 模型版本（如 'gemini-3-flash'）
  * @param systemPrompt 系統提示詞
  * @param userMessage 使用者訊息
  * @param fileData 相關檔案資料列表（uri 與 mimeType）
@@ -134,7 +134,7 @@ export async function chatWithGemini(
 ): Promise<ReadableStream<Uint8Array>> {
   const genAI = createGeminiClient();
   const model = genAI.getGenerativeModel({
-    model: modelVersion || 'gemini-2.5-flash',
+    model: modelVersion || 'gemini-3-flash',
     systemInstruction: systemPrompt,
   });
 

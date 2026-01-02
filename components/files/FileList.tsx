@@ -25,7 +25,7 @@ const getStatusOptions = (dict: Dictionary) => [
     { value: 'PENDING', label: dict.knowledge.status_pending },
     { value: 'PROCESSING', label: dict.knowledge.status_processing },
     { value: 'SYNCED', label: dict.knowledge.status_synced },
-    { value: 'NEEDS_REVIEW', label: 'Needs Review' }, // Missing in dict, adding fallback
+    { value: 'NEEDS_REVIEW', label: dict.knowledge.status_needs_review || 'Needs Review' },
     { value: 'FAILED', label: dict.knowledge.status_failed },
 ];
 
@@ -51,9 +51,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
 
     /**
      * 取得檔案列表
+     * @param silent 是否為靜默更新 (不觸發全螢幕載入動畫)
      */
-    const fetchFiles = useCallback(async () => {
-        setLoading(true);
+    const fetchFiles = useCallback(async (silent = false) => {
+        if (!silent) {
+            setLoading(true);
+        }
         setError(null);
 
         try {
@@ -76,16 +79,37 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
             setTotalPages(result.meta?.totalPages || 1);
             setTotal(result.meta?.total || 0);
         } catch (err) {
-            setError(err instanceof Error ? err.message : dict.common.error);
+            // 靜默更新失敗時不顯示大錯誤畫面，避免打斷使用者
+            if (!silent) {
+                setError(err instanceof Error ? err.message : dict.common.error);
+            } else {
+                console.error('[Background Poll Failed]', err);
+            }
         } finally {
-            setLoading(false);
+            if (!silent) {
+                setLoading(false);
+            }
         }
-    }, [page, search, status]);
+    }, [page, search, status, dict.common.error]);
 
     // 初始載入與篩選變更時重新載入
     useEffect(() => {
-        fetchFiles();
+        fetchFiles(false);
     }, [fetchFiles, refreshTrigger]);
+
+    // 實時更新：如果有檔案在處理中或同步中，則自動輪詢
+    useEffect(() => {
+        const hasTransientFiles = files.some(f => ['PENDING', 'PROCESSING'].includes(f.gemini_state));
+
+        if (hasTransientFiles) {
+            const pollTimer = setInterval(() => {
+                fetchFiles(true); // 使用靜默更新
+            }, 3000); // 每 3 秒檢查一次
+
+            return () => clearInterval(pollTimer);
+        }
+        return undefined;
+    }, [files, fetchFiles]);
 
     /**
      * 搜尋防抖處理
@@ -122,7 +146,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
 
         // 3 秒後重新載入
         setTimeout(() => {
-            fetchFiles();
+            fetchFiles(true); // 靜默更新以避免閃爍
         }, 3000);
     };
 
@@ -204,7 +228,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                 {error && (
                     <div className="text-center py-12 text-error-500">
                         <p>{error}</p>
-                        <Button variant="outline" size="sm" onClick={fetchFiles} className="mt-4">
+                        <Button variant="outline" size="sm" onClick={() => fetchFiles(false)} className="mt-4">
                             {dict.common.refresh}
                         </Button>
                     </div>
