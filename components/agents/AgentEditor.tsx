@@ -264,7 +264,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 className="bg-gradient-to-r from-violet-600 to-indigo-600 border-0 text-white hover:from-violet-700 hover:to-indigo-700"
                                 onClick={() => setIsArchitectOpen(true)}
                             >
-                                ✨ AI Architect
+                                {dict.agents.form.ai_architect}
                             </Button>
                         </div>
                         <div className="space-y-4">
@@ -360,18 +360,18 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                             <div className="space-y-3 pt-4 border-t border-gray-100">
                                 {/* Tag Input */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500">Bind by Tag</label>
+                                    <label className="text-xs font-semibold text-gray-500">{dict.agents.form.bind_by_tag}</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            placeholder="Key"
+                                            placeholder={dict.agents.form.key}
                                             value={newTag.key}
                                             onChange={(e) => setNewTag(prev => ({ ...prev, key: e.target.value }))}
                                             className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
                                         />
                                         <input
                                             type="text"
-                                            placeholder="Value"
+                                            placeholder={dict.agents.form.value}
                                             value={newTag.value}
                                             onChange={(e) => setNewTag(prev => ({ ...prev, value: e.target.value }))}
                                             className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
@@ -383,18 +383,18 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                             className="text-xs px-2"
                                             onClick={addTagRule}
                                         >
-                                            Add
+                                            {dict.agents.form.add}
                                         </Button>
                                     </div>
                                 </div>
 
                                 {/* Department Input */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500">Bind by Department</label>
+                                    <label className="text-xs font-semibold text-gray-500">{dict.agents.form.bind_by_department}</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            placeholder="Department Name (e.g. Finance)"
+                                            placeholder={dict.agents.form.department_placeholder}
                                             value={newDept}
                                             onChange={(e) => setNewDept(e.target.value)}
                                             className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
@@ -406,7 +406,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                             className="text-xs px-2"
                                             onClick={addDeptRule}
                                         >
-                                            Add
+                                            {dict.agents.form.add}
                                         </Button>
                                     </div>
                                 </div>
@@ -520,6 +520,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 isOpen={isArchitectOpen}
                 onClose={() => setIsArchitectOpen(false)}
                 onApply={handleArchitectApply}
+                dict={dict}
             />
         </form >
     );

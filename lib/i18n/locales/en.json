@@ -115,7 +115,14 @@
             "knowledge_access": "Knowledge Access",
             "access_control": "Access Control",
             "stats_unit": "Items",
-            "stats_times": "Times"
+            "stats_times": "Times",
+            "bind_by_tag": "Bind by Tag",
+            "key": "Key",
+            "value": "Value",
+            "add": "Add",
+            "bind_by_department": "Bind by Department",
+            "department_placeholder": "Department Name (e.g. Finance)",
+            "ai_architect": "✨ AI Architect"
         },
         "stats": {
             "title": "Usage Statistics",
@@ -124,7 +131,26 @@
             "active_users": "Active Users"
         },
         "versions": "Version History",
-        "restore": "Restore this version"
+        "restore": "Restore this version",
+        "architect": {
+            "title": "AI Architect",
+            "subtitle": "AI Advisor",
+            "description": "Tell me what you need, and I'll help you design the perfect Agent.",
+            "input_placeholder": "Enter your requirements...",
+            "send": "Send",
+            "thinking": "Thinking...",
+            "apply": "Apply this plan",
+            "applied": "Applied",
+            "welcome": "Hello! I'm the AI Architect, specialized in helping you design and build Agents. Tell me what kind of Agent you'd like to create. For example:\n\n• HR Assistant: Answers employee leave policy questions\n• Financial Analyst: Analyzes company financial reports\n• Customer Service Rep: Handles customer inquiries and complaints",
+            "suggestion_ready": "Plan Ready",
+            "agent_name": "Agent Name",
+            "agent_description": "Agent Description",
+            "knowledge_bindings": "Knowledge Bindings",
+            "system_prompt_strategy": "System Prompt Strategy",
+            "no_bindings": "No specific bindings suggested",
+            "error_occurred": "An error occurred",
+            "close_panel": "Close Panel"
+        }
     },
     "chat": {
         "title": "AI Chat",

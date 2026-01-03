@@ -115,7 +115,14 @@
             "knowledge_access": "知識庫存取",
             "access_control": "權限設定",
             "stats_unit": "個",
-            "stats_times": "次"
+            "stats_times": "次",
+            "bind_by_tag": "依標籤綁定",
+            "key": "鍵",
+            "value": "值",
+            "add": "新增",
+            "bind_by_department": "依部門綁定",
+            "department_placeholder": "部門名稱（例如：財務部）",
+            "ai_architect": "✨ AI 架構師"
         },
         "stats": {
             "title": "使用量統計",
@@ -124,7 +131,26 @@
             "active_users": "活躍使用者"
         },
         "versions": "版本歷史",
-        "restore": "還原此版本"
+        "restore": "還原此版本",
+        "architect": {
+            "title": "AI 架構師",
+            "subtitle": "AI 助理",
+            "description": "請告訴我您的需求，我將協助您設計完美的 Agent。",
+            "input_placeholder": "請輸入您的需求...",
+            "send": "傳送",
+            "thinking": "思考中...",
+            "apply": "套用此方案",
+            "applied": "已套用",
+            "welcome": "您好！我是 AI 架構師，專門協助您設計和建立 Agent。請告訴我您想要建立什麼樣的 Agent？例如：\n\n• HR 助手：回答員工休假撏策問題\n• 財務分析師：分析公司財務報表\n• 客服專員：處理客戶查詢和投訴",
+            "suggestion_ready": "方案已就緒",
+            "agent_name": "Agent 名稱",
+            "agent_description": "Agent 描述",
+            "knowledge_bindings": "知識庫綁定",
+            "system_prompt_strategy": "系統提示詞策略",
+            "no_bindings": "尚未建議特定綁定",
+            "error_occurred": "發生錯誤",
+            "close_panel": "關閉面板"
+        }
     },
     "chat": {
         "title": "AI 對話",

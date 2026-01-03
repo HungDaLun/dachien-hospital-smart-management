@@ -219,7 +219,43 @@ export async function DELETE(
             .eq('resource_type', 'FILE')
             .eq('resource_id', id);
 
-        // 6. 刪除檔案記錄 (Hard Delete)
+        // 6. 清理知識圖譜中的相關知識實例
+        // 如果 knowledge_instances 的 source_file_ids 包含此檔案 ID，需要處理
+        // 選項 A: 如果該實例只引用此檔案，則刪除該實例
+        // 選項 B: 如果該實例還引用其他檔案，則從 source_file_ids 中移除此檔案 ID
+        // 先取得所有 knowledge_instances，然後在 JavaScript 中過濾（因為 Supabase JS 對陣列查詢支援有限）
+        const { data: allInstances } = await supabase
+            .from('knowledge_instances')
+            .select('id, source_file_ids');
+
+        if (allInstances && allInstances.length > 0) {
+            // 過濾出包含此檔案 ID 的實例
+            const affectedInstances = allInstances.filter(instance => {
+                const sourceFileIds = (instance.source_file_ids || []) as string[];
+                return sourceFileIds.includes(id);
+            });
+
+            for (const instance of affectedInstances) {
+                const sourceFileIds = (instance.source_file_ids || []) as string[];
+                
+                if (sourceFileIds.length === 1 && sourceFileIds[0] === id) {
+                    // 如果該實例只引用此檔案，則刪除該實例
+                    await supabase
+                        .from('knowledge_instances')
+                        .delete()
+                        .eq('id', instance.id);
+                } else {
+                    // 如果該實例還引用其他檔案，則從 source_file_ids 中移除此檔案 ID
+                    const updatedFileIds = sourceFileIds.filter(fileId => fileId !== id);
+                    await supabase
+                        .from('knowledge_instances')
+                        .update({ source_file_ids: updatedFileIds })
+                        .eq('id', instance.id);
+                }
+            }
+        }
+
+        // 7. 刪除檔案記錄 (Hard Delete)
         const { error: deleteError } = await supabase
             .from('files')
             .delete()
