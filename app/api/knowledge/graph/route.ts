@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         // 1. Fetch Files (Data Layer)
         let filesQuery = supabase
             .from('files')
-            .select('id, filename, mime_type, created_at, metadata_analysis')
+            .select('id, filename, mime_type, created_at, metadata_analysis, department_id')
             .eq('is_active', true)
             .eq('gemini_state', 'SYNCED');
 
@@ -61,21 +61,27 @@ export async function GET(request: NextRequest) {
         }
 
         const { data: files, error: filesError } = await filesQuery;
-        if (filesError) throw filesError;
+        if (filesError) {
+            console.error('[Graph API] Files Fetch Error:', filesError);
+            throw filesError;
+        }
 
         // 2. Fetch Knowledge Instances (Information Layer)
+        // Use the relationship name 'knowledge_frameworks' directly
         let instancesQuery = supabase
             .from('knowledge_instances')
             .select(`
                 id, 
                 title, 
                 framework_id, 
-                framework:knowledge_frameworks(code, name, ui_config),
+                knowledge_frameworks(code, name, ui_config, detailed_definition, structure_schema),
+                ai_summary,
                 completeness,
                 confidence,
                 data,
                 source_file_ids,
-                created_at
+                created_at,
+                department_id
             `);
 
         if (targetDeptId) {
@@ -83,16 +89,17 @@ export async function GET(request: NextRequest) {
         }
 
         const { data: instances, error: instancesError } = await instancesQuery;
-        if (instancesError) throw instancesError;
+        if (instancesError) {
+            console.error('[Graph API] Instances Fetch Error:', instancesError);
+            throw instancesError;
+        }
 
         // 3. Construct Graph
         const nodes: GraphNode[] = [];
         const edges: GraphEdge[] = [];
 
-        // Files -> Nodes
-        files.forEach((file) => {
-            // Simple consistent random positioning for now, or 0,0
-            // Layout will be handled by React Flow or Dagre on client
+        // Files -> Nodes (Handle potential null/undefined)
+        (files || []).forEach((file) => {
             nodes.push({
                 id: file.id,
                 type: 'file',
@@ -105,25 +112,27 @@ export async function GET(request: NextRequest) {
         });
 
         // Instances -> Nodes & Edges
-        instances.forEach((inst) => {
+        (instances || []).forEach((inst: any) => {
             nodes.push({
                 id: inst.id,
                 type: 'framework_instance',
                 label: inst.title,
                 data: {
-                    frameworkCode: (inst.framework as any)?.code,
-                    frameworkName: (inst.framework as any)?.name,
-                    uiConfig: (inst.framework as any)?.ui_config,
+                    frameworkCode: inst.knowledge_frameworks?.code,
+                    frameworkName: inst.knowledge_frameworks?.name,
+                    detailedDefinition: inst.knowledge_frameworks?.detailed_definition,
+                    structureSchema: inst.knowledge_frameworks?.structure_schema,
+                    uiConfig: inst.knowledge_frameworks?.ui_config,
+                    aiSummary: inst.ai_summary,
                     completeness: inst.completeness,
                     confidence: inst.confidence,
-                    contentData: (inst as any).data // Cast simply for now as we didn't add type to query var
+                    contentData: inst.data
                 }
             });
 
             // Edges from Source Files to Instance
             if (inst.source_file_ids && Array.isArray(inst.source_file_ids)) {
-                inst.source_file_ids.forEach(fileId => {
-                    // Only add edge if file node exists (it strictly should if RLS allows)
+                inst.source_file_ids.forEach((fileId: string) => {
                     if (nodes.find(n => n.id === fileId)) {
                         edges.push({
                             id: `e-${fileId}-${inst.id}`,
@@ -136,6 +145,7 @@ export async function GET(request: NextRequest) {
             }
         });
 
+        console.log(`[Graph API] Returning ${nodes.length} nodes and ${edges.length} edges.`);
         return NextResponse.json({ nodes, edges });
 
     } catch (error) {

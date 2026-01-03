@@ -51,7 +51,7 @@ export async function POST(
     `;
 
         // Use Gemin 3 Flash for efficient document reading and cleaning
-        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash';
+        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash-preview';
 
         const structuredContent = await generateContent(
             modelVersion,

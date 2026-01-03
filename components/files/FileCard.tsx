@@ -199,12 +199,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             const result = await response.json();
 
             if (response.ok) {
-                // Success feedback? Maybe sync handled it or just toast?
-                // Ideally refresh parent or show success state
-                alert(`Analysis Started: ${result.message}`);
-                onSync?.(file.id); // Trigger refresh
+                // Only notify when truly finished and success logic returned
+                onSync?.(file.id); // Trigger refresh to show new nodes
+                alert(`✨ 分析完成：${result.message}`);
             } else {
-                alert(`Analysis Failed: ${result.error || result.message}`);
+                alert(`❌ 分析失敗：${result.error || result.message}`);
             }
         } catch (error) {
             console.error('Analysis error:', error);

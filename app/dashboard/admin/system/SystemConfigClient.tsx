@@ -153,8 +153,8 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
               disabled={saving}
               className="px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
             >
-              <option value="gemini-3-flash">gemini-3-flash</option>
-              <option value="gemini-3-pro">gemini-3-pro</option>
+              <option value="gemini-3-flash-preview">gemini-3-flash-preview (速度最快、成本較低)</option>
+              <option value="gemini-3-pro-preview">gemini-3-pro-preview (推論能力最強)</option>
             </select>
           </div>
         </div>

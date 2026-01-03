@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
       },
       gemini: {
         api_key_configured: !!process.env.GEMINI_API_KEY,
-        model_version: process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash',
+        model_version: process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash-preview',
       },
       storage: {
         s3_endpoint_configured: !!process.env.S3_ENDPOINT,
@@ -72,8 +72,8 @@ export async function PUT(request: NextRequest) {
     if (gemini_model_version) {
       // 驗證模型版本
       const validModels = [
-        'gemini-3-flash',
-        'gemini-3-pro',
+        'gemini-3-flash-preview',
+        'gemini-3-pro-preview',
       ];
 
       if (!validModels.includes(gemini_model_version)) {

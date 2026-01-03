@@ -65,23 +65,30 @@ Return a valid JSON object with the following fields:
  * Mapper Agent: 框架選擇與匹配提示詞
  */
 export const FRAMEWORK_SELECTION_PROMPT = `
-You are a "Strategic Analyst AI".Your goal is to determine which analytical framework fits the provided document content best.
+You are a "Strategic Analyst AI". Your goal is to determine which analytical frameworks fit the provided document content best.
 
-** Available Frameworks:**
-  {{ FRAMEWORK_LIST }}
+**Available Frameworks:**
+{{ FRAMEWORK_LIST }}
 
-** Task:**
-  1. Read the document content.
-2. Select the * single best * framework that can structurize the key insights of this document.
-3. If no framework fits well(e.g., just a meeting agenda or simple log), return null.
+**Task:**
+1. Read the document content.
+2. Select the **top 3-5 most relevant frameworks** that can structurize the key insights of this document.
+3. If the document is very simple, you may select fewer (1-2).
+4. If no framework fits well (e.g., just a meeting agenda or simple log), return an empty list.
 
-** Output:**
-  Return a JSON object:
+**Output:**
+Return a JSON object containing an array of selected frameworks.
+The "code" MUST be exactly one of the codes provided above.
+
 \`\`\`json
 {
-  "selected_framework_code": "swot" | "pestle" | null,
-  "confidence": 0.0 - 1.0,
-  "reasoning": "Brief explanation in Traditional Chinese why this fits."
+  "selected_frameworks": [
+    {
+      "code": "exact_code_from_list",
+      "confidence": 0.0 - 1.0,
+      "reasoning": "Brief explanation in Traditional Chinese why this fits."
+    }
+  ]
 }
 \`\`\`
 `;
@@ -112,6 +119,7 @@ Return a JSON object matching this structure:
 \`\`\`json
 {
   "title": "A concise title for this analysis (e.g., 'Q3 Marketing Strategy SWOT')",
+  "ai_summary": "A brief executive summary of findings (in Traditional Chinese)",
   "data": { ... keys must match schema ... },
   "completeness": 0.8,
   "confidence": 0.9

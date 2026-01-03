@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     `;
 
         // 3. Call Gemini
-        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash'; // Use Flash 3 for speed and intelligence
+        const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash-preview'; // Use Flash 3 for speed and intelligence
         const result = await generateContent(modelVersion, metaPrompt);
 
         if (!result) {

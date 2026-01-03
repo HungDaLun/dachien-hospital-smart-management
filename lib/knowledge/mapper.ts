@@ -2,15 +2,15 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createGeminiClient } from '@/lib/gemini/client';
-import { FRAMEWORK_SELECTION_PROMPT, FRAMEWORK_EXTRACTION_PROMPT } from './prompts';
+import { FRAMEWORK_EXTRACTION_PROMPT, FRAMEWORK_SELECTION_PROMPT } from './prompts';
 
 /**
- * Auto-Map a Document to a Knowledge Framework
+ * Auto-Map a Document to Multiple Knowledge Frameworks
  * This function orchestrates the "Mapper Agent" workflow.
  * 
  * @param fileId The ID of the file to analyze
  */
-export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient?: SupabaseClient): Promise<{ success: boolean; message: string; instanceId?: string }> {
+export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient?: SupabaseClient): Promise<{ success: boolean; message: string; instanceIds?: string[] }> {
     let supabase = supabaseClient;
 
     if (!supabase) {
@@ -42,102 +42,156 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
     // 2. Fetch Available Frameworks
     const { data: frameworks, error: fwError } = await supabase
         .from('knowledge_frameworks')
-        .select('code, name, description, schema')
-        .limit(10); // Sanity limit
+        .select('id, code, name, description, structure_schema');
 
     if (fwError || !frameworks || frameworks.length === 0) {
         return { success: false, message: 'No frameworks defined' };
     }
 
-    // 3. Selection Step: Ask Gemini which framework fits
+    // 3. Selection Step: Ask Gemini which frameworks fit
     const frameworkListText = frameworks.map(f => `- ${f.name} (${f.code}): ${f.description}`).join('\n');
 
     // Safety truncation
-    const contentPreview = file.markdown_content.slice(0, 15000);
+    const contentPreview = file.markdown_content.slice(0, 20000); // 20k chars is safe for Gemini 3
 
     const selectionPrompt = FRAMEWORK_SELECTION_PROMPT
-        .replace('{{FRAMEWORK_LIST}}', frameworkListText);
+        .replace('{{ FRAMEWORK_LIST }}', frameworkListText);
 
-    // We use generateContent for selection (Flash model is fast)
-    // Note: In a real agentic loop, we might want strict JSON mode, but here we ask for JSON in prompt.
-    // Let's assume the Gemini client helper has a method or we use raw generation.
-    // For simplicity, we assume `gemini.generateContent` returns text and we parse it.
-
-    // Reuse the model instance from client
-    const model = gemini.getGenerativeModel({ model: 'gemini-3-flash' });
+    const model = gemini.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     try {
+        console.log('[Mapper] Asking AI to select frameworks...');
         const selectionResult = await model.generateContent([
             selectionPrompt,
             { text: `Document Content:\n${contentPreview}` }
         ]);
 
         const selectionText = selectionResult.response.text();
+        console.log('[Mapper] AI Selection Raw Output:', selectionText);
+
         const cleanedSelectionJson = selectionText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const selectionData = JSON.parse(cleanedSelectionJson);
-
-        if (!selectionData.selected_framework_code) {
-            return { success: true, message: 'No suitable framework found by AI.' };
+        let selectionData;
+        try {
+            selectionData = JSON.parse(cleanedSelectionJson);
+        } catch (jsonErr) {
+            console.error('[Mapper] JSON Parse Failed:', jsonErr);
+            return { success: false, message: 'AI returned invalid JSON' };
         }
 
-        const targetFramework = frameworks.find(f => f.code === selectionData.selected_framework_code);
-        if (!targetFramework) {
-            return { success: false, message: 'AI selected an invalid framework code.' };
+        // Handle both single object (legacy) and array format (new)
+        let selectedItems: { code: string; confidence: number; reasoning: string }[] = [];
+
+        if (selectionData.selected_frameworks && Array.isArray(selectionData.selected_frameworks)) {
+            selectedItems = selectionData.selected_frameworks;
+        } else if (selectionData.selected_framework_code) {
+            // Fallback for single mode if model ignores instructions
+            selectedItems = [{
+                code: selectionData.selected_framework_code,
+                confidence: selectionData.confidence || 0.8,
+                reasoning: selectionData.reasoning || ''
+            }];
         }
 
-        // 4. Extraction Step: Extract data using the chosen framework
-        const extractionPrompt = FRAMEWORK_EXTRACTION_PROMPT
-            .replace('{{FRAMEWORK_NAME}}', targetFramework.name)
-            .replace('{{FRAMEWORK_SCHEMA}}', JSON.stringify(targetFramework.schema, null, 2))
-            .replace('{{DOCUMENT_CONTENT}}', contentPreview);
+        // Filter by confidence threshold (e.g. 0.6)
+        const validSelections = selectedItems.filter(item => item.confidence >= 0.6);
 
-        const extractionResult = await model.generateContent(extractionPrompt);
-        const extractionText = extractionResult.response.text();
-        const cleanedExtractionJson = extractionText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const extractionData = JSON.parse(cleanedExtractionJson);
+        if (validSelections.length === 0) {
+            console.log('[Mapper] No frameworks met the confidence threshold.');
+            return { success: true, message: 'No suitable frameworks found (low confidence).' };
+        }
 
-        // 5. Save to Database
-        // We need to know who created the file to attribute the instance correctly? 
-        // Or simply assign to the file owner.
-        // The file.created_by is available in `file`.
-        const { data: instance, error: insertError } = await supabase
-            .from('knowledge_instances')
-            .insert({
-                framework_id: (targetFramework as any).id, // We didn't select ID above, need to fix select or re-fetch
-                title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
-                data: extractionData.data,
-                completeness: extractionData.completeness,
-                confidence: extractionData.confidence,
-                source_file_ids: [file.id],
-                department_id: file.department_id, // Inherit from file
-                created_by: file.created_by // Inherit from file owner
-            })
-            .select()
-            .single();
+        console.log(`[Mapper] Selected ${validSelections.length} frameworks:`, validSelections.map(s => s.code));
 
-        // Wait, we missed selecting 'id' in step 2. 
-        // Optimization: We can find it by code since code is unique.
-        if (!instance && insertError) {
-            // Fallback: Fetch ID if missing
-            const { data: fwId } = await supabase.from('knowledge_frameworks').select('id').eq('code', targetFramework.code).single();
-            if (fwId) {
-                await supabase.from('knowledge_instances').insert({
-                    framework_id: fwId.id,
-                    title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
-                    data: extractionData.data,
-                    completeness: extractionData.completeness,
-                    confidence: extractionData.confidence,
-                    source_file_ids: [file.id],
-                    department_id: file.department_id,
-                    created_by: file.created_by
-                });
+        // 4. Parallel Extraction
+        const extractionPromises = validSelections.map(async (selection) => {
+            // Synonym Mapping (Legacy support)
+            const synonymMap: Record<string, string> = {
+                'competitive_landscape': 'swot',
+                'competitive_analysis': 'swot',
+                'competitor_analysis': 'swot',
+                'competitor': 'swot',
+                'marketing_strategy': 'swot',
+                'external_environment': 'pestle',
+                'pest': 'pestle'
+            };
+
+            const finalCode = synonymMap[selection.code.toLowerCase()] || selection.code.toLowerCase();
+            const targetFramework = frameworks.find(f => f.code.toLowerCase() === finalCode);
+
+            if (!targetFramework) {
+                console.warn(`[Mapper] Framework code not found: ${selection.code}`);
+                return null;
             }
-        }
+
+            console.log(`[Mapper] Extracting for ${targetFramework.code}...`);
+
+            const extractionPrompt = FRAMEWORK_EXTRACTION_PROMPT
+                .replace('{{FRAMEWORK_NAME}}', targetFramework.name)
+                .replace('{{FRAMEWORK_SCHEMA}}', JSON.stringify(targetFramework.structure_schema, null, 2))
+                .replace('{{DOCUMENT_CONTENT}}', contentPreview);
+
+            try {
+                const extractionResult = await model.generateContent(extractionPrompt);
+                const extractionText = extractionResult.response.text();
+                const cleanedExtractionJson = extractionText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const extractionData = JSON.parse(cleanedExtractionJson);
+
+                // Upsert Logic
+                const { data: existingInstance } = await supabase
+                    .from('knowledge_instances')
+                    .select('id')
+                    .eq('framework_id', (targetFramework as any).id)
+                    .contains('source_file_ids', [file.id])
+                    .limit(1)
+                    .maybeSingle();
+
+                if (existingInstance) {
+                    const { data: updated } = await supabase
+                        .from('knowledge_instances')
+                        .update({
+                            title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
+                            ai_summary: extractionData.ai_summary,
+                            data: extractionData.data,
+                            completeness: extractionData.completeness,
+                            confidence: extractionData.confidence,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', existingInstance.id)
+                        .select()
+                        .single();
+                    return updated;
+                } else {
+                    const { data: inserted } = await supabase
+                        .from('knowledge_instances')
+                        .insert({
+                            framework_id: (targetFramework as any).id,
+                            title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
+                            ai_summary: extractionData.ai_summary,
+                            data: extractionData.data,
+                            completeness: extractionData.completeness,
+                            confidence: extractionData.confidence,
+                            source_file_ids: [file.id],
+                            department_id: file.user_profiles?.department_id,
+                            created_by: file.uploaded_by
+                        })
+                        .select()
+                        .single();
+                    return inserted;
+                }
+
+            } catch (err) {
+                console.error(`[Mapper] Extraction failed for ${targetFramework.code}:`, err);
+                return null;
+            }
+        });
+
+        const results = await Promise.all(extractionPromises);
+        const successfulInstances = results.filter(r => r !== null);
 
         return {
             success: true,
-            message: `Mapped to ${targetFramework.name}`,
-            instanceId: (instance as any)?.id // Might be undefined in fallback but that's ok for now
+            message: `Mapped to ${successfulInstances.length} frameworks`,
+            instanceIds: successfulInstances.map(i => i.id)
         };
 
     } catch (error: any) {

@@ -14,13 +14,12 @@ import ReactFlow, {
     MarkerType,
     Panel,
     Position,
+    BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import { Button, Spinner } from '@/components/ui';
 import KnowledgeDetailSidebar from './KnowledgeDetailSidebar';
-
-// Custom Node Import (Placeholders for now, implemented inline or separately)
 
 // Layout Helper
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
@@ -87,7 +86,7 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole }
             // Format nodes for React Flow
             const apiNodes = data.nodes.map((n: any) => ({
                 id: n.id,
-                type: n.type === 'file' ? 'input' : 'default', // Map to basic types for now
+                type: n.type, // Preserve original type (file or framework_instance)
                 data: { label: n.label, ...n.data },
                 position: { x: 0, y: 0 },
                 style: n.type === 'file'
@@ -153,11 +152,16 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole }
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 fitView
+                panOnDrag={true}
+                panOnScroll={false}
+                zoomOnScroll={true}
+                zoomOnDoubleClick={false}
+                selectionOnDrag={false}
                 attributionPosition="bottom-right"
             >
                 <Controls />
                 <MiniMap />
-                <Background gap={12} size={1} />
+                <Background gap={12} size={1} variant={BackgroundVariant.Dots} />
                 <Panel position="top-right" className="flex gap-2">
                     {showDeptFilter && (
                         <div className="bg-white rounded-md shadow-sm">

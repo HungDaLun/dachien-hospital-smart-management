@@ -134,7 +134,7 @@ export async function chatWithGemini(
 ): Promise<ReadableStream<Uint8Array>> {
   const genAI = createGeminiClient();
   const model = genAI.getGenerativeModel({
-    model: modelVersion || 'gemini-3-flash',
+    model: modelVersion || 'gemini-3-flash-preview',
     systemInstruction: systemPrompt,
   });
 
@@ -195,7 +195,7 @@ export async function generateContent(
   mimeType?: string
 ): Promise<string> {
   const genAI = createGeminiClient();
-  const model = genAI.getGenerativeModel({ model: modelName });
+  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-3-flash-preview' });
 
   const parts: any[] = [];
   if (fileUri && mimeType) {
