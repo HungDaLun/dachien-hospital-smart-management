@@ -136,7 +136,7 @@
             "title": "AI Architect",
             "subtitle": "AI Advisor",
             "description": "Tell me what you need, and I'll help you design the perfect Agent.",
-            "input_placeholder": "Enter your requirements...",
+            "input_placeholder": "Enter your requirements... (Cmd/Ctrl+Enter to send)",
             "send": "Send",
             "thinking": "Thinking...",
             "apply": "Apply this plan",
@@ -149,13 +149,16 @@
             "system_prompt_strategy": "System Prompt Strategy",
             "no_bindings": "No specific bindings suggested",
             "error_occurred": "An error occurred",
-            "close_panel": "Close Panel"
+            "close_panel": "Close Panel",
+            "minimize": "Minimize",
+            "close_confirm": "Are you sure you want to close? This will clear the current conversation.",
+            "open_architect": "Open AI Architect"
         }
     },
     "chat": {
         "title": "AI Chat",
         "select_agent": "Select an Agent to start chatting",
-        "type_message": "Type a message...",
+        "type_message": "Type a message... (Cmd/Ctrl+Enter to send)",
         "history": "Chat History",
         "new_chat": "New Chat",
         "no_history": "No chat history",

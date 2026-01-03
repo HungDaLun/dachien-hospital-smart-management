@@ -169,11 +169,12 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
     };
 
     /**
-     * 處理 Enter 鍵發送
+     * 處理快速鍵發送 (Cmd+Enter 或 Ctrl+Enter)
      */
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
+            e.stopPropagation(); // 阻斷冒泡至父表單
             handleSend();
         }
     };
@@ -265,6 +266,7 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
                         style={{ minHeight: '48px', maxHeight: '200px' }}
                     />
                     <Button
+                        type="button"
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading}
                         loading={isLoading}

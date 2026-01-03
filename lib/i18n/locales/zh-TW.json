@@ -136,12 +136,12 @@
             "title": "AI 架構師",
             "subtitle": "AI 助理",
             "description": "請告訴我您的需求，我將協助您設計完美的 Agent。",
-            "input_placeholder": "請輸入您的需求...",
+            "input_placeholder": "請輸入您的需求... (Cmd/Ctrl+Enter 傳送)",
             "send": "傳送",
             "thinking": "思考中...",
             "apply": "套用此方案",
             "applied": "已套用",
-            "welcome": "您好！我是 AI 架構師，專門協助您設計和建立 Agent。請告訴我您想要建立什麼樣的 Agent？例如：\n\n• HR 助手：回答員工休假撏策問題\n• 財務分析師：分析公司財務報表\n• 客服專員：處理客戶查詢和投訴",
+            "welcome": "您好！我是 AI 架構師，專門協助您設計和建立 Agent。請告訴我您想要建立什麼樣的 Agent？例如：\n\n• HR 助手：回答員工休假勞資問題\n• 財務分析師：分析公司財務報表\n• 客服專員：處理客戶查詢和投訴",
             "suggestion_ready": "方案已就緒",
             "agent_name": "Agent 名稱",
             "agent_description": "Agent 描述",
@@ -149,13 +149,16 @@
             "system_prompt_strategy": "系統提示詞策略",
             "no_bindings": "尚未建議特定綁定",
             "error_occurred": "發生錯誤",
-            "close_panel": "關閉面板"
+            "close_panel": "關閉面板",
+            "minimize": "縮小",
+            "close_confirm": "確定要關閉嗎？這將會清除目前的對話記錄。",
+            "open_architect": "開啟 AI 架構師"
         }
     },
     "chat": {
         "title": "AI 對話",
         "select_agent": "選擇 Agent 開始對話",
-        "type_message": "輸入訊息...",
+        "type_message": "輸入訊息... (Cmd/Ctrl+Enter 送出)",
         "history": "對話歷史",
         "new_chat": "新對話",
         "no_history": "尚無對話記錄",
