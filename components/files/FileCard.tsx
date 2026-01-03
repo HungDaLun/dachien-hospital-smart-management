@@ -6,6 +6,7 @@
 'use client';
 
 import { Badge, Button, Modal } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { useState } from 'react';
 import type { GeminiState } from '@/types';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -101,6 +102,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const [isSavingTags, setIsSavingTags] = useState(false);
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const { toast } = useToast();
 
 
     // 標籤狀態
@@ -126,11 +128,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                 onSync?.(file.id); // Re-use onSync to trigger refresh in parent
                 setShowReviewModal(false);
             } else {
-                alert('Update failed');
+                toast.error('Update failed');
             }
         } catch (e) {
             console.error(e);
-            alert(dict.common.error);
+            toast.error(dict.common.error);
         }
     };
 
@@ -201,13 +203,13 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
             if (response.ok) {
                 // Only notify when truly finished and success logic returned
                 onSync?.(file.id); // Trigger refresh to show new nodes
-                alert(`✨ 分析完成：${result.message}`);
+                toast.success(`✨ 分析完成：${result.message}`);
             } else {
-                alert(`❌ 分析失敗：${result.error || result.message}`);
+                toast.error(`❌ 分析失敗：${result.error || result.message}`);
             }
         } catch (error) {
             console.error('Analysis error:', error);
-            alert(dict.common.error);
+            toast.error(dict.common.error);
         } finally {
             setIsAnalyzing(false);
         }
@@ -230,10 +232,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                 onUpdateTags?.(file.id, tags);
                 setShowTagModal(false);
             } else {
-                alert(dict.common.error);
+                toast.error(dict.common.error);
             }
         } catch (error) {
             console.error('標籤更新失敗:', error);
+            toast.error(dict.common.error);
         } finally {
             setIsSavingTags(false);
         }

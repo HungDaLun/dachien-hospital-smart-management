@@ -1,6 +1,7 @@
-import { Fragment } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Node } from 'reactflow';
+import ReactMarkdown from 'react-markdown';
 
 interface KnowledgeDetailSidebarProps {
     isOpen: boolean;
@@ -11,10 +12,67 @@ interface KnowledgeDetailSidebarProps {
 export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: KnowledgeDetailSidebarProps) {
     if (!node) return null;
 
-    const isFramework = node.type === 'framework_instance';
-    const isFile = node.type === 'file' || node.type === 'input'; // 'input' is what we mapped in graph/route.ts
+    // 注意：GalaxyGraph 將所有節點的 type 設為 'default'，實際類型在 data.nodeType 中
+    const nodeType = node.data?.nodeType || node.type;
+    const isFramework = nodeType === 'framework_instance';
+    const isFile = nodeType === 'file' || nodeType === 'input';
 
     const { data } = node;
+
+    // 文件內容狀態
+    const [fileContent, setFileContent] = useState<string | null>(null);
+    const [fileLoading, setFileLoading] = useState(false);
+    const [fileError, setFileError] = useState<string | null>(null);
+
+    // 當文件節點打開時，獲取文件完整內容
+    useEffect(() => {
+        if (isOpen && isFile && node.id) {
+            setFileLoading(true);
+            setFileError(null);
+            
+            fetch(`/api/files/${node.id}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        // 優先使用 markdown_content，如果沒有則顯示提示
+                        const content = result.data.markdown_content;
+                        if (content) {
+                            setFileContent(content);
+                        } else {
+                            setFileError('此文件尚未處理完成，無法顯示內容。請等待文件處理完成。');
+                        }
+                    } else {
+                        setFileError(result.error?.message || '無法載入文件內容');
+                    }
+                })
+                .catch(err => {
+                    console.error('[KnowledgeDetailSidebar] 載入文件內容失敗:', err);
+                    setFileError('載入文件內容時發生錯誤');
+                })
+                .finally(() => {
+                    setFileLoading(false);
+                });
+        } else {
+            // 非文件節點或側邊欄關閉時，清除內容
+            setFileContent(null);
+            setFileError(null);
+        }
+    }, [isOpen, isFile, node.id]);
+
+    // 調試日誌：檢查節點數據
+    if (isOpen && node) {
+        console.log('[KnowledgeDetailSidebar] Node data:', {
+            nodeType,
+            isFramework,
+            isFile,
+            hasData: !!data,
+            dataKeys: data ? Object.keys(data) : [],
+            frameworkName: data?.frameworkName,
+            hasDetailedDefinition: !!data?.detailedDefinition,
+            hasAiSummary: !!data?.aiSummary,
+            hasContentData: !!data?.contentData,
+        });
+    }
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -44,17 +102,17 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                 leaveFrom="translate-x-0"
                                 leaveTo="translate-x-full"
                             >
-                                {/* Glassmorphism Sidebar Panel */}
-                                <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
-                                    <div className="flex h-full flex-col overflow-y-scroll glass-light shadow-floating border-l border-white/20">
+                                {/* Glassmorphism Sidebar Panel - 增加寬度以容納更多內容 */}
+                                <Dialog.Panel className="pointer-events-auto w-screen max-w-4xl">
+                                    <div className="flex h-full flex-col overflow-y-auto glass-light shadow-floating border-l border-white/20 min-w-0">
                                         {/* Header */}
-                                        <div className={`px-4 py-6 sm:px-6 ${isFramework ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'bg-gray-50'}`}>
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
+                                        <div className={`px-6 py-6 ${isFramework ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'bg-gray-50'}`}>
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900 break-words">
                                                         {isFramework ? (data.frameworkName || 'Knowledge Instance') : 'Source Document'}
                                                     </Dialog.Title>
-                                                    <p className="mt-1 text-sm text-gray-500">
+                                                    <p className="mt-1 text-sm text-gray-500 break-words">
                                                         {isFramework ? 'AI Extructed Insight' : 'Raw Data Asset'}
                                                     </p>
                                                 </div>
@@ -103,11 +161,11 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                             </div>
                                         </div>
 
-                                        {/* Main Content */}
-                                        <div className="relative flex-1 px-4 py-6 sm:px-6">
+                                        {/* Main Content - 減少左右 padding 以容納更多內容 */}
+                                        <div className="relative flex-1 px-6 py-6 min-w-0">
                                             {/* Node Title */}
                                             <div className="mb-6">
-                                                <h2 className="text-2xl font-bold text-gray-900">{data.label}</h2>
+                                                <h2 className="text-2xl font-bold text-gray-900 break-words">{data.label}</h2>
                                                 {isFramework && (
                                                     <div className="mt-2 flex items-center gap-2">
                                                         <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
@@ -130,6 +188,15 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                             {/* Framework Detailed Content */}
                                             {isFramework && (
                                                 <div className="space-y-6">
+                                                    {/* 0. 如果沒有任何內容，顯示提示訊息 */}
+                                                    {!data.detailedDefinition && !data.aiSummary && !data.contentData && (
+                                                        <div className="bg-yellow-50 rounded-xl p-5 border border-yellow-200">
+                                                            <p className="text-sm text-yellow-800">
+                                                                ⚠️ 此知識實例尚未包含詳細內容。請檢查資料庫中的知識實例數據。
+                                                            </p>
+                                                        </div>
+                                                    )}
+
                                                     {/* 1. 教育層：什麼是這個框架 */}
                                                     {data.detailedDefinition && (
                                                         <div className="bg-amber-50 rounded-xl p-5 border border-amber-100 shadow-sm relative overflow-hidden group">
@@ -179,14 +246,28 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                                             <span className="block text-[11px] font-bold text-blue-600 mb-2 uppercase tracking-widest opacity-80">
                                                                                 {section.label}
                                                                             </span>
-                                                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">
                                                                                 {Array.isArray(value) ? (
-                                                                                    <ul className="list-disc pl-4 space-y-1.5 marker:text-blue-300">
-                                                                                        {value.map((item, i) => <li key={i}>{String(item)}</li>)}
+                                                                                    <ul className="list-disc pl-4 space-y-1.5 marker:text-blue-300 break-words">
+                                                                                        {value.map((item, i) => (
+                                                                                            <li key={i} className="break-words overflow-wrap-anywhere">
+                                                                                                {typeof item === 'object' ? (
+                                                                                                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words">
+                                                                                                        {JSON.stringify(item, null, 2)}
+                                                                                                    </pre>
+                                                                                                ) : (
+                                                                                                    String(item)
+                                                                                                )}
+                                                                                            </li>
+                                                                                        ))}
                                                                                     </ul>
                                                                                 ) : typeof value === 'object' ? (
-                                                                                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{JSON.stringify(value, null, 2)}</pre>
-                                                                                ) : String(value)}
+                                                                                    <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto whitespace-pre-wrap break-words">
+                                                                                        {JSON.stringify(value, null, 2)}
+                                                                                    </pre>
+                                                                                ) : (
+                                                                                    <span className="break-words overflow-wrap-anywhere">{String(value)}</span>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -196,7 +277,15 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                                 data.contentData && Object.entries(data.contentData).map(([k, v]) => (
                                                                     <div key={k} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
                                                                         <span className="block text-[10px] font-bold text-blue-500 mb-2 uppercase tracking-widest">{k}</span>
-                                                                        <div className="text-sm text-gray-800">{String(v)}</div>
+                                                                        <div className="text-sm text-gray-800 break-words whitespace-pre-wrap overflow-wrap-anywhere">
+                                                                            {typeof v === 'object' ? (
+                                                                                <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto whitespace-pre-wrap break-words">
+                                                                                    {JSON.stringify(v, null, 2)}
+                                                                                </pre>
+                                                                            ) : (
+                                                                                String(v)
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 ))
                                                             )}
@@ -205,20 +294,105 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                 </div>
                                             )}
 
-                                            {/* File Metadata (If it's a file node) */}
-                                            {isFile && data.metadata && (
+                                            {/* File Content (If it's a file node) */}
+                                            {isFile && (
                                                 <div className="space-y-4">
-                                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">文件治理中繼資料</h4>
-                                                        <div className="grid gap-2">
-                                                            {Object.entries(data.metadata).map(([k, v]) => (
-                                                                <div key={k} className="flex flex-col">
-                                                                    <span className="text-[10px] text-gray-400 uppercase font-semibold">{k}</span>
-                                                                    <span className="text-sm text-gray-700">{String(v)}</span>
-                                                                </div>
-                                                            ))}
+                                                    {/* 文件完整內容 */}
+                                                    {fileLoading && (
+                                                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                            <p className="text-sm text-blue-800 flex items-center gap-2">
+                                                                <span className="animate-spin">⏳</span>
+                                                                載入文件內容中...
+                                                            </p>
                                                         </div>
-                                                    </div>
+                                                    )}
+
+                                                    {fileError && (
+                                                        <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                                                            <p className="text-sm text-yellow-800">{fileError}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {fileContent && !fileLoading && (
+                                                        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm min-w-0">
+                                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                                📄 文件完整內容
+                                                            </h4>
+                                                            <div className="prose prose-sm max-w-none text-gray-800 min-w-0 break-words">
+                                                                <ReactMarkdown
+                                                                    components={{
+                                                                        // 自訂樣式以符合設計規範，確保文字完整顯示
+                                                                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0 break-words">{children}</h1>,
+                                                                        h2: ({ children }) => <h2 className="text-xl font-bold mb-3 mt-5 break-words">{children}</h2>,
+                                                                        h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 mt-4 break-words">{children}</h3>,
+                                                                        p: ({ children }) => <p className="mb-3 leading-relaxed break-words overflow-wrap-anywhere">{children}</p>,
+                                                                        ul: ({ children }) => <ul className="list-disc pl-6 mb-3 space-y-1 break-words">{children}</ul>,
+                                                                        ol: ({ children }) => <ol className="list-decimal pl-6 mb-3 space-y-1 break-words">{children}</ol>,
+                                                                        li: ({ children }) => <li className="leading-relaxed break-words overflow-wrap-anywhere">{children}</li>,
+                                                                        code: ({ children }) => (
+                                                                            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 break-words">
+                                                                                {children}
+                                                                            </code>
+                                                                        ),
+                                                                        pre: ({ children }) => (
+                                                                            <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-3 text-sm break-words whitespace-pre-wrap">
+                                                                                {children}
+                                                                            </pre>
+                                                                        ),
+                                                                        blockquote: ({ children }) => (
+                                                                            <blockquote className="border-l-4 border-gray-300 pl-4 italic my-3 text-gray-600 break-words">
+                                                                                {children}
+                                                                            </blockquote>
+                                                                        ),
+                                                                        table: ({ children }) => (
+                                                                            <div className="overflow-x-auto my-4 -mx-4 px-4">
+                                                                                <div className="inline-block min-w-full align-middle">
+                                                                                    <table className="w-full border-collapse border border-gray-300 table-auto">
+                                                                                        {children}
+                                                                                    </table>
+                                                                                </div>
+                                                                            </div>
+                                                                        ),
+                                                                        th: ({ children }) => (
+                                                                            <th className="border border-gray-300 px-3 py-2 bg-gray-100 font-semibold text-left break-words whitespace-normal max-w-xs">
+                                                                                <div className="break-words overflow-wrap-anywhere">{children}</div>
+                                                                            </th>
+                                                                        ),
+                                                                        td: ({ children }) => (
+                                                                            <td className="border border-gray-300 px-3 py-2 break-words whitespace-normal max-w-xs">
+                                                                                <div className="break-words overflow-wrap-anywhere">{children}</div>
+                                                                            </td>
+                                                                        ),
+                                                                    }}
+                                                                >
+                                                                    {fileContent}
+                                                                </ReactMarkdown>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 文件治理中繼資料 */}
+                                                    {data.metadata && (
+                                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">文件治理中繼資料</h4>
+                                                            <div className="grid gap-2">
+                                                                {Object.entries(data.metadata).map(([k, v]) => (
+                                                                    <div key={k} className="flex flex-col">
+                                                                        <span className="text-[10px] text-gray-400 uppercase font-semibold break-words">{k}</span>
+                                                                        <span className="text-sm text-gray-700 break-words whitespace-pre-wrap overflow-wrap-anywhere">
+                                                                            {typeof v === 'object' ? (
+                                                                                <pre className="text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto whitespace-pre-wrap break-words">
+                                                                                    {JSON.stringify(v, null, 2)}
+                                                                                </pre>
+                                                                            ) : (
+                                                                                String(v)
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

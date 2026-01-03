@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// 此路由使用 cookies 進行身份驗證，必須為動態路由
+export const dynamic = 'force-dynamic';
+
 /**
  * GET - 取得當前使用者的個人資料
  */

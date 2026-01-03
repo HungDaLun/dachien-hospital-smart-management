@@ -137,11 +137,17 @@ export function toApiErrorResponse(error: unknown): ApiErrorResponse {
   }
 
   // 未知錯誤
+  const errorMessage = error instanceof Error
+    ? error.message
+    : (error && typeof error === 'object' && 'message' in error)
+      ? String((error as any).message)
+      : '發生未預期的錯誤，我們已收到通知';
+
   return {
     success: false,
     error: {
       code: 'UNKNOWN_ERROR',
-      message: error instanceof Error ? error.message : '發生未預期的錯誤，我們已收到通知',
+      message: errorMessage,
       details: error,
     },
   };

@@ -89,7 +89,10 @@
         "status_failed": "失敗",
         "status_needs_review": "待審核",
         "filter_files": "篩選檔案...",
-        "view_details": "查看詳情"
+        "view_details": "查看詳情",
+        "analyze_all": "一鍵分析",
+        "analyzing_all": "分析中...",
+        "analyze_all_success": "全部分析完成！已處理 {{count}} 個檔案。"
     },
     "agents": {
         "title": "Agent 管理",

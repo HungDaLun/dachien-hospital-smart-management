@@ -1,8 +1,8 @@
 # CLAUDE.md - Enterprise AI Knowledge Agent Platform (EAKAP)
 
-**文件版本：** 1.6
+**文件版本：** 1.7
 **對應規格書：** 02.企業AI知識庫平台_網站規格書_v1.0
-**最後更新：** 2026-01-03 17:30
+**最後更新：** 2026-01-03 19:00
 **核心策略：** DIKW Visualization & Departmental Knowledge Silos
 **設計系統：** Modern Minimalism + Glassmorphism + Neumorphism Hybrid
 
@@ -25,6 +25,7 @@
 - ✅ Agent 工廠升級 (Agent Factory 2.0)
 - ✅ DIKW 視覺化 (DIKW Visualization) - 星系圖與動態框架
 - ✅ UI/UX 設計系統 (Design System v1.0) - 70/20/10 混合風格 (2026-01-03)
+- ✅ Neural Galaxy 2.0 (三階段視覺化升級) - CSS + Canvas + WebGL (2026-01-03)
 
 ### ✅ 已完成項目 (Phase 2: DIKW Visualization)
 
@@ -57,6 +58,17 @@
     - [x] 輸入：使用者意圖 + 建議的知識清單
     - [x] 輸出：符合 `K-0` 標準的結構化 System Prompt (包含角色、任務對照表、合規檢查、思考路徑)
     - [x] 技術：使用 gemini-3-flash-preview 進行 "Prompt-to-Prompt" 生成
+    
+#### Metadata Trinity (元數據鐵三角實作) 🚧
+- [ ] **DB Schema Migration**:
+  - [ ] `document_categories` 表 (Taxonomy)
+  - [ ] `departments` add `code`
+  - [ ] `files` add `category_id`
+- [ ] **Smart Upload UI**:
+  - [ ] Upload Modal: 增加 AI 推論 `category` 的邏輯
+  - [ ] Human-in-the-loop 確認介面
+- [ ] **Admin Taxonomy UI**:
+  - [ ] 管理文件類別的 CRUD 介面
 
 ---
 
@@ -158,7 +170,23 @@ CREATE TABLE knowledge_instances (
   source_file_ids UUID[],
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Taxonomy & Metadata Trinity
+CREATE TABLE document_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(50) NOT NULL,
+  parent_id UUID REFERENCES document_categories(id),
+  description TEXT
+);
+
+ALTER TABLE departments ADD COLUMN code VARCHAR(20) UNIQUE; -- 'FIN', 'HR'
+
+ALTER TABLE files 
+  ADD COLUMN category_id UUID REFERENCES document_categories(id),
+  ADD COLUMN department_id UUID REFERENCES departments(id); 
 ```
 
 ---
@@ -400,10 +428,30 @@ CREATE TABLE knowledge_instances (
   - [x] Glassmorphism 側邊欄
   - [x] 滑入動畫 + 遮罩模糊
   - [x] 框架資料展示
-- [ ] 知識卡片動畫（CSS only，避免 Glassmorphism）
-- [ ] 檔案上傳視覺回饋（進度條 + 能量流動）
+- [x] **Neural Galaxy 2.0 升級** (2026-01-03 完成):
+  - [x] **Phase A: 基礎神經脈動** (CSS Only - 永遠啟用)
+    - [x] DIKW 四層不同頻率脈動動畫 (1.8s-3s)
+    - [x] 星空背景呼吸微光效果
+    - [x] 節點發光與縮放動畫
+    - [x] 效能影響: < 5% CPU
+  - [x] **Phase B: 進階粒子系統** (Canvas 2D - 智能啟用)
+    - [x] 能量粒子沿邊線流動效果
+    - [x] 智能效能保護 (節點 < 100 時啟用)
+    - [x] DIKW 層級配色粒子
+    - [x] 效能影響: 10-15% CPU
+  - [x] **Phase C: 極致視覺** (WebGL - 可選啟用)
+    - [x] Bloom 後處理效果 (高斯模糊發光)
+    - [x] 3D 深度空間感 (Z-axis positioning)
+    - [x] 深度霧化效果
+    - [x] GPU 加速 Vertex/Fragment Shaders
+    - [x] 效能影響: 20-30% CPU (需 GPU)
+    - [x] 預設禁用，透過 `NEXT_PUBLIC_ENABLE_WEBGL=true` 啟用
+  - [x] 配置系統 (`lib/galaxy-config.ts`):
+    - [x] DEFAULT (平衡模式): Phase A + B
+    - [x] FLAGSHIP (旗艦模式): Phase A + B + C
+    - [x] PERFORMANCE (效能模式): 僅 Phase A
 
-**投資報酬率**: ⭐⭐⭐⭐⭐ (視覺衝擊力最強)
+**投資報酬率**: ⭐⭐⭐⭐⭐ (視覺衝擊力最強，達成「深度學習網路視覺化」效果)
 
 #### Phase 3: 細節打磨與驗證 ✨ (第三週) ✅ 已完成
 - [x] 微互動效果 (Hover, Focus, Active)

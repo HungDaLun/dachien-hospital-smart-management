@@ -24,9 +24,14 @@ export default async function BrainPage() {
                 <div>
                     <h2 className="font-bold text-gray-800 flex items-center gap-2">
                         🧠 Enterprise Brain
-                        <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Beta</span>
+                        <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                            Neural Galaxy 2.0
+                        </span>
                     </h2>
-                    <p className="text-xs text-gray-500">Visualizing Departmental Knowledge Silos & Insights</p>
+                    <p className="text-xs text-gray-500">
+                        Visualizing Departmental Knowledge Silos & Insights
+                        <span className="ml-2 text-accent-violet">· 視覺效果可在右上角切換</span>
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-mono text-gray-400">

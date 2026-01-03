@@ -33,3 +33,6 @@ export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';
 // 通知系統
 export { ToastProvider, useToast } from './Toast';
 export type { ToastItem, ToastType } from './Toast';
+
+export { Progress } from './Progress';
+

@@ -89,7 +89,10 @@
         "status_failed": "Failed",
         "status_needs_review": "Needs Review",
         "filter_files": "Filter files...",
-        "view_details": "View Details"
+        "view_details": "View Details",
+        "analyze_all": "Batch Analyze",
+        "analyzing_all": "Analyzing...",
+        "analyze_all_success": "Batch analysis complete! Processed {{count}} files."
     },
     "agents": {
         "title": "Agent Management",

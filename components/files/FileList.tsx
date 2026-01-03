@@ -6,7 +6,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Input, Select, Button, Card, Spinner } from '@/components/ui';
+import { Input, Select, Button, Card, Spinner, Progress } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import FileCard, { FileData } from './FileCard';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
@@ -15,25 +16,24 @@ import { Dictionary } from '@/lib/i18n/dictionaries';
  */
 interface FileListProps {
     canManage: boolean;
+    dict: Dictionary;
+    refreshTrigger?: number;
 }
 
 /**
  * 狀態選項
  */
-const getStatusOptions = (dict: Dictionary) => [
-    { value: '', label: dict.knowledge.filter_files.replace('...', '') }, // Using filter_files as generic "All" or similar
-    { value: 'PENDING', label: dict.knowledge.status_pending },
-    { value: 'PROCESSING', label: dict.knowledge.status_processing },
-    { value: 'SYNCED', label: dict.knowledge.status_synced },
-    { value: 'NEEDS_REVIEW', label: dict.knowledge.status_needs_review || 'Needs Review' },
-    { value: 'FAILED', label: dict.knowledge.status_failed },
-];
-
-interface FileListProps {
-    canManage: boolean;
-    dict: Dictionary;
-    refreshTrigger?: number;
-}
+const getStatusOptions = (dict: Dictionary) => {
+    if (!dict?.knowledge) return [];
+    return [
+        { value: '', label: (dict.knowledge.filter_files || 'All').replace('...', '') },
+        { value: 'PENDING', label: dict.knowledge.status_pending || 'Pending' },
+        { value: 'PROCESSING', label: dict.knowledge.status_processing || 'Processing' },
+        { value: 'SYNCED', label: dict.knowledge.status_synced || 'Synced' },
+        { value: 'NEEDS_REVIEW', label: dict.knowledge.status_needs_review || 'Needs Review' },
+        { value: 'FAILED', label: dict.knowledge.status_failed || 'Failed' },
+    ];
+};
 
 export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileListProps) {
     const [files, setFiles] = useState<FileData[]>([]);
@@ -43,6 +43,10 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
     // 篩選條件
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
+    const [isAnalyzingAll, setIsAnalyzingAll] = useState(false);
+    const [analysisProgress, setAnalysisProgress] = useState(0);
+    const [analysisTotal, setAnalysisTotal] = useState(0);
+    const { toast } = useToast();
 
     // 分頁
     const [page, setPage] = useState(1);
@@ -151,6 +155,74 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
     };
 
     /**
+     * 處理一鍵分析
+     */
+    const handleAnalyzeAll = async () => {
+        if (isAnalyzingAll) return;
+
+        try {
+            const confirmText = dict?.knowledge?.analyze_all || '一鍵分析';
+            if (typeof window !== 'undefined' && !window.confirm(confirmText + '?')) return;
+
+            // Step 1: Get the list of IDs
+            const candidatesRes = await fetch('/api/files/analyze-candidates');
+            const candidatesData = await candidatesRes.json();
+
+            if (!candidatesRes.ok || !candidatesData.success) {
+                throw new Error(candidatesData.error?.message || '無法取得待分析檔案');
+            }
+
+            const ids = candidatesData.data as string[];
+            if (ids.length === 0) {
+                toast.info('沒有需要分析的檔案');
+                return;
+            }
+
+            setIsAnalyzingAll(true);
+            setAnalysisTotal(ids.length);
+            setAnalysisProgress(0);
+
+            let successCount = 0;
+            let failCount = 0;
+
+            // Step 2: Loop and analyze one by one to show progress
+            for (let i = 0; i < ids.length; i++) {
+                const id = ids[i];
+                try {
+                    const res = await fetch(`/api/files/${id}/analyze`, { method: 'POST' });
+                    const resData = await res.json();
+                    if (res.ok && resData.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (e) {
+                    console.error(`Analysis failed for file ${id}:`, e);
+                    failCount++;
+                }
+                setAnalysisProgress(i + 1);
+            }
+
+            // Step 3: Final report
+            const successMsg = (dict?.knowledge?.analyze_all_success || 'Success').replace('{{count}}', String(successCount));
+            toast.success(successMsg);
+            fetchFiles(true);
+
+        } catch (error) {
+            console.error('Batch analysis error:', error);
+            const genericError = dict?.common?.error || '發生錯誤';
+            toast.error(typeof error === 'string' ? error : (error as any).message || genericError);
+        } finally {
+            setIsAnalyzingAll(false);
+            // Delay resetting progress to allow users to see 100%
+            setTimeout(() => {
+                setAnalysisProgress(0);
+                setAnalysisTotal(0);
+            }, 3000);
+        }
+    };
+
+    /**
      * 處理刪除完成
      */
     const handleDelete = (id: string) => {
@@ -208,12 +280,33 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                         />
 
                         {/* 狀態篩選 */}
-                        <Select
-                            options={getStatusOptions(dict)}
-                            value={status}
-                            onChange={handleStatusChange}
-                            selectSize="sm"
-                        />
+                        <div className="flex gap-2">
+                            <Select
+                                options={getStatusOptions(dict)}
+                                value={status}
+                                onChange={handleStatusChange}
+                                selectSize="sm"
+                            />
+
+                            {/* 一鍵分析按鈕 */}
+                            {canManage && (
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={handleAnalyzeAll}
+                                    loading={isAnalyzingAll}
+                                    disabled={isAnalyzingAll}
+                                    className="flex-shrink-0 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-none shadow-md"
+                                    leftIcon={
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    }
+                                >
+                                    {dict.knowledge.analyze_all}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -231,6 +324,19 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                         <Button variant="outline" size="sm" onClick={() => fetchFiles(false)} className="mt-4">
                             {dict.common.refresh}
                         </Button>
+                    </div>
+                )}
+
+                {/* 分析進度條 */}
+                {analysisTotal > 0 && (
+                    <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Progress
+                            value={analysisProgress}
+                            max={analysisTotal}
+                            showValue
+                            label={`${dict?.knowledge?.analyzing_all || '正在分析...'} (${analysisProgress}/${analysisTotal})`}
+                            colorClass="bg-gradient-to-r from-indigo-500 to-violet-500"
+                        />
                     </div>
                 )}
 
