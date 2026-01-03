@@ -81,6 +81,28 @@ export async function middleware(request: NextRequest) {
     // 取得當前使用者（僅在需要時執行）
     const { data: { user } } = await supabase.auth.getUser();
 
+    // ===== 效能優化：惰性快取使用者資料查詢 =====
+    // 將多次 user_profiles 查詢合併為單次查詢，僅在需要時執行
+    let cachedProfile: { role: string; status: string } | null | undefined = undefined;
+
+    async function getProfileOnce(): Promise<{ role: string; status: string } | null> {
+        if (cachedProfile !== undefined) return cachedProfile;
+        if (!user) {
+            cachedProfile = null;
+            return null;
+        }
+
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('role, status')
+            .eq('id', user.id)
+            .single();
+
+        cachedProfile = profile;
+        return profile;
+    }
+    // ===== 效能優化結束 =====
+
     // API 路由處理
     if (pathname.startsWith('/api/')) {
         // 公開 API 端點（不需要驗證）
@@ -109,12 +131,8 @@ export async function middleware(request: NextRequest) {
             );
         }
 
-        // 檢查是否需要特定角色權限（只查詢一次）
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, status')
-            .eq('id', user.id)
-            .single();
+        // 使用快取的 profile 查詢（僅執行一次）
+        const profile = await getProfileOnce();
 
         if (profile) {
             // 檢查使用者狀態：待審核使用者無法使用 API（除了登出）
@@ -182,22 +200,16 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // 檢查管理員路由（合併查詢，避免重複）
-    const needsAdminCheck = user && (
-        adminRoutes.some((route) => pathname.startsWith(route)) ||
-        superAdminRoutes.some((route) => pathname.startsWith(route))
-    );
+    // 檢查是否需要使用者資料（管理員路由或非公開路由）
+    const needsProfileCheck = user && !isPublicRoute;
 
-    if (needsAdminCheck) {
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role, status')
-            .eq('id', user.id)
-            .single();
+    if (needsProfileCheck) {
+        // 使用快取的 profile 查詢（若之前已查詢過則直接返回）
+        const profile = await getProfileOnce();
 
         if (profile) {
-            // 檢查使用者狀態：待審核使用者無法存取管理員頁面
-            if (profile.status === 'PENDING') {
+            // 檢查使用者狀態：待審核使用者只能看到待審核頁面
+            if (profile.status === 'PENDING' && !pathname.startsWith('/dashboard/pending')) {
                 return NextResponse.redirect(new URL('/dashboard/pending', request.url));
             }
 
@@ -214,19 +226,6 @@ export async function middleware(request: NextRequest) {
                     return NextResponse.redirect(new URL('/dashboard', request.url));
                 }
             }
-        }
-    }
-
-    // 檢查一般頁面路由：待審核使用者只能看到待審核頁面
-    if (user && !isPublicRoute && !pathname.startsWith('/dashboard/pending')) {
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('status')
-            .eq('id', user.id)
-            .single();
-
-        if (profile && profile.status === 'PENDING') {
-            return NextResponse.redirect(new URL('/dashboard/pending', request.url));
         }
     }
 

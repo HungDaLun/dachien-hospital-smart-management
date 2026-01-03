@@ -1,8 +1,25 @@
 
+import dynamic from 'next/dynamic';
 import { getCurrentUserProfile } from '@/lib/permissions';
-import GalaxyGraph from '@/components/visualization/GalaxyGraph';
-
 import { createClient } from '@/lib/supabase/server';
+import { Spinner } from '@/components/ui';
+
+// 動態匯入 GalaxyGraph，減少初始 bundle 大小
+// ssr: false 因為 ReactFlow 需要瀏覽器 API
+const GalaxyGraph = dynamic(
+    () => import('@/components/visualization/GalaxyGraph'),
+    {
+        loading: () => (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900">
+                <div className="flex flex-col items-center gap-4">
+                    <Spinner size="lg" />
+                    <span className="text-gray-300 animate-pulse">🌌 Loading Neural Galaxy...</span>
+                </div>
+            </div>
+        ),
+        ssr: false
+    }
+);
 
 export default async function BrainPage() {
     const profile = await getCurrentUserProfile();

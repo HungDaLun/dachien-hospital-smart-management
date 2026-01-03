@@ -2,6 +2,7 @@
  * 權限檢查工具函式庫
  * 遵循 EAKAP 權限矩陣規範
  */
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors';
@@ -20,9 +21,10 @@ export interface UserProfile {
 
 /**
  * 取得當前使用者的完整資料（包含角色與部門）
+ * 使用 React cache 確保同一請求中多次呼叫只執行一次查詢
  * 如果查詢失敗，會使用 Admin client 作為 fallback
  */
-export async function getCurrentUserProfile(): Promise<UserProfile> {
+export const getCurrentUserProfile = cache(async (): Promise<UserProfile> => {
   const supabase = await createClient();
 
   // 驗證使用者身份
@@ -84,7 +86,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
     department_id: profile.department_id,
     status: profile.status as 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,
   };
-}
+});
 
 /**
  * 檢查使用者是否具有指定角色

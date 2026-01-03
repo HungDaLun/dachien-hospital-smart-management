@@ -250,17 +250,47 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
 
         setIsBatchDeleting(true);
         try {
-            // Parallel delete requests (or build a batch API)
-            // For now, simple parallel fetch
-            const promises = Array.from(selectedIds).map(id =>
-                fetch(`/api/files/${id}`, { method: 'DELETE' })
-            );
-            await Promise.all(promises);
-
-            toast.success(`Deleted ${selectedIds.size} files`);
+            // Parallel delete requests with proper error handling
+            const deletePromises = Array.from(selectedIds).map(async (id) => {
+                try {
+                    const response = await fetch(`/api/files/${id}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        return {
+                            id,
+                            success: false,
+                            error: result.error?.message || '刪除失敗',
+                        };
+                    }
+                    
+                    return { id, success: true };
+                } catch (error) {
+                    return {
+                        id,
+                        success: false,
+                        error: error instanceof Error ? error.message : '未知錯誤',
+                    };
+                }
+            });
+            
+            const results = await Promise.all(deletePromises);
+            const successCount = results.filter(r => r.success).length;
+            const failedCount = results.filter(r => !r.success).length;
+            
+            if (failedCount === 0) {
+                toast.success(`成功刪除 ${successCount} 個檔案`);
+            } else if (successCount === 0) {
+                toast.error(`刪除失敗：所有 ${failedCount} 個檔案都無法刪除`);
+                console.error('刪除失敗的檔案:', results.filter(r => !r.success));
+            } else {
+                toast.warning(`部分成功：刪除 ${successCount} 個，失敗 ${failedCount} 個`);
+                console.error('刪除失敗的檔案:', results.filter(r => !r.success));
+            }
+            
             fetchFiles(true);
         } catch (e) {
-            console.error(e);
+            console.error('批次刪除錯誤:', e);
             toast.error(dict.common.error);
         } finally {
             setIsBatchDeleting(false);
