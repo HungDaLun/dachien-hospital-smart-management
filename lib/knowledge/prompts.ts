@@ -20,44 +20,54 @@ Your task is to convert the provided document into clean, well-structured Markdo
 `;
 
 /**
- * Metadata 分析與治理建議提示詞
+ * Metadata 分析與治理建議提示詞 (Librarian Agent)
+ * 遵循 EAKAP 治理架構，融合 YAML Front Matter 標準
  */
 export const METADATA_ANALYSIS_PROMPT = `
 You are an expert "Knowledge Architect" specializing in enterprise data governance.
-Analyze the provided document content and generate metadata for classification and governance.
+Analyze the provided document and generate standardized metadata for enterprise-wide knowledge management.
 
 **Output Requirement:**
 Return a valid JSON object with the following fields:
 
-1. \`suggested_filename\`: A standardized filename string.
-   - Format: \`[Dept]-[Type]-[Subject]-[Version]\`
-   - Example: \`HR-Policy-RemoteWork-v2024.md\`, \`ENG-Spec-API_Migration-v1.md\`
-   - Use English letters, numbers, hyphens, and underscores only. NO Chinese characters in filename.
-   
-2. \`title\`: A clear, human-readable title in Traditional Chinese (Taiwan/繁體中文).
+1. \`suggested_filename\`: Standardized filename following EAKAP naming convention.
+   - Format: \`[Dept]-[Type]-[Subject]-[Version]\` (e.g., \`PROD-Policy-Maintenance_SOP-v2024.md\`)
+   - Use English letters, numbers, hyphens only. NO Chinese characters.
 
-3. \`summary\`: A concise 1-2 sentence summary of the document in Traditional Chinese (Taiwan/繁體中文).
+2. \`title\`: Clear human-readable title in Traditional Chinese (繁體中文).
 
-4. \`tags\`: An array of strings used for categorization (e.g., ["HR", "Remote Work", "Policy"]). Use Traditional Chinese/English mixed is okay.
+3. \`summary\`: A high-quality executive summary in Traditional Chinese (繁體中文). 
+   - Must be 2-3 sentences.
+   - Summarize the core value, key findings, and target audience.
 
-5. \`topics\`: An array of key topics or entities mentioned.
+4. \`governance\`: A structured object for standardized governance:
+   - \`domain\`: Knowledge domain (e.g., audience, technology, strategy, operation).
+   - \`artifact\`: Output type (e.g., persona, sop, report, manual, policy).
+   - \`owner\`: Responsible department or team name.
+   - \`status\`: Current lifecycle status (e.g., draft, validated, archived).
+   - \`version\`: Version string (e.g., v20240101).
+   - \`confidence\`: AI's confidence in this analysis (low, medium, high).
 
-6. \`document_type\`: The type of document (e.g., "Policy", "Specification", "Meeting Minutes", "Report").
+5. \`tags\`: Array of 3-5 key labels for fast indexing (Traditional Chinese preferred).
 
-7. \`department_suggestion\`: Guess the most relevant department code (e.g., "HR", "ENG", "SALES", "FINANCE") based on content.
+6. \`topics\`: Array of specific entities or subjects mentioned in the text.
 
-8. \`category_suggestion\`: Guess the most relevant document category name (e.g., "Policy", "Contract", "Report", "Meeting Minutes").
-
-**Example JSON:**
+**Example JSON Response:**
 \`\`\`json
 {
-  "suggested_filename": "HR-Policy-RemoteWork-v2024.md",
-  "title": "2024年遠距工作管理辦法",
-  "summary": "本文件規範公司員工申請遠距工作的資格、流程與考勤標準。",
-  "tags": ["人資", "遠距工作", "管理辦法"],
-  "topics": ["考勤", "資安", "Zoom"],
-  "document_type": "Policy",
-  "department_suggestion": "HR"
+  "suggested_filename": "MK-Persona-Origins_Users-v2025.md",
+  "title": "品木宣言使用者畫像研究報告",
+  "summary": "本文件透過社群大數據分析，識別出三類核心保養客群及其行為模式，為品牌提供精準行銷策略建議。",
+  "governance": {
+    "domain": "audience",
+    "artifact": "persona",
+    "owner": "marketing_team",
+    "status": "validated",
+    "version": "v20250101",
+    "confidence": "high"
+  },
+  "tags": ["使用者畫像", "品木宣言", "社群分析"],
+  "topics": ["Origins", "Dcard", "Skin Care"]
 }
 \`\`\`
 `;
@@ -120,11 +130,44 @@ You are a specialized Analyst AI. Your task is to extract structured insights fr
 Return a JSON object matching this structure:
 \`\`\`json
 {
-  "title": "A concise title for this analysis (e.g., 'Q3 Marketing Strategy SWOT')",
+  "title": "Standardized title: '[Framework Name] - [Subject/Product Name]'",
   "ai_summary": "A brief executive summary of findings (in Traditional Chinese)",
   "data": { ... keys must match schema ... },
   "completeness": 0.8,
   "confidence": 0.9
+}
+\`\`\`
+`;
+
+/**
+ * Mapper Agent: 實例歸納與合併裁判提示詞
+ */
+export const CONSOLIDATION_PROMPT = `
+You are a "Knowledge Governance AI".
+Your task is to decide if a new knowledge extraction should be MERGED into an existing database record or created as a NEW record.
+
+**Context:**
+We are processing a document about: "{{NEW_TITLE}}" (extracted from file: "{{FILENAME}}").
+The target framework is: "{{FRAMEWORK_NAME}}".
+
+**Existing Records in Database:**
+{{EXISTING_CANDIDATES}}
+
+**Rules:**
+1. If the new content refers to the **same subject/product/topic** as one of the existing records, you MUST select it for merging.
+   - Example Match: "SWOT - Product X v1" and "SWOT - Product X Final" -> MATCH.
+   - Example Match: "VPC - Origins Taiwan" and "VPC - Origins Mega-Mushroom" -> MATCH (if content implies same scope).
+2. If the new content is about a **completely different** product or topic, do NOT merge.
+   - Example Mismatch: "SWOT - Product A" vs "SWOT - Product B".
+3. If the list is empty, return null.
+
+**Output:**
+Return a JSON object:
+\`\`\`json
+{
+  "action": "MERGE" | "CREATE",
+  "target_instance_id": "UUID" (only if MERGE, else null),
+  "reasoning": "Brief explanation in Traditional Chinese."
 }
 \`\`\`
 `;

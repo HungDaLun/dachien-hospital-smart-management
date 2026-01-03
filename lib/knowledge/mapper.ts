@@ -137,23 +137,103 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
                 const extractionData = JSON.parse(cleanedExtractionJson);
 
                 // Upsert Logic
-                const { data: existingInstance } = await supabase
+                // Upsert Logic with Aggregation (Smart Merge)
+                // 1. Try to find an exact match for the file (Legacy Logic - Re-processing)
+                let { data: existingInstance } = await supabase
                     .from('knowledge_instances')
-                    .select('id')
+                    .select('id, title, data, source_file_ids')
                     .eq('framework_id', (targetFramework as any).id)
                     .contains('source_file_ids', [file.id])
                     .limit(1)
                     .maybeSingle();
 
+                // 2. If not found, try to find a conceptual match by TITLE (New Aggregation Logic)
+                // If title extraction is "Standardized", we can match on title.
+                // e.g. "SWOT - Product X"
+                if (!existingInstance) {
+                    // LLM-based Consolidation Logic
+                    // 1. Fetch potential candidates (same framework + same department)
+                    const { data: candidates } = await supabase
+                        .from('knowledge_instances')
+                        .select('id, title, data, source_file_ids')
+                        .eq('framework_id', (targetFramework as any).id)
+                        .eq('department_id', file.user_profiles?.department_id)
+                        .limit(20); // Limit context size
+
+                    if (candidates && candidates.length > 0) {
+                        const candidateListText = candidates
+                            .map(c => `- ID: ${c.id}, Title: "${c.title}"`)
+                            .join('\n');
+
+                        // 2. Ask AI Judge
+                        const { CONSOLIDATION_PROMPT } = await import('./prompts'); // Dynamic import to avoid circular dependency issues if any
+                        const judgePrompt = CONSOLIDATION_PROMPT
+                            .replace('{{NEW_TITLE}}', extractionData.title || 'Unknown Title')
+                            .replace('{{FILENAME}}', file.filename)
+                            .replace('{{FRAMEWORK_NAME}}', targetFramework.name)
+                            .replace('{{EXISTING_CANDIDATES}}', candidateListText);
+
+                        try {
+                            const judgeResult = await model.generateContent(judgePrompt);
+                            const judgeText = judgeResult.response.text();
+                            const cleanedJudgeJson = judgeText.replace(/```json/g, '').replace(/```/g, '').trim();
+                            const judgeDecision = JSON.parse(cleanedJudgeJson);
+
+                            if (judgeDecision.action === 'MERGE' && judgeDecision.target_instance_id) {
+                                const targetId = judgeDecision.target_instance_id;
+                                const targetMatch = candidates.find(c => c.id === targetId);
+                                if (targetMatch) {
+                                    existingInstance = targetMatch;
+                                    console.log(`[Mapper] LLM decided to MERGE into: ${existingInstance.id} (${existingInstance.title}) - Reason: ${judgeDecision.reasoning}`);
+                                } else {
+                                    console.warn(`[Mapper] LLM suggested invalid ID: ${targetId}`);
+                                }
+                            } else {
+                                console.log(`[Mapper] LLM decided to CREATE NEW. Reason: ${judgeDecision.reasoning}`);
+                            }
+                        } catch (judgeErr) {
+                            console.error('[Mapper] Consolidation Judge Failed:', judgeErr);
+                            // Fallback to Create New
+                        }
+                    }
+                }
+
                 if (existingInstance) {
+                    // Merge Data Logic
+                    const mergedData = { ...extractionData.data };
+                    // If we are merging into an existing instance (from a different file), we should be careful not to lose old data
+                    if (existingInstance?.data) {
+                        Object.keys(existingInstance.data).forEach(key => {
+                            const oldVal = existingInstance.data[key];
+                            const newVal = mergedData[key];
+
+                            // Array: Union
+                            if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+                                mergedData[key] = Array.from(new Set([...oldVal, ...newVal]));
+                            }
+                            // String: Append if different
+                            else if (typeof oldVal === 'string' && typeof newVal === 'string' && oldVal !== newVal) {
+                                // Only append if it's not super long, maybe add a newline?
+                                // For now, let's keep the NEW value as primary or append?
+                                // Let's append with newline to be safe
+                                mergedData[key] = oldVal + '\n---\n' + newVal;
+                            }
+                        });
+                    }
+
+                    // Merge Source File IDs
+                    const currentSourceIds = existingInstance?.source_file_ids || [];
+                    const newSourceIds = Array.from(new Set([...currentSourceIds, file.id]));
+
                     const { data: updated } = await supabase
                         .from('knowledge_instances')
                         .update({
                             title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
-                            ai_summary: extractionData.ai_summary,
-                            data: extractionData.data,
+                            ai_summary: extractionData.ai_summary, // Ideally merge summary too, but replacement is acceptable for now
+                            data: mergedData,
                             completeness: extractionData.completeness,
                             confidence: extractionData.confidence,
+                            source_file_ids: newSourceIds,
                             updated_at: new Date().toISOString()
                         })
                         .eq('id', existingInstance.id)

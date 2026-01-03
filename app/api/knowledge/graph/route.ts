@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
                 id, 
                 title, 
                 framework_id, 
-                knowledge_frameworks(code, name, ui_config, detailed_definition, structure_schema),
+                knowledge_frameworks(*),
                 ai_summary,
                 completeness,
                 confidence,
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
             nodes.push({
                 id: inst.id,
                 type: 'framework_instance',
-                label: inst.title,
+                label: `${inst.knowledge_frameworks?.display_id || '??'} ${inst.knowledge_frameworks?.name || 'Unknown'}\n(${inst.title})`,
                 data: {
                     frameworkCode: inst.knowledge_frameworks?.code,
                     frameworkName: inst.knowledge_frameworks?.name,

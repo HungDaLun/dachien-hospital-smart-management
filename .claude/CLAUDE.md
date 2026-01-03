@@ -146,7 +146,17 @@
 *   **無障礙標準**：確保符合 WCAG 2.1 AA 級標準
 *   **效能優先原則**：流暢度 > 視覺炫麗度，所有動畫與特效必須經過效能測試
 
-### 5. 效能優化原則
+### 5. EAKAP 知識治理標準 (v1.0)
+*   **命名規範 (Naming Convention)**: `[Dept]-[Type]-[Subject]-[Suffix]`
+    *   **Dept**: 必須匹配 `departments.code` (e.g., `HR`, `IT`)。
+    *   **Type**: 必須匹配 `document_categories.name` (e.g., `Policy`, `Spec`)。
+    *   **Subject**: PascalCase, 英文/數字 (e.g., `RemoteWork`).
+    *   **Suffix**: 版本/日期 (e.g., `v2024`).
+*   **Metadata Strategy**:
+    *   **Hard Metadata (DB Columns)**: `department_id`, `category_id`, `uploaded_by`.
+    *   **Soft Metadata (Tags)**: `Process:Manufacturing`, `Product:Origins`.
+
+### 6. 效能優化原則
 *   **CSS Containment**：使用 `contain: layout style paint;` 隔離重繪範圍
 *   **GPU 加速**：動畫元件使用 `transform: translateZ(0);` 和 `will-change`
 *   **Glassmorphism 限制**：僅在以下 3 個場景使用 `backdrop-filter`:

@@ -37,20 +37,45 @@ export async function POST(
             );
         }
 
-        // 2. Call Gemini for ETL (AI Librarian)
-        const prompt = `
-      You are an expert AI Knowledge Librarian.
-      Your task is to convert the attached document into a clean, structured Markdown file.
-      
-      Guidelines:
-      1. Remove all noise (headers, footers, page numbers, repeated disclaimers).
-      2. Use standard Markdown headers (#, ##, ###) to represent the document structure.
-      3. Preserve all key information, numerical data, and tables (convert to Markdown tables).
-      4. If the document is long, ensure logical flow is maintained.
-      5. Output ONLY the Markdown content. Do not include introductory text like "Here is the markdown...".
-    `;
+        // Detect Data Files (CSV/Excel)
+        const isDataFile = file.mime_type.includes('csv') ||
+            file.mime_type.includes('spreadsheet') ||
+            file.mime_type.includes('excel');
 
-        // Use Gemin 3 Flash for efficient document reading and cleaning
+        let prompt = '';
+
+        if (isDataFile) {
+            // STRATEGY: Raw Data Injection
+            // Keep CSV format compact to maximize token usage efficiency.
+            prompt = `
+            You are an expert Data Engineer AI.
+            Your task is to Clean and Standardize the attached dataset.
+            
+            Guidelines:
+            1. Fix encoding issues (ensure UTF-8).
+            2. Standardize headers (trim spaces, clear meaning).
+            3. Remove empty rows or completely corrupted lines.
+            4. Output the result strictly as **valid CSV format** inside a code block (\`\`\`csv ... \`\`\`).
+            5. CRITICAL: Do NOT convert to a Markdown visuals table (ASCII table). Keep it as efficient Comma Separated Values.
+            `;
+        } else {
+            // STRATEGY: Document Digitization
+            // Convert unstructured text to structured Markdown structure.
+            prompt = `
+            You are an expert AI Knowledge Librarian.
+            Your task is to convert the attached document into a clean, structured Markdown file.
+            
+            Guidelines:
+            1. Remove all noise (headers, footers, page numbers, repeated disclaimers).
+            2. Use standard Markdown headers (#, ##, ###) to represent the document structure.
+            3. Preserve all key information, numerical data, and tables (convert to Markdown tables).
+            4. If the document is long, ensure logical flow is maintained.
+            5. Output ONLY the Markdown content. Do not include introductory text like "Here is the markdown...".
+            `;
+        }
+
+        // Create Gemini Client
+        // FORCE Gemini 3 for best performance as per user instruction
         const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash-preview';
 
         const structuredContent = await generateContent(

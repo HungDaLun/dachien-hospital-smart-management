@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
         const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
         const search = searchParams.get('search') || '';
         const status = searchParams.get('status') || '';
+        const dept = searchParams.get('dept') || '';
+        const type = searchParams.get('type') || '';
         const offset = (page - 1) * limit;
 
         // 建立查詢
@@ -66,6 +68,28 @@ export async function GET(request: NextRequest) {
         // 搜尋檔名
         if (search) {
             query = query.ilike('filename', `%${search}%`);
+        }
+
+        // 篩選部門 (智選模式：同時比對 ID 與 EAKAP 命名規範)
+        if (dept) {
+            // 嘗試取得部門代碼以進行檔名比對
+            const { data: deptData } = await supabase
+                .from('departments')
+                .select('code')
+                .eq('id', dept)
+                .single();
+
+            if (deptData?.code) {
+                query = query.or(`department_id.eq.${dept},filename.ilike.${deptData.code}-%`);
+            } else {
+                query = query.eq('department_id', dept);
+            }
+        }
+
+        // 篩選類型 (符合 EAKAP 命名規範：[Dept]-[Type]-...)
+        // 如果未來有建立專屬欄位則改用專屬欄位，目前先用檔名比對
+        if (type) {
+            query = query.ilike('filename', `%-${type}-%`);
         }
 
         // 篩選狀態

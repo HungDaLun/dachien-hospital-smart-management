@@ -85,9 +85,9 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         await new Promise(resolve => setTimeout(resolve, 5000));
 
         // 4. 執行轉譯 (File -> Markdown)
-        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Markdown (Model: gemini-3-flash)...` }).eq('id', fileId);
+        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Markdown (Model: gemini-3-flash-preview)...` }).eq('id', fileId);
         const markdown = await retryWithBackoff(() => generateContent(
-            'gemini-3-flash',
+            'gemini-3-flash-preview',
             MARKDOWN_CONVERSION_PROMPT,
             geminiFile.uri,
             file.mime_type
@@ -96,7 +96,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         // 5. 執行 Metadata 分析
         await supabase.from('files').update({ markdown_content: `DEBUG: Analyzing Metadata...` }).eq('id', fileId);
         const metadataJsonString = await retryWithBackoff(() => generateContent(
-            'gemini-3-flash',
+            'gemini-3-flash-preview',
             METADATA_ANALYSIS_PROMPT,
             geminiFile.uri,
             file.mime_type

@@ -65,7 +65,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         name: '',
         description: '',
         system_prompt: '',
-        model_version: 'gemini-3-flash',
+        model_version: 'gemini-3-flash-preview',
         temperature: 0.7,
         knowledge_rules: [],
     });
@@ -307,8 +307,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white"
                                 >
-                                    <option value="gemini-3-flash">Gemini 3 Flash</option>
-                                    <option value="gemini-3-pro">Gemini 3 Pro</option>
+                                    <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                                    <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
                                 </select>
                             </div>
 

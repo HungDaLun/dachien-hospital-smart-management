@@ -348,25 +348,25 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
                     color="#334155"
                 />
 
-                {/* Glassmorphism 控制面板 */}
-                <Panel position="top-right" className="flex gap-2">
+                {/* Glassmorphism 控制面板 - 高度對齊修正 */}
+                <Panel position="top-right" className="flex items-center gap-3 pr-4 pt-4">
                     {showDeptFilter && (
-                        <div className="glass-dark rounded-lg p-1">
-                            <select
-                                className="h-9 w-40 rounded-md bg-transparent px-3 py-1 text-sm text-gray-200
-                                           border border-white/10 shadow-sm transition-colors
-                                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-violet"
-                                value={selectedDept}
-                                onChange={(e) => setSelectedDept(e.target.value)}
-                            >
-                                <option value="" className="bg-gray-800">All Departments</option>
-                                {initialDepartments.map(dept => (
-                                    <option key={dept.id} value={dept.id} className="bg-gray-800">
-                                        {dept.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        /* 直接使用 select，移除多餘外框 div，確保高度與 Button 一致 */
+                        <select
+                            className="h-9 w-40 rounded-md bg-white/5 px-3 py-1 text-sm text-gray-200
+                                       border border-white/20 shadow-sm transition-all
+                                       hover:bg-white/10 hover:border-white/30
+                                       focus:outline-none focus:ring-2 focus:ring-accent-violet/50"
+                            value={selectedDept}
+                            onChange={(e) => setSelectedDept(e.target.value)}
+                        >
+                            <option value="" className="bg-gray-800 text-gray-200">All Departments</option>
+                            {initialDepartments.map(dept => (
+                                <option key={dept.id} value={dept.id} className="bg-gray-800 text-gray-200">
+                                    {dept.name}
+                                </option>
+                            ))}
+                        </select>
                     )}
 
                     {/* 視覺效果設定按鈕 */}
@@ -375,12 +375,12 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
                             onClick={() => setShowSettingsPanel(!showSettingsPanel)}
                             size="sm"
                             variant="outline"
-                            className="!border-white/20 !text-gray-200 hover:!bg-white/10 hover:!border-white/30"
+                            className="h-9 !border-white/20 !bg-white/5 !text-gray-200 hover:!bg-white/10 hover:!border-white/30 backdrop-blur-sm shadow-sm"
                         >
                             🎨 視覺效果
                         </Button>
 
-                        {/* 設定面板 */}
+                        {/* 設定面板 - 保持不變 */}
                         {showSettingsPanel && (
                             <div className="absolute top-12 right-0 w-64 glass-dark rounded-lg p-4 shadow-xl border border-white/10 z-50 animate-scale-in">
                                 <h3 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
@@ -436,7 +436,7 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
                         onClick={fetchData}
                         size="sm"
                         variant="outline"
-                        className="!border-white/20 !text-gray-200 hover:!bg-white/10 hover:!border-white/30"
+                        className="h-9 !border-white/20 !bg-white/5 !text-gray-200 hover:!bg-white/10 hover:!border-white/30 backdrop-blur-sm shadow-sm"
                     >
                         ✨ 重新整理
                     </Button>

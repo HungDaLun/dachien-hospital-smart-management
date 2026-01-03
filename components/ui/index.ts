@@ -36,3 +36,6 @@ export type { ToastItem, ToastType } from './Toast';
 
 export { Progress } from './Progress';
 
+export { Checkbox } from './Checkbox';
+export type { CheckboxProps } from './Checkbox';
+

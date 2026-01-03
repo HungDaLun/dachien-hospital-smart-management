@@ -2,7 +2,7 @@
  * Apply Metadata API
  * 應用 AI 建議的 Metadata (檔名、標籤) 到檔案
  */
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserProfile, requireRole } from '@/lib/permissions';
 import { toApiResponse } from '@/lib/errors';
@@ -12,7 +12,6 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const supabase = await createClient();
         const profile = await getCurrentUserProfile();
         requireRole(profile, ['SUPER_ADMIN', 'DEPT_ADMIN', 'EDITOR']);
 
@@ -28,7 +27,9 @@ export async function PATCH(
         }
 
         // 1. Update File Record
-        const { error: fileError } = await supabase
+        // 使用 adminClient 確保管理員可以更新非自己上傳的檔案 (繞過 RLS)
+        const adminClient = createAdminClient();
+        const { error: fileError } = await adminClient
             .from('files')
             .update({
                 filename: filename,
@@ -42,7 +43,7 @@ export async function PATCH(
         // 2. Update Tags (Replace all)
         // First delete existing auto/governance tags? Or all tags?
         // Let's replace all for this file to match the review UI.
-        const { error: deleteTagsError } = await supabase
+        const { error: deleteTagsError } = await adminClient
             .from('file_tags')
             .delete()
             .eq('file_id', id);
@@ -63,12 +64,12 @@ export async function PATCH(
                 return {
                     file_id: id,
                     tag_key: key,
-                    tag_value: value,
-                    created_by: profile.id
+                    tag_value: value
+                    // created_by: profile.id // file_tags 表中並無此欄位，移除以修正錯誤
                 };
             });
 
-            const { error: insertTagsError } = await supabase
+            const { error: insertTagsError } = await adminClient
                 .from('file_tags')
                 .insert(tagInserts);
 

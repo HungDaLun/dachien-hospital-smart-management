@@ -17,7 +17,14 @@ interface ReviewMetadataModalProps {
         summary?: string;
         tags?: string[];
         topics?: string[];
-        document_type?: string;
+        governance?: {
+            domain?: string;
+            artifact?: string;
+            owner?: string;
+            status?: string;
+            version?: string;
+            confidence?: string;
+        };
         category_suggestion?: string;
     };
     dict: Dictionary;
@@ -109,8 +116,29 @@ export default function ReviewMetadataModal({
             <div className="space-y-6">
                 {/* Suggestion Summary */}
                 <div className="bg-primary-50 p-4 rounded-md border border-primary-100">
-                    <h4 className="font-semibold text-primary-800 mb-1">AI Analysis Summary</h4>
-                    <p className="text-sm text-primary-700">{metadata.summary || 'No summary available.'}</p>
+                    <h4 className="font-semibold text-primary-800 mb-1">AI 智能摘要 (AI Summary)</h4>
+                    <p className="text-sm text-primary-700 leading-relaxed">{metadata.summary || 'No summary available.'}</p>
+
+                    {metadata.governance && (
+                        <div className="mt-4 pt-3 border-t border-primary-100 grid grid-cols-2 gap-3">
+                            <div>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Domain / 領域</span>
+                                <span className="text-xs text-primary-900">{metadata.governance.domain || '-'}</span>
+                            </div>
+                            <div>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Artifact / 產出</span>
+                                <span className="text-xs text-primary-900 font-mono italic">{metadata.governance.artifact || '-'}</span>
+                            </div>
+                            <div>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Owner / 團隊</span>
+                                <span className="text-xs text-primary-900">{metadata.governance.owner || '-'}</span>
+                            </div>
+                            <div>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Version / 版本</span>
+                                <span className="text-xs text-primary-900 font-mono">{metadata.governance.version || '-'}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Filename Edit */}

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
         requireSuperAdmin(profile);
 
         const body = await request.json();
-        const { name, description } = body;
+        const { name, code, description } = body;
 
         if (!name) {
             throw new ValidationError('Department name is required');
@@ -22,16 +22,41 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient();
         const { data, error } = await supabase
             .from('departments')
-            .insert({ name, description })
+            .insert({ name, code, description })
             .select()
             .single();
+
+        if (error) throw error;
+
+        // ...existing code...
+        return NextResponse.json({
+            success: true,
+            data,
+        }, { status: 201 });
+
+    } catch (error) {
+        return toApiResponse(error);
+    }
+}
+
+/**
+ * GET /api/departments
+ * 取得部門列表
+ */
+export async function GET() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('departments')
+            .select('*')
+            .order('name', { ascending: true });
 
         if (error) throw error;
 
         return NextResponse.json({
             success: true,
             data,
-        }, { status: 201 });
+        });
 
     } catch (error) {
         return toApiResponse(error);

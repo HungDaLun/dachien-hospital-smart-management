@@ -44,8 +44,8 @@ interface AgentCardProps {
  * 模型版本顯示名稱
  */
 const modelLabels: Record<string, string> = {
-    'gemini-3-flash': 'Gemini 3 Flash',
-    'gemini-3-pro': 'Gemini 3 Pro',
+    'gemini-3-flash-preview': 'Gemini 3 Flash',
+    'gemini-3-pro-preview': 'Gemini 3 Pro',
 };
 
 export default function AgentCard({ agent, canManage, onEdit, onDelete, onChat }: AgentCardProps) {
