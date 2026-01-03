@@ -1,11 +1,11 @@
 /**
  * Agent 卡片元件
  * 顯示單一 Agent 資訊與操作
- * 遵循 EAKAP 設計系統規範
+ * 遵循 EAKAP 設計系統規範 v1.5
  */
 'use client';
 
-import { Badge, Button, Modal } from '@/components/ui';
+import { Badge, Button, Modal, Card } from '@/components/ui';
 import { useState } from 'react';
 
 /**
@@ -74,87 +74,101 @@ export default function AgentCard({ agent, canManage, onEdit, onDelete, onChat }
 
     return (
         <>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                {/* 標題列 */}
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        {/* Agent 圖示 */}
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg flex items-center justify-center text-white text-xl">
-                            🤖
+            <Card
+                interactive
+                className="group relative overflow-hidden"
+            >
+                {/* 裝飾性漸變背景 */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-accent-violet/10 to-transparent rounded-full blur-2xl -mr-12 -mt-12 transition-opacity group-hover:opacity-100 opacity-0" />
+
+                <div className="relative">
+                    {/* 標題列 */}
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            {/* Agent 圖示 - Neumorphism */}
+                            <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-violet rounded-xl flex items-center justify-center text-white text-2xl shadow-neu-light group-hover:shadow-neu-hover transition-shadow">
+                                🤖
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 group-hover:text-accent-violet transition-colors">
+                                    {agent.name}
+                                </h3>
+                                {agent.departments?.name && (
+                                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                                        🏢 {agent.departments.name}
+                                    </p>
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
-                            {agent.departments?.name && (
-                                <p className="text-sm text-gray-500">{agent.departments.name}</p>
-                            )}
-                        </div>
+
+                        {/* 模型版本 Badge */}
+                        <Badge variant="primary" size="sm">
+                            {modelLabels[agent.model_version] || agent.model_version}
+                        </Badge>
                     </div>
 
-                    {/* 模型版本 Badge */}
-                    <Badge variant="primary" size="sm">
-                        {modelLabels[agent.model_version] || agent.model_version}
-                    </Badge>
-                </div>
-
-                {/* 描述 */}
-                {agent.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                        {agent.description}
-                    </p>
-                )}
-
-                {/* System Prompt 預覽 */}
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        onClick={() => setShowPromptModal(true)}
-                        className="w-full text-left"
-                    >
-                        <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-600 line-clamp-2 hover:bg-gray-100 transition-colors">
-                            <span className="text-gray-400 font-mono text-xs">System Prompt: </span>
-                            {agent.system_prompt}
-                        </div>
-                    </button>
-                </div>
-
-                {/* 參數資訊 */}
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center gap-1">
-                        <span>Temperature:</span>
-                        <span className="font-medium text-gray-700">{agent.temperature}</span>
-                    </div>
-                </div>
-
-                {/* 操作按鈕 */}
-                <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-                    <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => onChat?.(agent.id)}
-                    >
-                        開始對話
-                    </Button>
-
-                    {canManage && (
-                        <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onEdit?.(agent)}
-                            >
-                                編輯
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowDeleteModal(true)}
-                            >
-                                刪除
-                            </Button>
-                        </>
+                    {/* 描述 */}
+                    {agent.description && (
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
+                            {agent.description}
+                        </p>
                     )}
+
+                    {/* System Prompt 預覽 */}
+                    <div className="mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setShowPromptModal(true)}
+                            className="w-full text-left"
+                        >
+                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 text-sm text-gray-600 line-clamp-2 hover:from-gray-100 hover:to-gray-200 transition-all border border-gray-200">
+                                <span className="text-accent-violet font-mono text-xs font-bold">📝 System Prompt: </span>
+                                {agent.system_prompt}
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* 參數資訊 */}
+                    <div className="flex items-center gap-4 text-sm mb-4">
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
+                            <span className="text-gray-500">🌡️ Temperature:</span>
+                            <span className="font-bold text-primary-600">{agent.temperature}</span>
+                        </div>
+                    </div>
+
+                    {/* 操作按鈕 */}
+                    <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                        <Button
+                            variant="cta"
+                            size="sm"
+                            onClick={() => onChat?.(agent.id)}
+                            className="flex-1"
+                        >
+                            💬 開始對話
+                        </Button>
+
+                        {canManage && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onEdit?.(agent)}
+                                >
+                                    ⚙️
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="text-error-500 hover:text-error-600 hover:bg-error-50"
+                                >
+                                    🗑️
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </Card>
 
             {/* System Prompt 檢視 Modal */}
             <Modal
@@ -168,14 +182,15 @@ export default function AgentCard({ agent, canManage, onEdit, onDelete, onChat }
                 </div>
             </Modal>
 
-            {/* 刪除確認 Modal */}
+            {/* 刪除確認 Modal - 使用 critical 風格 */}
             <Modal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
-                title="確認刪除"
+                title="⚠️ 確認刪除"
+                critical
                 footer={
                     <>
-                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
+                        <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
                             取消
                         </Button>
                         <Button
@@ -184,14 +199,19 @@ export default function AgentCard({ agent, canManage, onEdit, onDelete, onChat }
                             loading={isDeleting}
                             disabled={isDeleting}
                         >
-                            確認刪除
+                            🗑️ 確認刪除
                         </Button>
                     </>
                 }
             >
-                <p className="text-gray-600">
-                    確定要刪除 Agent <strong>{agent.name}</strong> 嗎？此操作無法復原。
-                </p>
+                <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+                    <p className="text-gray-700">
+                        確定要刪除 Agent <strong className="text-error-600">{agent.name}</strong> 嗎？
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                        ⚠️ 此操作無法復原，所有相關對話記錄也會被移除。
+                    </p>
+                </div>
             </Modal>
         </>
     );

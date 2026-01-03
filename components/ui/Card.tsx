@@ -52,12 +52,12 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             <div
                 ref={ref}
                 className={`
-          bg-white
+          bg-white contain-layout
           ${rounded ? 'rounded-lg' : ''}
           ${shadow ? 'shadow-soft' : ''}
           ${bordered ? 'border border-gray-200' : ''}
           ${padding ? 'p-6' : ''}
-          ${interactive ? 'hover:shadow-md transition-shadow duration-200 cursor-pointer' : ''}
+          ${interactive ? 'hover:shadow-medium hover:-translate-y-0.5 transition-all duration-normal cursor-pointer' : ''}
           ${className}
         `}
                 {...props}

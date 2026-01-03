@@ -11,7 +11,7 @@ import { Spinner } from './Spinner';
 /**
  * Button 變體類型
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'cta';
 
 /**
  * Button 尺寸類型
@@ -22,53 +22,62 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
  * Button 屬性介面
  */
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    /** 按鈕變體 */
-    variant?: ButtonVariant;
-    /** 按鈕尺寸 */
-    size?: ButtonSize;
-    /** 是否載入中 */
-    loading?: boolean;
-    /** 左側圖示 */
-    leftIcon?: ReactNode;
-    /** 右側圖示 */
-    rightIcon?: ReactNode;
-    /** 是否全寬 */
-    fullWidth?: boolean;
+  /** 按鈕變體 */
+  variant?: ButtonVariant;
+  /** 按鈕尺寸 */
+  size?: ButtonSize;
+  /** 是否載入中 */
+  loading?: boolean;
+  /** 左側圖示 */
+  leftIcon?: ReactNode;
+  /** 右側圖示 */
+  rightIcon?: ReactNode;
+  /** 是否全寬 */
+  fullWidth?: boolean;
 }
 
 /**
  * 變體樣式對照
  */
 const variantStyles: Record<ButtonVariant, string> = {
-    primary: `
+  primary: `
     bg-primary-500 text-white 
     hover:bg-primary-600 
     focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
     disabled:bg-gray-300 disabled:cursor-not-allowed
   `,
-    secondary: `
+  secondary: `
     bg-gray-100 text-gray-800 
     hover:bg-gray-200 
     focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2
     disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
   `,
-    outline: `
+  outline: `
     bg-transparent text-primary-500 border-2 border-primary-500
     hover:bg-primary-50 
     focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
     disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed
   `,
-    ghost: `
+  ghost: `
     bg-transparent text-gray-600
     hover:bg-gray-100 hover:text-gray-900
     focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2
     disabled:text-gray-400 disabled:cursor-not-allowed
   `,
-    danger: `
+  danger: `
     bg-error-500 text-white 
     hover:bg-red-600 
     focus-visible:ring-2 focus-visible:ring-error-500 focus-visible:ring-offset-2
     disabled:bg-gray-300 disabled:cursor-not-allowed
+  `,
+  /* Neumorphism CTA 按鈕 - 用於重要行動呼籲 */
+  cta: `
+    bg-gradient-cta text-white
+    shadow-neu-light
+    hover:shadow-neu-hover hover:-translate-y-0.5
+    active:translate-y-0
+    focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+    disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed
   `,
 };
 
@@ -76,9 +85,9 @@ const variantStyles: Record<ButtonVariant, string> = {
  * 尺寸樣式對照
  */
 const sizeStyles: Record<ButtonSize, string> = {
-    sm: 'px-3 py-1.5 text-sm gap-1.5',
-    md: 'px-4 py-2 text-base gap-2',
-    lg: 'px-6 py-3 text-lg gap-2.5',
+  sm: 'px-3 py-1.5 text-sm gap-1.5',
+  md: 'px-4 py-2 text-base gap-2',
+  lg: 'px-6 py-3 text-lg gap-2.5',
 };
 
 /**
@@ -92,28 +101,28 @@ const sizeStyles: Record<ButtonSize, string> = {
  * ```
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    (
-        {
-            variant = 'primary',
-            size = 'md',
-            loading = false,
-            leftIcon,
-            rightIcon,
-            fullWidth = false,
-            disabled,
-            children,
-            className = '',
-            ...props
-        },
-        ref
-    ) => {
-        const isDisabled = disabled || loading;
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      leftIcon,
+      rightIcon,
+      fullWidth = false,
+      disabled,
+      children,
+      className = '',
+      ...props
+    },
+    ref
+  ) => {
+    const isDisabled = disabled || loading;
 
-        return (
-            <button
-                ref={ref}
-                disabled={isDisabled}
-                className={`
+    return (
+      <button
+        ref={ref}
+        disabled={isDisabled}
+        className={`
           inline-flex items-center justify-center
           font-medium rounded-md
           transition-all duration-150 ease-in-out
@@ -122,15 +131,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           ${fullWidth ? 'w-full' : ''}
           ${className}
         `}
-                {...props}
-            >
-                {loading && <Spinner size="sm" />}
-                {!loading && leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
-                {children}
-                {!loading && rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
-            </button>
-        );
-    }
+        {...props}
+      >
+        {loading && <Spinner size="sm" />}
+        {!loading && leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
+        {children}
+        {!loading && rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
+      </button>
+    );
+  }
 );
 
 Button.displayName = 'Button';

@@ -19,22 +19,34 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
     return (
         <Transition.Root show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
-                <div className="fixed inset-0" />
+                {/* 遮罩層 - 帶模糊效果 */}
+                <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" />
+                </Transition.Child>
 
                 <div className="fixed inset-0 overflow-hidden">
                     <div className="absolute inset-0 overflow-hidden">
                         <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                             <Transition.Child
                                 as={Fragment}
-                                enter="transform transition ease-in-out duration-500 sm:duration-700"
+                                enter="transform transition ease-out duration-300"
                                 enterFrom="translate-x-full"
                                 enterTo="translate-x-0"
-                                leave="transform transition ease-in-out duration-500 sm:duration-700"
+                                leave="transform transition ease-in duration-200"
                                 leaveFrom="translate-x-0"
                                 leaveTo="translate-x-full"
                             >
+                                {/* Glassmorphism Sidebar Panel */}
                                 <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
-                                    <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                                    <div className="flex h-full flex-col overflow-y-scroll glass-light shadow-floating border-l border-white/20">
                                         {/* Header */}
                                         <div className={`px-4 py-6 sm:px-6 ${isFramework ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'bg-gray-50'}`}>
                                             <div className="flex items-start justify-between">

@@ -35,6 +35,8 @@ export interface ModalProps {
     closeOnEsc?: boolean;
     /** 頁尾操作區 */
     footer?: ReactNode;
+    /** 是否為關鍵 Modal（使用 Glassmorphism 風格） */
+    critical?: boolean;
 }
 
 /**
@@ -78,6 +80,7 @@ export function Modal({
     closeOnOverlayClick = true,
     closeOnEsc = true,
     footer,
+    critical = false,
 }: ModalProps) {
     // ESC 鍵關閉
     const handleKeyDown = useCallback(
@@ -133,9 +136,13 @@ export function Modal({
                 {/* Modal 內容 */}
                 <div
                     className={`
-            bg-white rounded-lg shadow-xl w-full
+            rounded-lg shadow-xl w-full
             ${sizeStyles[size]}
             animate-scale-in
+            ${critical
+                            ? 'glass-critical'
+                            : 'bg-white'
+                        }
           `}
                     onClick={handleContentClick}
                 >
