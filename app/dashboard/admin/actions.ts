@@ -7,6 +7,7 @@ import { z } from 'zod';
 // Schema Validation
 const DepartmentSchema = z.object({
     name: z.string().min(2, '部門名稱至少需要 2 個字'),
+    code: z.string().min(2, '代碼至少 2 碼').optional(),
     description: z.string().optional(),
 });
 
@@ -29,6 +30,7 @@ export async function createDepartment(formData: FormData) {
     // 解析資料
     const rawData = {
         name: formData.get('name'),
+        code: formData.get('code'),
         description: formData.get('description'),
     };
 
@@ -57,6 +59,7 @@ export async function updateDepartment(id: string, formData: FormData) {
 
     const rawData = {
         name: formData.get('name'),
+        code: formData.get('code'),
         description: formData.get('description'),
     };
 

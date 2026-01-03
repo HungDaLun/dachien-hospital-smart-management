@@ -182,6 +182,7 @@
             "title": "部門管理",
             "create_dept": "新增部門",
             "dept_name": "部門名稱",
+            "dept_code": "部門代碼",
             "description": "描述",
             "member_count": "成員數",
             "subtitle": "管理組織架構與權限邊界",

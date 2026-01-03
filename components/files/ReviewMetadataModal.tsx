@@ -1,13 +1,15 @@
 'use client';
 
-import { Modal, Button, Input } from '@/components/ui';
+import { Modal, Button, Input, Select } from '@/components/ui';
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import { getCategories } from '@/lib/actions/taxonomy';
+import { DocumentCategory } from '@/types';
 
 interface ReviewMetadataModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (data: { filename: string; tags: string[] }) => Promise<void>;
+    onConfirm: (data: { filename: string; tags: string[]; categoryId?: string }) => Promise<void>;
     originalFilename: string;
     metadata: {
         suggested_filename?: string;
@@ -16,6 +18,7 @@ interface ReviewMetadataModalProps {
         tags?: string[];
         topics?: string[];
         document_type?: string;
+        category_suggestion?: string;
     };
     dict: Dictionary;
 }
@@ -30,14 +33,30 @@ export default function ReviewMetadataModal({
 }: ReviewMetadataModalProps) {
     const [filename, setFilename] = useState(originalFilename);
     const [tags, setTags] = useState<string[]>([]);
+    const [categoryId, setCategoryId] = useState<string>('');
+    const [categories, setCategories] = useState<DocumentCategory[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const fetchCats = async () => {
+            const { data } = await getCategories();
+            if (data) setCategories(data);
+        };
+        fetchCats();
+    }, []);
 
     useEffect(() => {
         if (metadata) {
             setFilename(metadata.suggested_filename || originalFilename);
             setTags(metadata.tags || []);
+
+            // Try to match suggested category
+            if (metadata.category_suggestion && categories.length > 0) {
+                const match = categories.find(c => c.name === metadata.category_suggestion);
+                if (match) setCategoryId(match.id);
+            }
         }
-    }, [metadata, originalFilename]);
+    }, [metadata, originalFilename, categories]);
 
     const handleRemoveTag = (index: number) => {
         setTags(tags.filter((_, i) => i !== index));
@@ -56,7 +75,7 @@ export default function ReviewMetadataModal({
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            await onConfirm({ filename, tags });
+            await onConfirm({ filename, tags, categoryId });
             onClose();
         } catch (error) {
             console.error(error);
@@ -119,6 +138,26 @@ export default function ReviewMetadataModal({
                     {originalFilename !== filename && (
                         <p className="text-xs text-gray-500 mt-1">
                             Original: <span className="line-through">{originalFilename}</span>
+                        </p>
+                    )}
+                </div>
+
+                {/* Category Select */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Document Category
+                    </label>
+                    <Select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        options={[
+                            { value: '', label: 'Select Category' },
+                            ...categories.map(c => ({ value: c.id, label: c.name }))
+                        ]}
+                    />
+                    {metadata.category_suggestion && !categoryId && (
+                        <p className="text-xs text-gray-500 mt-1">
+                            Suggested: {metadata.category_suggestion}
                         </p>
                     )}
                 </div>

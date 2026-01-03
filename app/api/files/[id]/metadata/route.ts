@@ -18,7 +18,7 @@ export async function PATCH(
 
         const id = params.id;
         const body = await request.json();
-        const { filename, tags } = body; // tags is string[]
+        const { filename, tags, categoryId } = body; // tags is string[]
 
         if (!filename) {
             return NextResponse.json(
@@ -33,6 +33,7 @@ export async function PATCH(
             .update({
                 filename: filename,
                 gemini_state: 'SYNCED', // Mark as synced/reviewed
+                category_id: categoryId || null, // Update category
             })
             .eq('id', id);
 

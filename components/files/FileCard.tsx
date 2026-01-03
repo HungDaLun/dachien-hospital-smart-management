@@ -115,7 +115,7 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
     const status = statusConfig[file.gemini_state] || statusConfig.PENDING;
     const icon = mimeTypeIcons[file.mime_type] || '📄';
 
-    const handleReviewConfirm = async (data: { filename: string; tags: string[] }) => {
+    const handleReviewConfirm = async (data: { filename: string; tags: string[]; categoryId?: string }) => {
         try {
             const response = await fetch(`/api/files/${file.id}/metadata`, {
                 method: 'PATCH',

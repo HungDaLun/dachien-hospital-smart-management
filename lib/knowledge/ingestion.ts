@@ -115,7 +115,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         await supabase.from('files').update({
             markdown_content: markdown,
             metadata_analysis: metadata,
-            gemini_state: 'SYNCED', // Skip NEEDS_REVIEW for auto-processing
+            gemini_state: 'NEEDS_REVIEW', // Enforce Human-in-the-Loop
         }).eq('id', fileId);
 
         // 7. 自動寫入標籤

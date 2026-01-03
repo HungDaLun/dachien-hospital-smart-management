@@ -36,7 +36,20 @@ export interface User {
 export interface Department {
   id: string;
   name: string;
+  code: string | null;
   description: string | null;
+}
+
+/**
+ * 文件分類
+ */
+export interface DocumentCategory {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -66,6 +79,10 @@ export interface File {
   // Phase 2: DIKW Engine
   markdown_content: string | null;
   metadata_analysis: Record<string, any> | null;
+
+  // Metadata Trinity
+  department_id: string | null;
+  category_id: string | null;
 
   created_at: string;
 }

@@ -46,6 +46,8 @@ Return a valid JSON object with the following fields:
 
 7. \`department_suggestion\`: Guess the most relevant department code (e.g., "HR", "ENG", "SALES", "FINANCE") based on content.
 
+8. \`category_suggestion\`: Guess the most relevant document category name (e.g., "Policy", "Contract", "Report", "Meeting Minutes").
+
 **Example JSON:**
 \`\`\`json
 {

@@ -182,6 +182,7 @@
             "title": "Department Management",
             "create_dept": "Add Department",
             "dept_name": "Department Name",
+            "dept_code": "Department Code",
             "description": "Description",
             "member_count": "Members",
             "subtitle": "Manage organization structure and permission boundaries",

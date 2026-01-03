@@ -28,6 +28,12 @@ export default function CreateDepartmentForm({ dict }: { dict: Dictionary }) {
                 required
             />
             <input
+                name="code"
+                placeholder={dict.admin.departments.dept_code}
+                className="border rounded px-3 py-2 text-sm w-24"
+                required
+            />
+            <input
                 name="description"
                 placeholder={dict.admin.departments.description}
                 className="border rounded px-3 py-2 text-sm"
