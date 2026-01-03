@@ -208,6 +208,20 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // 記錄上傳檔案操作
+        const { logAudit } = await import('@/lib/actions/audit');
+        await logAudit({
+            action: 'UPLOAD_FILE',
+            resourceType: 'FILE',
+            resourceId: newFile.id,
+            details: {
+                filename: newFile.filename,
+                size: newFile.size_bytes,
+                mime_type: newFile.mime_type,
+                department_id: newFile.department_id,
+            },
+        });
+
         // 觸發知識汲取流程 (Ingestion Pipeline)
         // 使用背景非同步處理，不阻塞 HTTP 回應
         processUploadedFile(newFile.id, buffer).catch(err => {

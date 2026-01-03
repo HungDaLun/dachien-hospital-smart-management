@@ -28,7 +28,9 @@
         "download": "Download",
         "close": "Close",
         "refresh": "Refresh",
-        "status_normal": "Active"
+        "status_normal": "Active",
+        "users": "Users",
+        "files": "Files"
     },
     "auth": {
         "login_title": "Login System",
@@ -227,6 +229,13 @@
             "env_warning": "⚠️ API Keys must be set via environment variables, this only shows configuration status",
             "gemini_warning": "⚠️ API Key must be set via GEMINI_API_KEY environment variable",
             "storage_warning": "⚠️ Storage settings must be set via environment variables"
+        },
+        "analytics": {
+            "title": "Platform Analytics"
+        },
+        "management_console": "Management Console",
+        "agents": {
+            "title": "Agent Management"
         }
     },
     "settings": {

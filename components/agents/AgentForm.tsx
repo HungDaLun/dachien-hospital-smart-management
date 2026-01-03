@@ -5,9 +5,11 @@
  */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input, Textarea, Select, Modal } from '@/components/ui';
 import type { AgentData } from './AgentCard';
+import { getCategories, getDepartments } from '@/lib/actions/taxonomy';
+import { DocumentCategory } from '@/types';
 
 /**
  * Agent 表單屬性
@@ -47,6 +49,15 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
     const [systemPrompt, setSystemPrompt] = useState(agent?.system_prompt || '');
     const [modelVersion, setModelVersion] = useState(agent?.model_version || 'gemini-3-flash-preview');
     const [temperature, setTemperature] = useState(String(agent?.temperature || 0.7));
+    const [knowledgeRules, setKnowledgeRules] = useState<{ rule_type: string; rule_value: string }[]>(
+        agent?.knowledge_rules || []
+    );
+    const [categories, setCategories] = useState<DocumentCategory[]>([]);
+    const [departments, setDepartments] = useState<{ id: string; name: string; code: string | null }[]>([]);
+
+    // Rule Input State
+    const [newRuleType, setNewRuleType] = useState('DEPARTMENT');
+    const [newRuleValue, setNewRuleValue] = useState('');
 
     // 載入狀態
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +72,31 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
         setSystemPrompt('');
         setModelVersion('gemini-3-flash-preview');
         setTemperature('0.7');
+        setKnowledgeRules([]);
+        setNewRuleType('DEPARTMENT');
+        setNewRuleValue('');
         setError(null);
+    };
+
+    useEffect(() => {
+        const fetchOptions = async () => {
+            const [catRes, deptRes] = await Promise.all([getCategories(), getDepartments()]);
+            if (catRes.data) setCategories(catRes.data);
+            if (deptRes.data) setDepartments(deptRes.data);
+        };
+        if (isOpen) fetchOptions();
+    }, [isOpen]);
+
+    const addRule = () => {
+        if (!newRuleValue) return;
+        // Avoid duplicates
+        if (knowledgeRules.some(r => r.rule_type === newRuleType && r.rule_value === newRuleValue)) return;
+        setKnowledgeRules([...knowledgeRules, { rule_type: newRuleType, rule_value: newRuleValue }]);
+        setNewRuleValue('');
+    };
+
+    const removeRule = (index: number) => {
+        setKnowledgeRules(knowledgeRules.filter((_, i) => i !== index));
     };
 
     /**
@@ -98,6 +133,7 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
                 system_prompt: systemPrompt.trim(),
                 model_version: modelVersion,
                 temperature: parseFloat(temperature),
+                knowledge_rules: knowledgeRules,
             };
 
             const url = isEditing ? `/api/agents/${agent.id}` : '/api/agents';
@@ -190,6 +226,80 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
                         fullWidth
                         hint="數值越高，回應越有創意"
                     />
+                </div>
+
+                {/* Knowledge Scope */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h3 className="text-sm font-bold text-gray-700 mb-3">Knowledge Scope (RAG Silos)</h3>
+
+                    <div className="flex gap-2 mb-3">
+                        <div className="w-1/3">
+                            <Select
+                                value={newRuleType}
+                                onChange={(e) => {
+                                    setNewRuleType(e.target.value);
+                                    setNewRuleValue('');
+                                }}
+                                options={[
+                                    { value: 'DEPARTMENT', label: 'By Department' },
+                                    { value: 'CATEGORY', label: 'By Category' },
+                                    { value: 'TAG', label: 'By Tag (key:value)' }
+                                ]}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            {newRuleType === 'DEPARTMENT' ? (
+                                <Select
+                                    value={newRuleValue}
+                                    onChange={(e) => setNewRuleValue(e.target.value)}
+                                    options={[
+                                        { value: '', label: 'Select Dept...' },
+                                        ...departments.map(d => ({ value: d.code || d.name, label: d.name + (d.code ? ` (${d.code})` : '') }))
+                                    ]}
+                                />
+                            ) : newRuleType === 'CATEGORY' ? (
+                                <Select
+                                    value={newRuleValue}
+                                    onChange={(e) => setNewRuleValue(e.target.value)}
+                                    options={[
+                                        { value: '', label: 'Select Category...' },
+                                        ...categories.map(c => ({ value: c.id, label: c.name }))
+                                    ]}
+                                />
+                            ) : (
+                                <input
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    placeholder="e.g. project:alpha"
+                                    value={newRuleValue}
+                                    onChange={(e) => setNewRuleValue(e.target.value)}
+                                />
+                            )}
+                        </div>
+                        <Button type="button" size="sm" onClick={addRule}>Add</Button>
+                    </div>
+
+                    <div className="space-y-2">
+                        {knowledgeRules.map((rule, i) => (
+                            <div key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-gray-200 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${rule.rule_type === 'DEPARTMENT' ? 'bg-purple-100 text-purple-700' :
+                                            rule.rule_type === 'CATEGORY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                        }`}>
+                                        {rule.rule_type}
+                                    </span>
+                                    <span className="font-mono text-gray-800">
+                                        {rule.rule_type === 'CATEGORY'
+                                            ? categories.find(c => c.id === rule.rule_value)?.name || rule.rule_value
+                                            : rule.rule_value}
+                                    </span>
+                                </div>
+                                <button type="button" onClick={() => removeRule(i)} className="text-gray-400 hover:text-red-500">×</button>
+                            </div>
+                        ))}
+                        {knowledgeRules.length === 0 && (
+                            <p className="text-xs text-gray-400 text-center py-2">Global Access (No restrictions)</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* 操作按鈕 */}

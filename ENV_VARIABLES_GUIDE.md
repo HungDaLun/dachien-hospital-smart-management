@@ -115,6 +115,49 @@ S3_REGION=us-east-1
 # S3_REGION=ap-southeast-1
 
 # ============================================
+# Email 服務設定（用於發送稽核報告）
+# ============================================
+
+# Email 服務提供者：'resend' | 'sendgrid' | 'ses' | 'console'（預設：console）
+# console 模式僅在開發環境使用，會將 Email 內容輸出到 console
+EMAIL_PROVIDER=console
+
+# 發送者 Email 地址（所有服務共用）
+EMAIL_FROM=noreply@yourcompany.com
+
+# 發送者名稱（可選，主要用於 SendGrid）
+EMAIL_FROM_NAME=EAKAP 系統
+
+# --- Resend 設定（https://resend.com）---
+# 1. 前往 https://resend.com 註冊帳號
+# 2. 在 Dashboard → API Keys 建立新的 API Key
+# 3. 複製 API Key 填入下方
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@yourcompany.com  # 可選，覆蓋 EMAIL_FROM
+
+# --- SendGrid 設定（https://sendgrid.com）---
+# 1. 前往 https://sendgrid.com 註冊帳號
+# 2. 在 Settings → API Keys 建立新的 API Key
+# 3. 複製 API Key 填入下方
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@yourcompany.com  # 可選，覆蓋 EMAIL_FROM
+
+# --- AWS SES 設定（https://aws.amazon.com/ses/）---
+# 1. 前往 AWS Console → SES
+# 2. 驗證發送者 Email 地址（Verified identities → Create identity）
+# 3. 建立 IAM 使用者並授予 SES 發送權限（IAM → Users → Add permissions → Attach policies → AmazonSESFullAccess）
+# 4. 建立 Access Key 和 Secret Key（IAM → Users → Security credentials → Create access key）
+# 5. 填入下方
+# 注意：使用 AWS SES 需要安裝額外套件：npm install @aws-sdk/client-ses
+AWS_SES_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SES_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_SES_REGION=us-east-1  # 可選，預設：us-east-1
+AWS_SES_FROM_EMAIL=noreply@yourcompany.com  # 可選，覆蓋 EMAIL_FROM
+
+# 開發模式：將 Email 內容儲存到檔案（僅在 NODE_ENV=development 時生效）
+EMAIL_SAVE_TO_FILE=false
+
+# ============================================
 # 應用程式設定
 # ============================================
 NEXT_PUBLIC_APP_URL=http://localhost:3000

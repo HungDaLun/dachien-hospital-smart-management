@@ -28,7 +28,9 @@
         "download": "下載",
         "close": "關閉",
         "refresh": "重新整理",
-        "status_normal": "正常"
+        "status_normal": "正常",
+        "users": "使用者",
+        "files": "檔案"
     },
     "auth": {
         "login_title": "登入系統",
@@ -227,6 +229,13 @@
             "env_warning": "⚠️ API Key 需透過環境變數設定，此處僅顯示配置狀態",
             "gemini_warning": "⚠️ API Key 需透過環境變數 GEMINI_API_KEY 設定",
             "storage_warning": "⚠️ 儲存設定需透過環境變數設定"
+        },
+        "analytics": {
+            "title": "平台分析與洞察"
+        },
+        "management_console": "管理控制台",
+        "agents": {
+            "title": "Agent 管理"
         }
     },
     "settings": {

@@ -23,6 +23,10 @@ export interface AgentData {
     departments?: {
         name: string;
     } | null;
+    knowledge_rules?: {
+        rule_type: string;
+        rule_value: string;
+    }[];
 }
 
 /**

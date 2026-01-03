@@ -10,6 +10,7 @@ import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
 import { Card } from '@/components/ui';
+import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -34,8 +35,21 @@ export default async function AdminPage() {
         <p className="text-gray-600">管理系統設定、使用者與部門</p>
       </div>
 
-      {/* 系統管理功能卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 1. 儀表板數據 */}
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <span>📊</span> {dict.admin.analytics.title || "Platform Analytics"}
+        </h2>
+        <AdminDashboardStats dict={dict} />
+      </div>
+
+      <div className="border-t border-gray-200 my-8"></div>
+
+      {/* 2. 系統管理功能卡片 */}
+      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <span>🛠️</span> {dict.admin.management_console || "Management Console"}
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 部門管理 */}
         <Link href="/dashboard/admin/departments">
           <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">

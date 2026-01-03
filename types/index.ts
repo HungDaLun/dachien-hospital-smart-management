@@ -105,7 +105,7 @@ export interface Agent {
  */
 export interface AgentKnowledgeRule {
   agent_id: string;
-  rule_type: 'FOLDER' | 'TAG' | 'DEPARTMENT';
+  rule_type: 'FOLDER' | 'TAG' | 'DEPARTMENT' | 'CATEGORY';
   rule_value: string; // e.g., "tag:marketing"
 }
 

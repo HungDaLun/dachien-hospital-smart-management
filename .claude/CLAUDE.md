@@ -1,8 +1,8 @@
 # CLAUDE.md - Enterprise AI Knowledge Agent Platform (EAKAP)
 
-**文件版本：** 1.7
+**文件版本：** 2.0
 **對應規格書：** 02.企業AI知識庫平台_網站規格書_v1.0
-**最後更新：** 2026-01-03 19:00
+**最後更新：** 2026-01-03 21:30
 **核心策略：** DIKW Visualization & Departmental Knowledge Silos
 **設計系統：** Modern Minimalism + Glassmorphism + Neumorphism Hybrid
 
@@ -59,16 +59,27 @@
     - [x] 輸出：符合 `K-0` 標準的結構化 System Prompt (包含角色、任務對照表、合規檢查、思考路徑)
     - [x] 技術：使用 gemini-3-flash-preview 進行 "Prompt-to-Prompt" 生成
     
-#### Metadata Trinity (元數據鐵三角實作) 🚧
-- [ ] **DB Schema Migration**:
-  - [ ] `document_categories` 表 (Taxonomy)
-  - [ ] `departments` add `code`
-  - [ ] `files` add `category_id`
-- [ ] **Smart Upload UI**:
-  - [ ] Upload Modal: 增加 AI 推論 `category` 的邏輯
-  - [ ] Human-in-the-loop 確認介面
-- [ ] **Admin Taxonomy UI**:
-  - [ ] 管理文件類別的 CRUD 介面
+#### Metadata Trinity (元數據鐵三角實作) ✅
+- [x] **DB Schema Migration**:
+  - [x] `document_categories` 表 (Taxonomy)
+  - [x] `departments` add `code`
+  - [x] `files` add `category_id`
+- [x] **Smart Upload UI**:
+  - [x] Upload Modal: 增加 AI 推論 `category` 的邏輯
+  - [x] Human-in-the-loop 確認介面
+- [x] **Admin Taxonomy UI**:
+  - [x] 管理文件類別的 CRUD 介面
+- [x] **RAG Knowledge Silos**:
+  - [x] Agent 知識檢索邊界 (`DEPARTMENT` / `CATEGORY` Rules)
+  - [x] Deep RLS Enforcment
+- [x] **System Audit**:
+  - [x] `audit_logs` table & RLS
+  - [x] Centralized `logAudit` utility
+  - [x] Admin Dashboard Integration
+- [x] **Dashboard Analytics**:
+  - [x] System Stats Aggregation (Users/Files/Agents)
+  - [x] Visual Charts (Recharts Integration)
+  - [x] Activity Feed Integration
 
 ---
 

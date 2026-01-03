@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { NotFoundError, AuthorizationError, toApiResponse } from '@/lib/errors';
 import { getCurrentUserProfile, canAccessFile, canUpdateFile, canDeleteFile } from '@/lib/permissions';
+import { logAudit } from '@/lib/actions/audit';
 
 /**
  * GET /api/files/:id
@@ -51,6 +52,17 @@ export async function GET(
         if (error || !file) {
             throw new NotFoundError('檔案');
         }
+
+        // 記錄查看檔案操作
+        await logAudit({
+            action: 'VIEW_FILE',
+            resourceType: 'FILE',
+            resourceId: id,
+            details: {
+                filename: file.filename,
+                department_id: file.department_id,
+            },
+        });
 
         return NextResponse.json({
             success: true,
@@ -122,6 +134,17 @@ export async function PUT(
                 await supabase.from('file_tags').insert(tagInserts);
             }
         }
+
+        // 記錄更新檔案操作
+        await logAudit({
+            action: 'UPDATE_FILE',
+            resourceType: 'FILE',
+            resourceId: id,
+            details: {
+                filename: updatedFile?.filename,
+                updated_fields: Object.keys(updateData),
+            },
+        });
 
         return NextResponse.json({
             success: true,
@@ -206,7 +229,16 @@ export async function DELETE(
             return toApiResponse(deleteError);
         }
 
-
+        // 記錄刪除檔案操作
+        await logAudit({
+            action: 'DELETE_FILE',
+            resourceType: 'FILE',
+            resourceId: id,
+            details: {
+                filename: file.filename,
+                department_id: file.department_id,
+            },
+        });
 
         return NextResponse.json({
             success: true,

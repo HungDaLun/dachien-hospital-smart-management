@@ -85,6 +85,11 @@ export default async function DepartmentsPage() {
                         <div>
                             <div className="flex items-center gap-3">
                                 <h3 className="font-semibold text-lg">{dept.name}</h3>
+                                {dept.code && (
+                                    <Badge variant="primary" size="sm">
+                                        {dept.code}
+                                    </Badge>
+                                )}
                                 <Badge variant="default">
                                     {dept.member_count} {dict.admin.departments.people}
                                 </Badge>

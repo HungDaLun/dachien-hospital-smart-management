@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { logAudit } from '@/lib/actions/audit';
 
 // Schema Validation
 const DepartmentSchema = z.object({
@@ -39,13 +40,22 @@ export async function createDepartment(formData: FormData) {
         return { error: validated.error.flatten().fieldErrors };
     }
 
-    const { error } = await supabase
+    const { data: dept, error } = await supabase
         .from('departments')
-        .insert(validated.data);
+        .insert(validated.data)
+        .select()
+        .single();
 
     if (error) {
         return { error: error.message };
     }
+
+    await logAudit({
+        action: 'CREATE_DEPT',
+        resourceType: 'DEPARTMENT',
+        resourceId: dept.id,
+        details: { name: validated.data.name, code: validated.data.code }
+    });
 
     revalidatePath('/dashboard/admin/departments');
     return { success: true };
@@ -76,6 +86,13 @@ export async function updateDepartment(id: string, formData: FormData) {
     if (error) {
         return { error: error.message };
     }
+
+    await logAudit({
+        action: 'UPDATE_DEPT',
+        resourceType: 'DEPARTMENT',
+        resourceId: id,
+        details: validated.data
+    });
 
     revalidatePath('/dashboard/admin/departments');
     return { success: true };
@@ -116,6 +133,12 @@ export async function deleteDepartment(id: string) {
         return { error: error.message };
     }
 
+    await logAudit({
+        action: 'DELETE_DEPT',
+        resourceType: 'DEPARTMENT',
+        resourceId: id
+    });
+
     revalidatePath('/dashboard/admin/departments');
     return { success: true };
 }
@@ -142,6 +165,13 @@ export async function updateUserProfile(userId: string, role: string, department
     if (error) {
         return { error: error.message };
     }
+
+    await logAudit({
+        action: 'UPDATE_USER',
+        resourceType: 'USER',
+        resourceId: userId,
+        details: { role, departmentId }
+    });
 
     revalidatePath('/dashboard/admin/users');
     return { success: true };

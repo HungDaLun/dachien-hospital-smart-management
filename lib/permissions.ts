@@ -12,6 +12,7 @@ import type { UserRole } from '@/types';
  */
 export interface UserProfile {
   id: string;
+  email: string;
   role: UserRole;
   department_id: string | null;
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -58,6 +59,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
         console.log('getCurrentUserProfile: Admin client fallback 成功');
         return {
           id: adminProfile.id,
+          email: user.email!,
           role: adminProfile.role as UserRole,
           department_id: adminProfile.department_id,
           status: adminProfile.status as 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,
@@ -77,6 +79,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
 
   return {
     id: profile.id,
+    email: user.email!,
     role: profile.role as UserRole,
     department_id: profile.department_id,
     status: profile.status as 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,

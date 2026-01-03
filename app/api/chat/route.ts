@@ -4,6 +4,7 @@
  * 遵循 EAKAP API 規範
  */
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { NotFoundError, ValidationError, toApiResponse } from '@/lib/errors';
 import { getCurrentUserProfile, canAccessAgent } from '@/lib/permissions';
@@ -98,8 +99,13 @@ export async function POST(request: NextRequest) {
         let fileUris: Array<{ uri: string; mimeType: string }> = [];
 
         if (rules && rules.length > 0) {
+            // 使用 Admin 客戶端來查詢檔案，繞過 RLS 限制
+            // 這樣 Agent 可以存取跨部門的檔案（但僅限規則中指定的檔案）
+            const adminSupabase = createAdminClient();
+
             // 分類規則
             const tagRules = rules.filter(r => r.rule_type === 'TAG');
+            const categoryRules = rules.filter(r => r.rule_type === 'CATEGORY');
             const deptRules = rules.filter(r => r.rule_type === 'DEPARTMENT');
 
             let matchedFileIds: Set<string> = new Set();
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
                     return { key, value };
                 });
 
-                const { data: tagFiles } = await supabase
+                const { data: tagFiles } = await adminSupabase
                     .from('file_tags')
                     .select('file_id')
                     .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','));
@@ -119,18 +125,18 @@ export async function POST(request: NextRequest) {
                 tagFiles?.forEach(f => matchedFileIds.add(f.file_id));
             }
 
-            // 2. 處理 DEPARTMENT 規則
+            // 2. 處理 DEPARTMENT 規則 (支援 Code 或 Name)
             if (deptRules.length > 0) {
-                const deptNames = deptRules.map(r => r.rule_value);
-                // 先找出這些部門名稱對應的 ID
-                const { data: departments } = await supabase
+                const deptValues = deptRules.map(r => r.rule_value);
+                // 優先比對 Code
+                const { data: departments } = await adminSupabase
                     .from('departments')
                     .select('id')
-                    .in('name', deptNames);
+                    .or(`code.in.(${deptValues.map(v => `"${v}"`).join(',')}),name.in.(${deptValues.map(v => `"${v}"`).join(',')})`);
 
                 if (departments && departments.length > 0) {
                     const deptIds = departments.map(d => d.id);
-                    const { data: deptFiles } = await supabase
+                    const { data: deptFiles } = await adminSupabase
                         .from('files')
                         .select('id')
                         .in('department_id', deptIds)
@@ -140,11 +146,26 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            // 3. 統一查詢檔案 URI (如果沒有任何匹配，就不用查了)
-            if (matchedFileIds.size > 0) {
-                const { data: files } = await supabase
+            // 3. 處理 CATEGORY 規則
+            if (categoryRules.length > 0) {
+                const catIds = categoryRules.map(r => r.rule_value);
+                // 遞迴查詢該分類及其子分類的所有檔案 is too complex for now, just direct match
+                // We assume rule_value is the category UUID
+                const { data: catFiles } = await adminSupabase
                     .from('files')
-                    .select('id, gemini_file_uri, mime_type')
+                    .select('id')
+                    .in('category_id', catIds)
+                    .eq('gemini_state', 'SYNCED');
+
+                catFiles?.forEach(f => matchedFileIds.add(f.id));
+            }
+
+            // 4. 統一查詢檔案 URI (如果沒有任何匹配，就不用查了)
+            // 使用 Admin 客戶端繞過 RLS，但只查詢規則中指定的檔案（確保安全）
+            if (matchedFileIds.size > 0) {
+                const { data: files } = await adminSupabase
+                    .from('files')
+                    .select('id, gemini_file_uri, mime_type, department_id')
                     .eq('gemini_state', 'SYNCED')
                     .in('id', Array.from(matchedFileIds));
 
@@ -153,6 +174,21 @@ export async function POST(request: NextRequest) {
                         uri: f.gemini_file_uri!,
                         mimeType: f.mime_type
                     }));
+
+                    // 記錄 Agent 查詢操作（記錄所有被查詢的檔案）
+                    const { logAudit } = await import('@/lib/actions/audit');
+                    for (const file of files) {
+                        await logAudit({
+                            action: 'AGENT_QUERY',
+                            resourceType: 'FILE',
+                            resourceId: file.id,
+                            details: {
+                                agent_id: agent.id,
+                                agent_name: agent.name,
+                                file_department_id: file.department_id,
+                            },
+                        });
+                    }
                 }
             }
         }

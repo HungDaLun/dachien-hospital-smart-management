@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { DocumentCategory } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { logAudit } from '@/lib/actions/audit';
 
 /**
  * Get all categories
@@ -53,6 +54,13 @@ export async function createCategory(
 
         if (error) throw error;
 
+        await logAudit({
+            action: 'CREATE_CATEGORY',
+            resourceType: 'CATEGORY',
+            resourceId: data.id,
+            details: { name, parentId }
+        });
+
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true, data: data as DocumentCategory };
     } catch (error: any) {
@@ -85,6 +93,13 @@ export async function updateCategory(
 
         if (error) throw error;
 
+        await logAudit({
+            action: 'UPDATE_CATEGORY',
+            resourceType: 'CATEGORY',
+            resourceId: id,
+            details: data
+        });
+
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true, data: updatedCategory as DocumentCategory };
     } catch (error: any) {
@@ -107,10 +122,35 @@ export async function deleteCategory(id: string): Promise<{ success: boolean; er
 
         if (error) throw error;
 
+        await logAudit({
+            action: 'DELETE_CATEGORY',
+            resourceType: 'CATEGORY',
+            resourceId: id
+        });
+
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true };
     } catch (error: any) {
-        console.error('Error deleting category:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all departments
+ */
+export async function getDepartments(): Promise<{ success: boolean; data?: { id: string; name: string; code: string | null }[]; error?: string }> {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('departments')
+            .select('id, name, code')
+            .order('name');
+
+        if (error) throw error;
+
+        return { success: true, data: data };
+    } catch (error: any) {
+        console.error('Error fetching departments:', error);
         return { success: false, error: error.message };
     }
 }
