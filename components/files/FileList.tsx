@@ -33,6 +33,8 @@ interface FileListProps {
     canManage: boolean;
     dict: Dictionary;
     refreshTrigger?: number;
+    initialFiles?: FileData[];
+    initialTotal?: number;
 }
 
 /**
@@ -89,9 +91,10 @@ const getStatusConfig = (state: string, dict: Dictionary) => {
 /**
  * 檔案清單元件
  */
-export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileListProps) {
-    const [files, setFiles] = useState<FileData[]>([]);
-    const [loading, setLoading] = useState(false);
+export default function FileList({ canManage, dict, refreshTrigger = 0, initialFiles, initialTotal }: FileListProps) {
+    const [files, setFiles] = useState<FileData[]>(initialFiles || []);
+    // If we have initial data, we are not loading initially
+    const [loading, setLoading] = useState(initialFiles ? false : true);
 
     // 篩選條件
     const [search, setSearch] = useState('');
@@ -116,9 +119,9 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
 
     // 分頁
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-    const pageSize = 50; // Increased density means we can show more
+    const pageSize = 50;
+    const [totalPages, setTotalPages] = useState(initialTotal ? Math.ceil(initialTotal / pageSize) : 1);
+    const [total, setTotal] = useState(initialTotal || 0);
 
     // Last selected ID for shift-click range selection
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
@@ -172,18 +175,49 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                 setLoading(false);
             }
         }
-    }, [page, search, statusFilter, deptFilter, typeFilter, dict.common.error]);
+    }, [page, search, statusFilter, deptFilter, typeFilter, dict.common.error, pageSize]);
 
     // Initial load & Refresh
     useEffect(() => {
-        fetchFiles(false);
-        // 取得真實部門列表
+        // If we have initial files and this is the FIRST render (loading is false because of initial state), 
+        // AND refreshTrigger is 0 (initial), skip fetch.
+        // But if refreshTrigger changes, we MUST fetch.
+        // We use a ref or just logic: if we have files and no filters changed, maybe we don't need to fetch immediately?
+        // Actually simplest is: if initialFiles is passed, we mounted with data.
+        // But if the user navigates back (via browser back), we might want to refetch?
+        // For "Instant" feel, we rely on the initial state. 
+        // We should only fetch if we DON'T have files (which we handle in useState) OR if filters/page change.
+
+        // This effect runs on mount (deps changed).
+        // On mount: files = initialFiles.
+        // We warn: if we have initialFiles, we shouldn't re-fetch immediately.
+
+        // Let's modify fetchFiles logic or this effect.
+        // A common pattern:
+        // if (initialFiles && page === 1 && !search && !statusFilter...) { /* skip */ }
+
+        // However, the cleanest way is often to let the effect run but check a "mounted" flag or just rely on the fact 
+        // that Next.js component reconcilation is fast.
+        // But the user complained about "1 second delay".
+        // The previous code had `fetchFiles(false)` in useEffect which sets loading=true then fetches.
+        // We want to avoid that "flash" of loading if possible.
+
+        const isInitialState = initialFiles && page === 1 && !search && !statusFilter && !deptFilter && !typeFilter && refreshTrigger === 0;
+
+        if (isInitialState && files.length > 0) {
+            // Do NOT fetch. We effectively "hydrated" the data.
+            // But we still need to set actualDepartments
+        } else {
+            fetchFiles(false);
+        }
+
+        // 取得真實部門列表 (Always fetch this as it is fast and small)
         fetch('/api/departments')
             .then(res => res.json())
             .then(res => {
                 if (res.success) setActualDepartments(res.data);
             });
-    }, [fetchFiles, refreshTrigger]);
+    }, [fetchFiles, refreshTrigger, search, statusFilter, deptFilter, typeFilter, page, initialFiles, files.length]);
 
     // Polling for active states
     useEffect(() => {
@@ -255,7 +289,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                 try {
                     const response = await fetch(`/api/files/${id}`, { method: 'DELETE' });
                     const result = await response.json();
-                    
+
                     if (!response.ok || !result.success) {
                         return {
                             id,
@@ -263,7 +297,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                             error: result.error?.message || '刪除失敗',
                         };
                     }
-                    
+
                     return { id, success: true };
                 } catch (error) {
                     return {
@@ -273,11 +307,11 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                     };
                 }
             });
-            
+
             const results = await Promise.all(deletePromises);
             const successCount = results.filter(r => r.success).length;
             const failedCount = results.filter(r => !r.success).length;
-            
+
             if (failedCount === 0) {
                 toast.success(`成功刪除 ${successCount} 個檔案`);
             } else if (successCount === 0) {
@@ -287,7 +321,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0 }: FileLi
                 toast.warning(`部分成功：刪除 ${successCount} 個，失敗 ${failedCount} 個`);
                 console.error('刪除失敗的檔案:', results.filter(r => !r.success));
             }
-            
+
             fetchFiles(true);
         } catch (e) {
             console.error('批次刪除錯誤:', e);

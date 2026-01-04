@@ -8,9 +8,11 @@ import { Dictionary } from '@/lib/i18n/dictionaries';
 interface KnowledgeBaseClientProps {
     canUpload: boolean;
     dict: Dictionary;
+    initialFiles?: any[];
+    initialTotal?: number;
 }
 
-export default function KnowledgeBaseClient({ canUpload, dict }: KnowledgeBaseClientProps) {
+export default function KnowledgeBaseClient({ canUpload, dict, initialFiles, initialTotal }: KnowledgeBaseClientProps) {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleUploadSuccess = useCallback(() => {
@@ -27,10 +29,12 @@ export default function KnowledgeBaseClient({ canUpload, dict }: KnowledgeBaseCl
             )}
 
             {/* 檔案列表 */}
-            <FileList 
-                canManage={canUpload} 
-                dict={dict} 
+            <FileList
+                canManage={canUpload}
+                dict={dict}
                 refreshTrigger={refreshTrigger}
+                initialFiles={initialFiles}
+                initialTotal={initialTotal}
             />
         </>
     );

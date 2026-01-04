@@ -5,20 +5,18 @@
 import Link from 'next/link';
 import { ToastProvider } from '@/components/ui/Toast';
 import UserMenu from '@/components/layout/UserMenu';
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-import { getCachedUserProfile } from '@/lib/cache/user-profile';
+import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   if (!user) {
     redirect('/login');
