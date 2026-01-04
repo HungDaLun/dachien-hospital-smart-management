@@ -19,7 +19,8 @@ interface ArchitectResponse {
     description: string;
     system_prompt: string;
     suggested_knowledge_rules: { rule_type: 'TAG' | 'DEPARTMENT'; rule_value: string }[];
-    suggested_knowledge_files?: string[];  // 新增：推薦的檔案 ID 列表
+    suggested_knowledge_files?: string[];
+    mcp_config?: Record<string, any>; // 新增：推薦的 MCP 設定
 }
 
 interface ChatMessage {
@@ -337,6 +338,16 @@ export default function ArchitectChat({ onApply, departmentContext, dict }: Arch
                                                         <span className="text-gray-400 text-xs italic">無建議來源</span>
                                                     )}
                                             </div>
+
+                                            {/* MCP 建議預覽 */}
+                                            {msg.blueprint.mcp_config && Object.keys(msg.blueprint.mcp_config).length > 0 && (
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-semibold text-gray-500">建議外部技能 (Skills)</label>
+                                                    <div className="p-2 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-600 truncate">
+                                                        {JSON.stringify(msg.blueprint.mcp_config).slice(0, 50)}...
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* 系統提示詞預覽 */}
                                             <div className="space-y-1">

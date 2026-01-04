@@ -26,7 +26,10 @@ interface AgentData {
     temperature: number;
     knowledge_rules?: KnowledgeRule[];
     knowledge_files?: string[];  // 新增：直接綁定檔案 ID 列表
+    mcp_config?: string; // Stored as JSON string in UI state for editing, but JSONB in DB
 }
+
+
 
 interface PromptVersion {
     id: string;
@@ -68,6 +71,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         temperature: 0.7,
         knowledge_rules: [],
         knowledge_files: [],  // 新增：預設空陣列
+        mcp_config: (initialData as any)?.mcp_config || '{}',
     });
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
@@ -167,7 +171,11 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             knowledge_files: [
                 ...(prev.knowledge_files || []),
                 ...(blueprint.suggested_knowledge_files || [])
-            ]
+            ],
+            // Merge or set MCP config if suggested
+            mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
+                ? JSON.stringify(blueprint.mcp_config, null, 2)
+                : prev.mcp_config
         }));
     };
 
@@ -211,10 +219,20 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             const url = isEditing ? `/api/agents/${formData.id}` : '/api/agents';
             const method = isEditing ? 'PUT' : 'POST';
 
+            // Ensure mcp_config is valid JSON before sending
+            let payload = { ...formData };
+            try {
+                if (typeof payload.mcp_config === 'string') {
+                    JSON.parse(payload.mcp_config); // Validate
+                }
+            } catch (e) {
+                throw new Error('Invalid JSON in Skills Configuration');
+            }
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             const result = await response.json();
@@ -360,39 +378,39 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
                         {showHistory ? (
                             <div className="space-y-4 max-h-[600px] overflow-auto pr-2">
-                                    {loadingVersions ? (
-                                        <div className="text-center py-8"><Spinner /></div>
-                                    ) : versions.length === 0 ? (
-                                        <div className="text-center text-gray-500 py-8">{dict.common.no_data}</div>
-                                    ) : (
-                                        versions.map((ver) => (
-                                            <div key={ver.id} className="border rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors border-gray-200">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <span className="font-bold text-gray-900">v{ver.version_number}</span>
-                                                        <span className="text-xs text-gray-500 ml-2">
-                                                            {new Date(ver.created_at).toLocaleString()}
-                                                        </span>
-                                                        {ver.created_by_user?.display_name && (
-                                                            <span className="text-xs text-gray-400 ml-2">by {ver.created_by_user.display_name}</span>
-                                                        )}
-                                                    </div>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleRestore(ver.system_prompt)}
-                                                        className="text-xs h-7"
-                                                    >
-                                                        {dict.agents.restore}
-                                                    </Button>
+                                {loadingVersions ? (
+                                    <div className="text-center py-8"><Spinner /></div>
+                                ) : versions.length === 0 ? (
+                                    <div className="text-center text-gray-500 py-8">{dict.common.no_data}</div>
+                                ) : (
+                                    versions.map((ver) => (
+                                        <div key={ver.id} className="border rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors border-gray-200">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <span className="font-bold text-gray-900">v{ver.version_number}</span>
+                                                    <span className="text-xs text-gray-500 ml-2">
+                                                        {new Date(ver.created_at).toLocaleString()}
+                                                    </span>
+                                                    {ver.created_by_user?.display_name && (
+                                                        <span className="text-xs text-gray-400 ml-2">by {ver.created_by_user.display_name}</span>
+                                                    )}
                                                 </div>
-                                                <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-gray-100 max-h-24 overflow-hidden truncate">
-                                                    {ver.system_prompt}
-                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleRestore(ver.system_prompt)}
+                                                    className="text-xs h-7"
+                                                >
+                                                    {dict.agents.restore}
+                                                </Button>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
+                                            <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-gray-100 max-h-24 overflow-hidden truncate">
+                                                {ver.system_prompt}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         ) : (
                             <textarea
                                 name="system_prompt"
@@ -475,7 +493,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                                 className={`${rule.rule_type === 'DEPARTMENT'
                                                     ? 'bg-amber-50 text-amber-700 border-amber-200'
                                                     : 'bg-sky-50 text-sky-700 border-sky-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 {rule.rule_type === 'DEPARTMENT' ? '🏢' : '🏷️'} {rule.rule_value}
                                                 <button
@@ -544,6 +562,39 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 </div>
                             </div>
                         </details>
+                    </Card>
+
+                    {/* 外部工具與技能 (MCP) */}
+                    <Card>
+                        <div className="mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">外部工具與技能 (Skills / MCP)</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                設定此 Agent 可使用的外部工具 (Model Context Protocol)。
+                                <br />
+                                <span className="text-xs text-gray-400">目前支援 JSON 格式設定。未來將支援圖形化介面。</span>
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                MCP Configuration (JSON)
+                            </label>
+                            <textarea
+                                name="mcp_config"
+                                rows={10}
+                                value={typeof formData.mcp_config === 'string' ? formData.mcp_config : JSON.stringify(formData.mcp_config, null, 2)}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+                                placeholder={`{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/Desktop"]
+    }
+  }
+}`}
+                            />
+                        </div>
                     </Card>
                 </div>
 

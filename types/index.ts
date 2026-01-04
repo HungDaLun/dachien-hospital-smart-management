@@ -98,6 +98,7 @@ export interface Agent {
   department_id: string | null;
   created_by: string;
   created_at: string;
+  mcp_config?: Record<string, any>; // Configuration for MCP servers/skills
 }
 
 /**
