@@ -94,7 +94,26 @@
         "view_details": "查看詳情",
         "analyze_all": "一鍵分析",
         "analyzing_all": "分析中...",
-        "analyze_all_success": "全部分析完成！已處理 {{count}} 個檔案。"
+        "analyze_all_success": "全部分析完成！已處理 {{count}} 個檔案。",
+        "review": {
+            "title": "AI 治理審核",
+            "ai_summary": "AI 智能摘要",
+            "no_summary": "尚無摘要",
+            "domain": "領域",
+            "artifact": "產出",
+            "owner": "團隊",
+            "version": "版本",
+            "standardized_filename": "標準化檔名",
+            "original": "原始檔名",
+            "reset_to_suggestion": "還原為建議值",
+            "document_category": "文件分類",
+            "select_category": "選擇分類",
+            "suggested": "建議",
+            "governance_tags": "治理標籤",
+            "add_tag_placeholder": "輸入標籤並按 Enter 新增...",
+            "detected_topics": "偵測到的主題",
+            "confirm_apply": "確認並套用"
+        }
     },
     "agents": {
         "title": "Agent 管理",
@@ -244,6 +263,11 @@
                 "delete_file": "刪除檔案",
                 "create_user": "建立使用者"
             }
+        },
+        "taxonomy": {
+            "title": "分類管理",
+            "subtitle": "定義企業知識庫的標準分類架構",
+            "unified_taxonomy": "統一分類表管理"
         },
         "system": {
             "title": "系統設定",

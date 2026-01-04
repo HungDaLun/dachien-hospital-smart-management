@@ -13,18 +13,9 @@ import { FileData } from './FileCard';
 // ...existing code...
 import ReviewMetadataModal from './ReviewMetadataModal';
 import FilePreviewModal from './FilePreviewModal';
-
-/**
- * 文件類型對照表 (遵循 MECE 原則：相互獨立，完全窮盡)
- */
-const typeMap: Record<string, string> = {
-    'Policy': '規章與策略',
-    'Guideline': '流程與指南',
-    'Spec': '技術規格',
-    'Report': '洞察與報告',
-    'Minutes': '紀錄與紀要',
-    'Template': '範本與工具',
-};
+import { getCategories } from '@/lib/actions/taxonomy';
+import { DocumentCategory } from '@/types';
+import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 
 /**
  * 檔案列表屬性
@@ -104,6 +95,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
     // 動態資料
     const [actualDepartments, setActualDepartments] = useState<{ id: string; name: string; code?: string }[]>([]);
+    const [categories, setCategories] = useState<DocumentCategory[]>([]);
 
     // 批次操作狀態
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -129,6 +121,17 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
     // 預覽與排序狀態
     const [previewFile, setPreviewFile] = useState<FileData | null>(null);
     const [sortByExt, setSortByExt] = useState(false);
+
+    /**
+     * 取得分類列表
+     */
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data } = await getCategories();
+            if (data) setCategories(data);
+        };
+        fetchCategories();
+    }, []);
 
     /**
      * 取得檔案列表
@@ -453,15 +456,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
         ...actualDepartments.map(d => ({ value: d.id, label: d.name })),
     ];
 
-    const typeOptions = [
-        { value: '', label: '所有類型' },
-        { value: 'Policy', label: '規章與策略' },
-        { value: 'Guideline', label: '流程與指南' },
-        { value: 'Spec', label: '技術規格' },
-        { value: 'Report', label: '洞察與報告' },
-        { value: 'Minutes', label: '紀錄與紀要' },
-        { value: 'Template', label: '範本與工具' },
-    ];
+    // 不再需要 typeOptions，直接使用 HierarchicalCategorySelect
 
 
     return (
@@ -531,12 +526,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                     selectSize="sm"
                                     className="w-32 bg-gray-50 border-gray-200"
                                 />
-                                <Select
-                                    options={typeOptions}
+                                <HierarchicalCategorySelect
+                                    categories={categories}
                                     value={typeFilter}
-                                    onChange={(e) => setTypeFilter(e.target.value)}
+                                    onChange={(value) => setTypeFilter(value)}
                                     selectSize="sm"
-                                    className="w-32 bg-gray-50 border-gray-200"
+                                    className="w-32"
                                 />
                                 <Select
                                     options={getStatusOptions(dict)}
@@ -622,7 +617,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                         (deptCodeFromFilename && (d.code === deptCodeFromFilename || d.name.includes(deptCodeFromFilename)))
                                     );
                                     const deptName = matchedDept ? matchedDept.name : (deptCodeFromFilename || '-');
-                                    const typeName = typeCode ? (typeMap[typeCode] || typeCode) : '-';
+                                    
+                                    // 從分類資料庫中尋找對應的分類名稱
+                                    const matchedCategory = file.category_id 
+                                        ? categories.find(c => c.id === file.category_id)
+                                        : (typeCode ? categories.find(c => c.name === typeCode) : null);
+                                    const typeName = matchedCategory ? matchedCategory.name : (typeCode || '-');
 
                                     // Safely access metadata_analysis
                                     const summary = file.metadata_analysis?.summary || '-';

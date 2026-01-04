@@ -242,12 +242,21 @@
 ### 5. EAKAP 知識治理標準 (v1.0)
 *   **命名規範 (Naming Convention)**: `[Dept]-[Type]-[Subject]-[Suffix]`
     *   **Dept**: 必須匹配 `departments.code` (e.g., `HR`, `IT`)。
-    *   **Type**: 必須匹配 `document_categories.name` (e.g., `Policy`, `Spec`)。
+    *   **Type**: 必須匹配 `document_categories.name` (e.g., `政策`, `標準作業程序`, `技術規格`)。
     *   **Subject**: PascalCase, 英文/數字 (e.g., `RemoteWork`).
     *   **Suffix**: 版本/日期 (e.g., `v2024`).
 *   **Metadata Strategy**:
     *   **Hard Metadata (DB Columns)**: `department_id`, `category_id`, `uploaded_by`.
     *   **Soft Metadata (Tags)**: `Process:Manufacturing`, `Product:Origins`.
+*   **標準分類架構 (Standard Taxonomy)**:
+    *   **方法論**: 基於企業知識分類方法論 v1.0（詳見 `docs/TAXONOMY_METHODOLOGY.md`）
+    *   **架構**: 
+        *   Level 1: 10個業務領域（治理與合規、策略與規劃、人力資源、財務管理、營運管理、行銷與業務、研發與創新、資訊科技、客戶服務、採購與供應鏈）
+        *   Level 2: 60個文件類型（每個領域下 5-7 個子分類）
+        *   Level 3: 企業自訂（選填）
+    *   **設計原則**: MECE 原則（相互獨立，完全窮盡）、通用性優先（適用於95%的企業）
+    *   **資料庫**: `document_categories` 表已包含完整的標準分類 seed data（migration: `20260117000000_seed_standard_document_categories.sql`）
+    *   **前端**: 所有分類選單均從後端動態取得，禁止硬編碼
 
 ### 6. 效能優化原則
 *   **CSS Containment**：使用 `contain: layout style paint;` 隔離重繪範圍
@@ -289,11 +298,16 @@ CREATE TABLE knowledge_instances (
 );
 
 -- Taxonomy & Metadata Trinity
+-- 標準分類架構：10個業務領域（Level 1）+ 60個文件類型（Level 2）+ 企業自訂（Level 3）
+-- 詳細方法論：docs/TAXONOMY_METHODOLOGY.md
+-- Seed Data: 20260117000000_seed_standard_document_categories.sql
 CREATE TABLE document_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(50) NOT NULL,
   parent_id UUID REFERENCES document_categories(id),
-  description TEXT
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE departments ADD COLUMN code VARCHAR(20) UNIQUE; -- 'FIN', 'HR'

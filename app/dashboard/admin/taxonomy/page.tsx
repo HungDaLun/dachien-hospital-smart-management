@@ -2,8 +2,34 @@ import React from 'react';
 import { getCategories } from '@/lib/actions/taxonomy';
 import TaxonomyManager from '@/components/admin/taxonomy/TaxonomyManager';
 import { AlertCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
+import { getCachedUserProfile } from '@/lib/cache/user-profile';
 
 export default async function TaxonomyPage() {
+    const supabase = await createClient();
+    const locale = await getLocale();
+    const dict = await getDictionary(locale);
+
+    // 檢查權限（與其他管理頁面一致）
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/login');
+
+    const profile = await getCachedUserProfile(user.id);
+
+    // 檢查是否為 SUPER_ADMIN（分類管理需要 SUPER_ADMIN 權限）
+    if (!profile || profile.role !== 'SUPER_ADMIN') {
+        return (
+            <div className="p-6">
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+                    {dict.common.error}: {!profile ? '無法取得使用者資料' : '需要 SUPER_ADMIN 權限'}
+                </div>
+            </div>
+        );
+    }
+
     const { data: categories, error } = await getCategories();
 
     if (error) {

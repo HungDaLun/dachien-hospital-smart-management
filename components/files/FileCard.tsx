@@ -28,6 +28,7 @@ export interface FileData {
     metadata_analysis?: any; // Start using loose type for JSONB
     file_tags?: Array<{ id: string; tag_key: string; tag_value: string }>;
     department_id?: string;
+    category_id?: string | null;
     user_profiles?: {
         display_name: string | null;
         email: string;

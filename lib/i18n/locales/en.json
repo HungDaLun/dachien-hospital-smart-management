@@ -94,7 +94,26 @@
         "view_details": "View Details",
         "analyze_all": "Batch Analyze",
         "analyzing_all": "Analyzing...",
-        "analyze_all_success": "Batch analysis complete! Processed {{count}} files."
+        "analyze_all_success": "Batch analysis complete! Processed {{count}} files.",
+        "review": {
+            "title": "AI Governance Review",
+            "ai_summary": "AI Summary",
+            "no_summary": "No summary available",
+            "domain": "Domain",
+            "artifact": "Artifact",
+            "owner": "Owner",
+            "version": "Version",
+            "standardized_filename": "Standardized Filename",
+            "original": "Original",
+            "reset_to_suggestion": "Reset to Suggestion",
+            "document_category": "Document Category",
+            "select_category": "Select Category",
+            "suggested": "Suggested",
+            "governance_tags": "Governance Tags",
+            "add_tag_placeholder": "Type and press Enter to add tag...",
+            "detected_topics": "Detected Topics",
+            "confirm_apply": "Confirm & Apply"
+        }
     },
     "agents": {
         "title": "Agent Management",
@@ -265,6 +284,11 @@
         "management_console": "Management Console",
         "agents": {
             "title": "Agent Management"
+        },
+        "taxonomy": {
+            "title": "Taxonomy Management",
+            "subtitle": "Define the standard taxonomy structure for the knowledge base",
+            "unified_taxonomy": "Unified Taxonomy Management"
         }
     },
     "settings": {

@@ -64,6 +64,20 @@ export default async function AdminPage() {
           </Card>
         </Link>
 
+        {/* 分類管理 */}
+        <Link href="/dashboard/admin/taxonomy">
+          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-start gap-4">
+              <div className="text-3xl">📂</div>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.admin.taxonomy.title}</h2>
+                <p className="text-gray-600 text-sm mb-4">{dict.admin.taxonomy.subtitle}</p>
+                <span className="text-primary-600 text-sm font-medium">前往管理 →</span>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
         {/* 使用者管理 */}
         <Link href="/dashboard/admin/users">
           <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">

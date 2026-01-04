@@ -1,10 +1,11 @@
 'use client';
 
-import { Modal, Button, Input, Select } from '@/components/ui';
+import { Modal, Button, Input } from '@/components/ui';
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { getCategories } from '@/lib/actions/taxonomy';
 import { DocumentCategory } from '@/types';
+import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 
 interface ReviewMetadataModalProps {
     isOpen: boolean;
@@ -96,7 +97,7 @@ export default function ReviewMetadataModal({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="AI Governance Review"
+            title={dict.knowledge.review.title}
             footer={
                 <>
                     <Button variant="ghost" onClick={onClose}>
@@ -108,7 +109,7 @@ export default function ReviewMetadataModal({
                         loading={isSubmitting}
                         disabled={isSubmitting}
                     >
-                        Confirm & Apply
+                        {dict.knowledge.review.confirm_apply}
                     </Button>
                 </>
             }
@@ -116,25 +117,25 @@ export default function ReviewMetadataModal({
             <div className="space-y-6">
                 {/* Suggestion Summary */}
                 <div className="bg-primary-50 p-4 rounded-md border border-primary-100">
-                    <h4 className="font-semibold text-primary-800 mb-1">AI 智能摘要 (AI Summary)</h4>
-                    <p className="text-sm text-primary-700 leading-relaxed">{metadata.summary || 'No summary available.'}</p>
+                    <h4 className="font-semibold text-primary-800 mb-1">{dict.knowledge.review.ai_summary}</h4>
+                    <p className="text-sm text-primary-700 leading-relaxed">{metadata.summary || dict.knowledge.review.no_summary}</p>
 
                     {metadata.governance && (
                         <div className="mt-4 pt-3 border-t border-primary-100 grid grid-cols-2 gap-3">
                             <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Domain / 領域</span>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.domain}</span>
                                 <span className="text-xs text-primary-900">{metadata.governance.domain || '-'}</span>
                             </div>
                             <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Artifact / 產出</span>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.artifact}</span>
                                 <span className="text-xs text-primary-900 font-mono italic">{metadata.governance.artifact || '-'}</span>
                             </div>
                             <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Owner / 團隊</span>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.owner}</span>
                                 <span className="text-xs text-primary-900">{metadata.governance.owner || '-'}</span>
                             </div>
                             <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">Version / 版本</span>
+                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.version}</span>
                                 <span className="text-xs text-primary-900 font-mono">{metadata.governance.version || '-'}</span>
                             </div>
                         </div>
@@ -144,7 +145,7 @@ export default function ReviewMetadataModal({
                 {/* Filename Edit */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Standardized Filename
+                        {dict.knowledge.review.standardized_filename}
                     </label>
                     <div className="flex gap-2 items-center">
                         <Input
@@ -157,7 +158,7 @@ export default function ReviewMetadataModal({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setFilename(metadata.suggested_filename!)}
-                                title="Reset to suggestion"
+                                title={dict.knowledge.review.reset_to_suggestion}
                             >
                                 ↺
                             </Button>
@@ -165,27 +166,26 @@ export default function ReviewMetadataModal({
                     </div>
                     {originalFilename !== filename && (
                         <p className="text-xs text-gray-500 mt-1">
-                            Original: <span className="line-through">{originalFilename}</span>
+                            {dict.knowledge.review.original}: <span className="line-through">{originalFilename}</span>
                         </p>
                     )}
                 </div>
 
-                {/* Category Select */}
+                {/* Category Select - 階層式選單 */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Document Category
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {dict.knowledge.review.document_category}
                     </label>
-                    <Select
+                    <HierarchicalCategorySelect
+                        categories={categories}
                         value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
-                        options={[
-                            { value: '', label: 'Select Category' },
-                            ...categories.map(c => ({ value: c.id, label: c.name }))
-                        ]}
+                        onChange={setCategoryId}
+                        selectSize="md"
+                        className="w-full"
                     />
                     {metadata.category_suggestion && !categoryId && (
                         <p className="text-xs text-gray-500 mt-1">
-                            Suggested: {metadata.category_suggestion}
+                            {dict.knowledge.review.suggested}: {metadata.category_suggestion}
                         </p>
                     )}
                 </div>
@@ -193,7 +193,7 @@ export default function ReviewMetadataModal({
                 {/* Tags Edit */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Governance Tags
+                        {dict.knowledge.review.governance_tags}
                     </label>
                     <div className="border border-gray-300 rounded-md p-2 bg-white">
                         <div className="flex flex-wrap gap-2 mb-2">
@@ -211,14 +211,14 @@ export default function ReviewMetadataModal({
                         </div>
                         <input
                             type="text"
-                            placeholder="Type and press Enter to add tag..."
+                            placeholder={dict.knowledge.review.add_tag_placeholder}
                             className="w-full text-sm outline-none bg-transparent"
                             onKeyDown={handleAddTag}
                         />
                     </div>
                     {metadata.topics && metadata.topics.length > 0 && (
                         <div className="mt-2 text-xs text-gray-500">
-                            Detected Topics: {metadata.topics.join(', ')}
+                            {dict.knowledge.review.detected_topics}: {metadata.topics.join(', ')}
                         </div>
                     )}
                 </div>

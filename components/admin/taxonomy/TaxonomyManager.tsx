@@ -107,7 +107,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
             <div key={node.id} className="relative select-none">
                 <div
                     className={`
-            flex items-center p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors
+            group flex items-center p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors
             ${level > 0 ? 'ml-6' : ''}
           `}
                 >
@@ -170,7 +170,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
                 </Button>
             </div>
 
-            <div className="space-y-1 group-hover/list">
+            <div className="space-y-1">
                 {tree.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">
                         尚未建立任何與知識分類。
@@ -183,14 +183,27 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                title={editingCategory ? '編輯分類' : '新增分類'}
+                title={editingCategory ? '編輯分類' : (parentId ? '新增次分類' : '新增主分類')}
             >
                 <div className="space-y-4">
+                    {/* 如果是新增次分類，顯示父分類資訊 */}
+                    {!editingCategory && parentId && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                            <p className="text-sm text-blue-900">
+                                <span className="font-medium">父分類：</span>
+                                {categories.find(c => c.id === parentId)?.name || '未知'}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                                此分類將成為「{categories.find(c => c.id === parentId)?.name || '未知'}」的子分類
+                            </p>
+                        </div>
+                    )}
+
                     <Input
                         label="分類名稱"
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="例如：人事規章"
+                        placeholder={parentId ? "例如：招募文件" : "例如：人力資源"}
                         required
                     />
                     <Textarea
