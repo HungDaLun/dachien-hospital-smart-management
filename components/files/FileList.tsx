@@ -5,7 +5,7 @@
  */
 // ...existing code...
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Input, Select, Button, Card, Spinner, Progress, Checkbox, Badge } from '@/components/ui';
+import { Input, Select, Button, Card, Spinner, Progress, Checkbox, Badge, Modal } from '@/components/ui';
 import { Trash2, Sparkles, Download, FileText, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -120,6 +120,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
     // 預覽與排序狀態
     const [previewFile, setPreviewFile] = useState<FileData | null>(null);
+    const [summaryModalText, setSummaryModalText] = useState<string | null>(null);
     const [sortByExt, setSortByExt] = useState(false);
 
     /**
@@ -428,7 +429,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
     };
 
     // --- Single Row Actions ---
-    const handleReviewConfirm = async (data: { filename: string; tags: string[]; categoryId?: string }) => {
+    const handleReviewConfirm = async (data: {
+        filename: string;
+        tags: string[];
+        categoryId?: string;
+        governance?: any;
+    }) => {
         if (!reviewFile) return;
         try {
             const response = await fetch(`/api/files/${reviewFile.id}/metadata`, {
@@ -561,7 +567,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             </div>
 
             {/* Data Grid Table */}
-            <div className="overflow-x-auto min-h-[400px]">
+            <div className="min-h-[400px]">
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <Spinner size="lg" />
@@ -569,8 +575,8 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                <th className="p-4 w-10">
+                            <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                <th className="px-4 py-4 w-10">
                                     <Checkbox
                                         checked={selectedIds.size === files.length && files.length > 0}
                                         indeterminate={selectedIds.size > 0 && selectedIds.size < files.length}
@@ -578,7 +584,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                     />
                                 </th>
                                 <th
-                                    className="p-4 cursor-pointer hover:text-indigo-600 transition-colors group"
+                                    className="p-4 cursor-pointer hover:text-indigo-600 transition-colors group w-[25%]"
                                     onClick={() => setSortByExt(!sortByExt)}
                                 >
                                     <div className="flex items-center gap-1">
@@ -587,11 +593,11 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                         <span className="opacity-0 group-hover:opacity-100 text-[10px] ml-1">⇅</span>
                                     </div>
                                 </th>
-                                <th className="p-4 w-28">管理部門</th>
-                                <th className="p-4 w-28">文件型態</th>
-                                <th className="p-4 hidden md:table-cell">AI 智能摘要</th>
-                                <th className="p-4 hidden lg:table-cell w-48">治理標籤/元數據</th>
-                                <th className="p-4 w-24">狀態</th>
+                                <th className="p-4 w-20">部門</th>
+                                <th className="p-4 w-20">型態</th>
+                                <th className="p-4 hidden md:table-cell w-[35%]">AI 智能摘要</th>
+                                <th className="p-4 hidden lg:table-cell w-[20%]">治理標籤/元數據</th>
+                                <th className="p-4 w-24 text-center">狀態</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
@@ -617,9 +623,9 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                         (deptCodeFromFilename && (d.code === deptCodeFromFilename || d.name.includes(deptCodeFromFilename)))
                                     );
                                     const deptName = matchedDept ? matchedDept.name : (deptCodeFromFilename || '-');
-                                    
+
                                     // 從分類資料庫中尋找對應的分類名稱
-                                    const matchedCategory = file.category_id 
+                                    const matchedCategory = file.category_id
                                         ? categories.find(c => c.id === file.category_id)
                                         : (typeCode ? categories.find(c => c.name === typeCode) : null);
                                     const typeName = matchedCategory ? matchedCategory.name : (typeCode || '-');
@@ -634,85 +640,108 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                 group transition-colors duration-150 text-sm
                                                 ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-gray-50'}
                                             `}
-                                            onClick={(e) => {
-                                                // Allow clicking row to select (unless clicking button/link)
-                                                if ((e.target as HTMLElement).closest('button, a, input, .file-preview-link')) return;
-                                                handleSelectRow(file.id, !isSelected, e.shiftKey);
-                                            }}
                                         >
-                                            <td className="p-4">
-                                                <Checkbox
-                                                    checked={isSelected}
-                                                    onChange={(e) => handleSelectRow(file.id, e.target.checked, (e.nativeEvent as any).shiftKey)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
+                                            <td className="px-4 py-4 align-top">
+                                                <div className="mt-1">
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        onChange={(e) => handleSelectRow(file.id, e.target.checked, (e.nativeEvent as any).shiftKey)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <FileText size={20} className={`opacity-70 group-hover:opacity-100 transition-opacity ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                            <td className="p-4 align-top">
+                                                <div className="flex items-start gap-2.5">
+                                                    <FileText size={18} className={`mt-0.5 opacity-70 group-hover:opacity-100 transition-opacity shrink-0 ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`} />
                                                     <div className="flex flex-col min-w-0">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setPreviewFile(file);
                                                             }}
-                                                            className="file-preview-link text-left font-medium truncate max-w-[200px] xl:max-w-[400px] text-gray-900 hover:text-primary-600 hover:underline transition-all"
+                                                            className="file-preview-link text-left font-semibold break-words text-gray-900 hover:text-primary-600 hover:underline transition-all leading-tight"
                                                         >
                                                             {file.filename}
                                                         </button>
-                                                        <span className="text-xs text-gray-400">
+                                                        <span className="text-[11px] text-gray-400 mt-1">
                                                             {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-gray-700">{deptName}</span>
-                                                    {deptCodeFromFilename && <span className="text-[10px] text-gray-400 font-mono uppercase">{deptCodeFromFilename}</span>}
+                                            <td className="p-4 align-top">
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-tight">
+                                                        {deptName}
+                                                    </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-medium text-gray-600">{typeName}</span>
-                                                    {typeCode && <span className="text-[10px] text-gray-400 font-mono italic">{typeCode}</span>}
+                                            <td className="p-4 align-top">
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
+                                                        {typeName}
+                                                    </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 hidden md:table-cell">
-                                                <p className="text-gray-500 line-clamp-2 text-xs leading-relaxed max-w-[300px]" title={summary}>
-                                                    {summary}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 hidden lg:table-cell">
-                                                <div className="flex flex-col gap-1.5">
-                                                    {file.metadata_analysis?.governance ? (
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded border border-indigo-100 uppercase tracking-tighter">
-                                                                    {file.metadata_analysis.governance.domain || 'N/A'}
-                                                                </span>
-                                                                <span className="text-[10px] font-mono text-gray-400">
-                                                                    {file.metadata_analysis.governance.version || '-'}
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-[10px] text-gray-500 italic font-medium px-1">
-                                                                {file.metadata_analysis.governance.artifact || '-'}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {(file.file_tags || []).slice(0, 2).map((t: any) => (
-                                                                <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 bg-white text-gray-500">
-                                                                    {t.tag_value}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                            <td className="p-4 hidden md:table-cell align-top">
+                                                <div className="flex flex-col">
+                                                    <p className="text-gray-600 text-xs leading-relaxed" title={summary.length > 100 ? '' : summary}>
+                                                        {summary.length > 100 ? `${summary.substring(0, 100)}...` : summary}
+                                                    </p>
+                                                    {summary.length > 100 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSummaryModalText(summary);
+                                                            }}
+                                                            className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold mt-1.5 flex items-center gap-1 hover:underline w-fit"
+                                                        >
+                                                            查看更多 →
+                                                        </button>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant={statusStart.variant} dot={statusStart.dot} size="sm">
+                                            <td className="p-4 hidden lg:table-cell align-top">
+                                                <div className="flex flex-col gap-2">
+                                                    {/* 治理標籤區塊 */}
+                                                    {file.metadata_analysis?.governance && (
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <div className="flex items-center gap-1.5 w-full flex-wrap">
+                                                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-tighter whitespace-nowrap" title="Domain">
+                                                                    {file.metadata_analysis.governance.domain || 'N/A'}
+                                                                </span>
+                                                                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 rounded border border-gray-100 whitespace-nowrap" title="Version">
+                                                                    {file.metadata_analysis.governance.version || 'v1.0'}
+                                                                </span>
+                                                                {file.metadata_analysis.governance.owner && (
+                                                                    <span className="text-[10px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-100 whitespace-nowrap" title="Owner">
+                                                                        @{file.metadata_analysis.governance.owner}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-500 italic font-medium px-1 bg-gray-50/50 rounded py-0.5 border border-dashed border-gray-200 break-words w-full" title="Artifact Type">
+                                                                {file.metadata_analysis.governance.artifact || '-'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 通用標籤區塊 (原本被隱藏的內容) */}
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {(file.file_tags || []).map((t: any) => (
+                                                            <span key={t.id} className="text-[9px] px-1.5 py-0.5 rounded-full border border-gray-100 bg-gray-50/50 text-gray-400 whitespace-nowrap hover:bg-white hover:text-indigo-500 transition-colors">
+                                                                #{t.tag_value}
+                                                            </span>
+                                                        ))}
+                                                        {/* 如果沒有治理標籤也沒有一般標籤 */}
+                                                        {!file.metadata_analysis?.governance && (file.file_tags || []).length === 0 && (
+                                                            <span className="text-[10px] text-gray-300 italic">無元數據</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 align-top text-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Badge variant={statusStart.variant} dot={statusStart.dot} size="sm" className="whitespace-nowrap shrink-0">
                                                         {statusStart.label}
                                                     </Badge>
                                                     {file.gemini_state === 'NEEDS_REVIEW' && canManage && (
@@ -721,16 +750,16 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                                 e.stopPropagation();
                                                                 setReviewFile(file);
                                                             }}
-                                                            className="text-amber-500 hover:text-amber-600 transition-colors p-1 rounded-full hover:bg-amber-50"
+                                                            className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-full hover:bg-amber-50 border border-amber-200 bg-white shadow-sm"
                                                             title="審核元數據"
                                                         >
-                                                            <Search size={16} />
+                                                            <Search size={14} />
                                                         </button>
                                                     )}
                                                 </div>
                                                 {file.gemini_state === 'FAILED' && (
-                                                    <div className="text-[10px] text-red-500 mt-1 truncate max-w-[100px]" title={(file.metadata_analysis as any)?.error}>
-                                                        點擊查看錯誤
+                                                    <div className="text-[10px] text-red-500 mt-1 truncate" title={(file.metadata_analysis as any)?.error}>
+                                                        錯誤
                                                     </div>
                                                 )}
                                             </td>
@@ -768,6 +797,31 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                     </Button>
                 </div>
             </div>
+
+            {/* Summary Detail Modal */}
+            {summaryModalText && (
+                <Modal
+                    isOpen={!!summaryModalText}
+                    onClose={() => setSummaryModalText(null)}
+                    title="AI 智能摘要詳情"
+                    size="lg"
+                    footer={
+                        <Button variant="primary" onClick={() => setSummaryModalText(null)}>
+                            {dict.common.confirm}
+                        </Button>
+                    }
+                >
+                    <div className="bg-indigo-50/50 p-6 rounded-lg border border-indigo-100">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Sparkles size={20} className="text-indigo-600" />
+                            <h4 className="font-bold text-gray-900">完整摘要內容</h4>
+                        </div>
+                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            {summaryModalText}
+                        </p>
+                    </div>
+                </Modal>
+            )}
 
             {/* Review Modal */}
             {reviewFile && (

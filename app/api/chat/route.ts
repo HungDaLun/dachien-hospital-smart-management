@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         // 取得 Agent 資訊
         const { data: agent, error: agentError } = await supabase
             .from('agents')
-            .select('id, name, system_prompt, model_version, temperature')
+            .select('id, name, system_prompt, model_version, temperature, knowledge_files')
             .eq('id', agent_id)
             .eq('is_active', true)
             .single();
@@ -97,18 +97,16 @@ export async function POST(request: NextRequest) {
             .eq('agent_id', agent.id);
 
         let fileUris: Array<{ uri: string; mimeType: string }> = [];
+        let matchedFileIds: Set<string> = new Set(agent.knowledge_files || []);
+
+        // 使用 Admin 客戶端進行檢索，確保能存取規則所定義的檔案範圍
+        const adminSupabase = createAdminClient();
 
         if (rules && rules.length > 0) {
-            // 使用 Admin 客戶端來查詢檔案，繞過 RLS 限制
-            // 這樣 Agent 可以存取跨部門的檔案（但僅限規則中指定的檔案）
-            const adminSupabase = createAdminClient();
-
             // 分類規則
             const tagRules = rules.filter(r => r.rule_type === 'TAG');
             const categoryRules = rules.filter(r => r.rule_type === 'CATEGORY');
             const deptRules = rules.filter(r => r.rule_type === 'DEPARTMENT');
-
-            let matchedFileIds: Set<string> = new Set();
 
             // 1. 處理 TAG 規則
             if (tagRules.length > 0) {
@@ -125,10 +123,9 @@ export async function POST(request: NextRequest) {
                 tagFiles?.forEach(f => matchedFileIds.add(f.file_id));
             }
 
-            // 2. 處理 DEPARTMENT 規則 (支援 Code 或 Name)
+            // 2. 處理 DEPARTMENT 規則
             if (deptRules.length > 0) {
                 const deptValues = deptRules.map(r => r.rule_value);
-                // 優先比對 Code
                 const { data: departments } = await adminSupabase
                     .from('departments')
                     .select('id')
@@ -149,8 +146,6 @@ export async function POST(request: NextRequest) {
             // 3. 處理 CATEGORY 規則
             if (categoryRules.length > 0) {
                 const catIds = categoryRules.map(r => r.rule_value);
-                // 遞迴查詢該分類及其子分類的所有檔案 is too complex for now, just direct match
-                // We assume rule_value is the category UUID
                 const { data: catFiles } = await adminSupabase
                     .from('files')
                     .select('id')
@@ -159,36 +154,37 @@ export async function POST(request: NextRequest) {
 
                 catFiles?.forEach(f => matchedFileIds.add(f.id));
             }
+        }
 
-            // 4. 統一查詢檔案 URI (如果沒有任何匹配，就不用查了)
-            // 使用 Admin 客戶端繞過 RLS，但只查詢規則中指定的檔案（確保安全）
-            if (matchedFileIds.size > 0) {
-                const { data: files } = await adminSupabase
-                    .from('files')
-                    .select('id, gemini_file_uri, mime_type, department_id')
-                    .eq('gemini_state', 'SYNCED')
-                    .in('id', Array.from(matchedFileIds));
+        // 4. 統一查詢檔案詳情與 URI
+        let retrievedFiles: any[] = [];
+        if (matchedFileIds.size > 0) {
+            const { data: files } = await adminSupabase
+                .from('files')
+                .select('id, filename, gemini_file_uri, mime_type, department_id')
+                .eq('gemini_state', 'SYNCED')
+                .in('id', Array.from(matchedFileIds));
 
-                if (files) {
-                    fileUris = files.map(f => ({
-                        uri: f.gemini_file_uri!,
-                        mimeType: f.mime_type
-                    }));
+            if (files) {
+                retrievedFiles = files;
+                fileUris = files.map(f => ({
+                    uri: f.gemini_file_uri!,
+                    mimeType: f.mime_type
+                }));
 
-                    // 記錄 Agent 查詢操作（記錄所有被查詢的檔案）
-                    const { logAudit } = await import('@/lib/actions/audit');
-                    for (const file of files) {
-                        await logAudit({
-                            action: 'AGENT_QUERY',
-                            resourceType: 'FILE',
-                            resourceId: file.id,
-                            details: {
-                                agent_id: agent.id,
-                                agent_name: agent.name,
-                                file_department_id: file.department_id,
-                            },
-                        });
-                    }
+                // 記錄 Agent 查詢操作
+                const { logAudit } = await import('@/lib/actions/audit');
+                for (const file of files) {
+                    await logAudit({
+                        action: 'AGENT_QUERY',
+                        resourceType: 'FILE',
+                        resourceId: file.id,
+                        details: {
+                            agent_id: agent.id,
+                            agent_name: agent.name,
+                            file_department_id: file.department_id,
+                        },
+                    });
                 }
             }
         }
@@ -204,10 +200,19 @@ export async function POST(request: NextRequest) {
         // 呼叫 Gemini 串流介面
         const { chatWithGemini } = await import('@/lib/gemini/client');
 
+        // 建立知識映射暗示 (Knowledge Mapping Hint)
+        // 這有助於 AI 將系統提示詞中的檔案名與傳入的內容對接
+        let mappingHint = '';
+        if (fileUris.length > 0) {
+            mappingHint = "系統已為您載入以下知識庫檔案內容：\n" +
+                retrievedFiles.map((f, i) => `- 檔案 ${i + 1}: [${f.filename}]`).join('\n') +
+                "\n請務必根據提示詞中的檔案名稱引用對應內容。\n\n";
+        }
+
         const stream = await chatWithGemini(
             agent.model_version,
             agent.system_prompt,
-            message,
+            mappingHint + message,
             fileUris,
             (history || []).map(msg => ({
                 role: msg.role === 'assistant' ? 'model' : msg.role,

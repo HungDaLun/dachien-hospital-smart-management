@@ -17,7 +17,7 @@ export async function PATCH(
 
         const id = params.id;
         const body = await request.json();
-        const { filename, tags, categoryId } = body; // tags is string[]
+        const { filename, tags, categoryId, governance } = body; // tags is string[]
 
         if (!filename) {
             return NextResponse.json(
@@ -26,15 +26,31 @@ export async function PATCH(
             );
         }
 
-        // 1. Update File Record
-        // 使用 adminClient 確保管理員可以更新非自己上傳的檔案 (繞過 RLS)
         const adminClient = createAdminClient();
+
+        // 1. Fetch current file to get existing metadata_analysis
+        const { data: currentFile, error: fetchError } = await adminClient
+            .from('files')
+            .select('metadata_analysis')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        // Merge governance into metadata_analysis
+        const updatedMetadataAnalysis = {
+            ...(currentFile.metadata_analysis || {}),
+            governance: governance || (currentFile.metadata_analysis?.governance)
+        };
+
+        // 2. Update File Record
         const { error: fileError } = await adminClient
             .from('files')
             .update({
                 filename: filename,
                 gemini_state: 'SYNCED', // Mark as synced/reviewed
                 category_id: categoryId || null, // Update category
+                metadata_analysis: updatedMetadataAnalysis // Update with merged governance
             })
             .eq('id', id);
 

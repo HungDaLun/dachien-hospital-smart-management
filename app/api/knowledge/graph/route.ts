@@ -107,7 +107,11 @@ export async function GET(request: NextRequest) {
                 data: {
                     mimeType: file.mime_type,
                     metadata: file.metadata_analysis,
-                    dikwLevel: file.dikw_level || 'data' // Pass the DB level, default to data
+                    // 強制校正：檔案類型的節點最高僅能出現在 Information 層，避面誤入 Knowledge/Wisdom 層
+                    // 這是因為「文件」本身（不論內容）在大腦架構中皆屬於資料/資訊輸入層
+                    dikwLevel: (file.dikw_level === 'knowledge' || file.dikw_level === 'wisdom')
+                        ? 'information'
+                        : (file.dikw_level || 'data')
                 }
             });
         });

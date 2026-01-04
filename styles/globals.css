@@ -190,3 +190,28 @@ body {
     filter: drop-shadow(0 0 15px currentColor) brightness(1.3);
   }
 }
+
+/* 文字閃現動畫 (由左至右掃描效果) */
+@keyframes shimmer-scan {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer-text {
+  background: linear-gradient(
+    90deg, 
+    #9ca3af 20%, 
+    #374151 50%, 
+    #9ca3af 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-scan 2.5s infinite linear;
+  display: inline-block;
+  font-weight: 500;
+}

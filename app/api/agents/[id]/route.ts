@@ -83,7 +83,9 @@ export async function PUT(
             model_version,
             temperature,
             is_active,
-            knowledge_rules
+            knowledge_rules,
+            knowledge_files,
+            mcp_config
         } = body;
 
         // 1.5 若 System Prompt 有變更，儲存版本歷史
@@ -115,6 +117,8 @@ export async function PUT(
                 model_version,
                 temperature,
                 is_active,
+                knowledge_files: knowledge_files || [],
+                mcp_config: mcp_config || {},
                 updated_at: new Date().toISOString(),
             })
             .eq('id', params.id)

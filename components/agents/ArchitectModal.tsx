@@ -34,13 +34,14 @@ interface ChatMessage {
 interface ArchitectChatProps {
     onApply: (blueprint: ArchitectResponse) => void;
     departmentContext?: string;
+    currentState?: any; // 當前的 Agent 狀態
     dict: Dictionary;
 }
 
 // 閒置超時時間（20 分鐘）
 const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 
-export default function ArchitectChat({ onApply, departmentContext, dict }: ArchitectChatProps) {
+export default function ArchitectChat({ onApply, departmentContext, currentState, dict }: ArchitectChatProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -154,7 +155,8 @@ export default function ArchitectChat({ onApply, departmentContext, dict }: Arch
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     intent: userMessage.content,
-                    department_context: departmentContext
+                    department_context: departmentContext,
+                    current_state: currentState // 傳遞當前表單狀態
                 }),
             });
 
@@ -389,9 +391,10 @@ export default function ArchitectChat({ onApply, departmentContext, dict }: Arch
                         {loading && (
                             <div className="flex justify-start">
                                 <div className="bg-white text-gray-800 shadow-sm border border-gray-100 rounded-2xl rounded-bl-md px-3 py-2">
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <Spinner size="sm" />
-                                        {t.thinking}
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <span className="animate-shimmer-text">
+                                            {t.thinking}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

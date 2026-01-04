@@ -96,9 +96,16 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
 
         // 5. 執行 Metadata 分析
         await supabase.from('files').update({ markdown_content: `DEBUG: Analyzing Metadata...` }).eq('id', fileId);
+
+        // 取得分類列表以供 AI 參考
+        const { data: categories } = await supabase.from('document_categories').select('name');
+        const categoryListString = categories?.map(c => `- ${c.name}`).join('\n') || '(No categories defined yet)';
+
+        const finalizedPrompt = METADATA_ANALYSIS_PROMPT.replace('{{ CATEGORY_LIST }}', categoryListString);
+
         const metadataJsonString = await retryWithBackoff(() => generateContent(
             'gemini-3-flash-preview',
-            METADATA_ANALYSIS_PROMPT,
+            finalizedPrompt,
             geminiFile.uri,
             file.mime_type
         ));

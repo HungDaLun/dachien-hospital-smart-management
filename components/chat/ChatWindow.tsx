@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Button, Spinner } from '@/components/ui';
+import { Button } from '@/components/ui';
 import ChatBubble from './ChatBubble';
 import { Citation } from './CitationList';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -223,10 +223,10 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
 
                 {/* 載入中指示 */}
                 {isLoading && (
-                    <div className="flex items-center gap-2 text-gray-500">
-                        <Spinner size="sm" />
-                        <Spinner size="sm" />
-                        <span className="text-sm">{agent.name} {dict.chat.thinking}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm animate-shimmer-text">
+                            {agent.name} {dict.chat.thinking}
+                        </span>
                     </div>
                 )}
 

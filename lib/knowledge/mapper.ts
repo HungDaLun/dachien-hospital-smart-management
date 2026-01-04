@@ -106,13 +106,15 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
         const extractionPromises = validSelections.map(async (selection) => {
             // Synonym Mapping (Legacy support)
             const synonymMap: Record<string, string> = {
-                'competitive_landscape': 'swot',
-                'competitive_analysis': 'swot',
-                'competitor_analysis': 'swot',
-                'competitor': 'swot',
                 'marketing_strategy': 'swot',
                 'external_environment': 'pestle',
-                'pest': 'pestle'
+                'pest': 'pestle',
+                'customer_persona': 'persona',
+                'user_profile': 'persona',
+                'audience_analysis': 'persona',
+                'customer_journey': 'customer_experience_map',
+                'cj': 'customer_experience_map',
+                'cjm': 'customer_experience_map'
             };
 
             const finalCode = synonymMap[selection.code.toLowerCase()] || selection.code.toLowerCase();
@@ -152,13 +154,18 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
                 // e.g. "SWOT - Product X"
                 if (!existingInstance) {
                     // LLM-based Consolidation Logic
-                    // 1. Fetch potential candidates (same framework + same department)
-                    const { data: candidates } = await supabase
+                    // 1. Fetch potential candidates (same framework)
+                    // We only filter by department if the file has one, otherwise we look at all (for consistency)
+                    let candidatesQuery = supabase
                         .from('knowledge_instances')
                         .select('id, title, data, source_file_ids')
-                        .eq('framework_id', (targetFramework as any).id)
-                        .eq('department_id', file.user_profiles?.department_id)
-                        .limit(20); // Limit context size
+                        .eq('framework_id', (targetFramework as any).id);
+
+                    if (file.user_profiles?.department_id) {
+                        candidatesQuery = candidatesQuery.eq('department_id', file.user_profiles.department_id);
+                    }
+
+                    const { data: candidates } = await candidatesQuery.limit(30); // Higher limit for better matching
 
                     if (candidates && candidates.length > 0) {
                         const candidateListText = candidates

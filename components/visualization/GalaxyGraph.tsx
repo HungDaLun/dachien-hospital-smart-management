@@ -127,9 +127,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
 // 根據節點類型取得 DIKW 層級
 const getDIKWLevel = (nodeType: string): keyof typeof DIKW_COLORS => {
-    if (nodeType === 'file' || nodeType === 'input') return 'data';
+    if (nodeType === 'file' || nodeType === 'input') return 'information';
     if (nodeType === 'framework_instance') return 'knowledge';
-    return 'information';
+    return 'data';
 };
 
 interface GalaxyGraphProps {

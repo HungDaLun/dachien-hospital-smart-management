@@ -332,14 +332,31 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
                                 {/* Review 按鈕 (New) */}
                                 {file.gemini_state === 'NEEDS_REVIEW' && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-gray-900 bg-amber-400 border-amber-500 hover:bg-amber-500 hover:border-amber-600 font-bold shadow-sm"
-                                        onClick={() => setShowReviewModal(true)}
-                                    >
-                                        🔍 {dict.common.confirm || 'Review'}
-                                    </Button>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-gray-900 bg-amber-400 border-amber-500 hover:bg-amber-500 hover:border-amber-600 font-bold shadow-sm"
+                                            onClick={() => setShowReviewModal(true)}
+                                        >
+                                            🔍 {dict.common.confirm || 'Review'}
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={async () => {
+                                                const res = await fetch(`/api/files/${file.id}/re-ingest`, { method: 'POST' });
+                                                if (res.ok) {
+                                                    toast.success('已重新產生 AI 建議');
+                                                    onSync?.(file.id);
+                                                }
+                                            }}
+                                            className="text-amber-600 hover:bg-amber-50"
+                                            title="重新產生 AI 治理建議 (包含檔名與分類)"
+                                        >
+                                            ✨
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {/* 同步按鈕 */}

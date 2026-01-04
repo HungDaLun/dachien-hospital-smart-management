@@ -1,6 +1,7 @@
 'use client';
 
 import { Modal, Button, Input } from '@/components/ui';
+import { Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { getCategories } from '@/lib/actions/taxonomy';
@@ -10,7 +11,18 @@ import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 interface ReviewMetadataModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (data: { filename: string; tags: string[]; categoryId?: string }) => Promise<void>;
+    onConfirm: (data: {
+        filename: string;
+        tags: string[];
+        categoryId?: string;
+        governance?: {
+            domain?: string;
+            artifact?: string;
+            owner?: string;
+            status?: string;
+            version?: string;
+        }
+    }) => Promise<void>;
     originalFilename: string;
     metadata: {
         suggested_filename?: string;
@@ -45,6 +57,12 @@ export default function ReviewMetadataModal({
     const [categories, setCategories] = useState<DocumentCategory[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Governance fields state
+    const [govDomain, setGovDomain] = useState('');
+    const [govArtifact, setGovArtifact] = useState('');
+    const [govOwner, setGovOwner] = useState('');
+    const [govVersion, setGovVersion] = useState('');
+
     useEffect(() => {
         const fetchCats = async () => {
             const { data } = await getCategories();
@@ -57,6 +75,12 @@ export default function ReviewMetadataModal({
         if (metadata) {
             setFilename(metadata.suggested_filename || originalFilename);
             setTags(metadata.tags || []);
+
+            // Initial governance states
+            setGovDomain(metadata.governance?.domain || '');
+            setGovArtifact(metadata.governance?.artifact || '');
+            setGovOwner(metadata.governance?.owner || '');
+            setGovVersion(metadata.governance?.version || 'v1.0');
 
             // Try to match suggested category
             if (metadata.category_suggestion && categories.length > 0) {
@@ -83,7 +107,18 @@ export default function ReviewMetadataModal({
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            await onConfirm({ filename, tags, categoryId });
+            await onConfirm({
+                filename,
+                tags,
+                categoryId,
+                governance: {
+                    domain: govDomain,
+                    artifact: govArtifact,
+                    owner: govOwner,
+                    version: govVersion,
+                    status: metadata.governance?.status || 'validated'
+                }
+            });
             onClose();
         } catch (error) {
             console.error(error);
@@ -115,31 +150,61 @@ export default function ReviewMetadataModal({
             }
         >
             <div className="space-y-6">
-                {/* Suggestion Summary */}
-                <div className="bg-primary-50 p-4 rounded-md border border-primary-100">
-                    <h4 className="font-semibold text-primary-800 mb-1">{dict.knowledge.review.ai_summary}</h4>
-                    <p className="text-sm text-primary-700 leading-relaxed">{metadata.summary || dict.knowledge.review.no_summary}</p>
-
-                    {metadata.governance && (
-                        <div className="mt-4 pt-3 border-t border-primary-100 grid grid-cols-2 gap-3">
-                            <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.domain}</span>
-                                <span className="text-xs text-primary-900">{metadata.governance.domain || '-'}</span>
-                            </div>
-                            <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.artifact}</span>
-                                <span className="text-xs text-primary-900 font-mono italic">{metadata.governance.artifact || '-'}</span>
-                            </div>
-                            <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.owner}</span>
-                                <span className="text-xs text-primary-900">{metadata.governance.owner || '-'}</span>
-                            </div>
-                            <div>
-                                <span className="block text-[10px] uppercase tracking-wider text-primary-400 font-bold">{dict.knowledge.review.version}</span>
-                                <span className="text-xs text-primary-900 font-mono">{metadata.governance.version || '-'}</span>
-                            </div>
+                {/* AI Suggestion Content (Summary remains read-only for context) */}
+                <div className="bg-indigo-50/50 p-5 rounded-lg border border-indigo-100/50 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="p-1.5 bg-indigo-100 rounded-md">
+                            <Sparkles size={16} className="text-indigo-600" />
                         </div>
-                    )}
+                        <h4 className="font-bold text-gray-900 tracking-tight">{dict.knowledge.review.ai_summary}</h4>
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed bg-white/60 p-3 rounded-md border border-indigo-50">
+                        {metadata.summary || dict.knowledge.review.no_summary}
+                    </p>
+                </div>
+
+                {/* Governance Editing Section */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.domain}</label>
+                        <Input
+                            value={govDomain}
+                            onChange={(e) => setGovDomain(e.target.value)}
+                            inputSize="sm"
+                            placeholder="e.g. audience, technology"
+                            className="bg-white border-indigo-100 focus:border-indigo-300"
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.version}</label>
+                        <Input
+                            value={govVersion}
+                            onChange={(e) => setGovVersion(e.target.value)}
+                            inputSize="sm"
+                            placeholder="v1.0"
+                            className="bg-white border-indigo-100 focus:border-indigo-300"
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.owner}</label>
+                        <Input
+                            value={govOwner}
+                            onChange={(e) => setGovOwner(e.target.value)}
+                            inputSize="sm"
+                            placeholder="Dept or Team"
+                            className="bg-white border-indigo-100 focus:border-indigo-300"
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.artifact}</label>
+                        <Input
+                            value={govArtifact}
+                            onChange={(e) => setGovArtifact(e.target.value)}
+                            inputSize="sm"
+                            placeholder="e.g. persona, sop"
+                            className="bg-white border-indigo-100 focus:border-indigo-300"
+                        />
+                    </div>
                 </div>
 
                 {/* Filename Edit */}

@@ -27,7 +27,7 @@ export default async function AgentDetailsPage({ params }: AgentDetailsPageProps
     // 2. 取得 Agent 資料
     const { data: agent, error } = await supabase
         .from('agents')
-        .select('*')
+        .select('*, knowledge_rules:agent_knowledge_rules(*)')
         .eq('id', params.id)
         .single();
 
@@ -80,6 +80,9 @@ export default async function AgentDetailsPage({ params }: AgentDetailsPageProps
                 system_prompt: agent.system_prompt,
                 model_version: agent.model_version,
                 temperature: parseFloat(agent.temperature?.toString() || '0.7'),
+                knowledge_rules: agent.knowledge_rules || [],
+                knowledge_files: agent.knowledge_files || [],
+                mcp_config: typeof agent.mcp_config === 'string' ? agent.mcp_config : JSON.stringify(agent.mcp_config || {}, null, 2),
             }} dict={dict} />
         </div>
     );

@@ -27,6 +27,9 @@ export const METADATA_ANALYSIS_PROMPT = `
 You are an expert "Knowledge Architect" specializing in enterprise data governance.
 Analyze the provided document and generate standardized metadata for enterprise-wide knowledge management.
 
+**Available Categories (Select one as category_suggestion):**
+{{ CATEGORY_LIST }}
+
 **Output Requirement:**
 Return a valid JSON object with the following fields:
 
@@ -40,7 +43,9 @@ Return a valid JSON object with the following fields:
    - Must be 2-3 sentences.
    - Summarize the core value, key findings, and target audience.
 
-4. \`governance\`: A structured object for standardized governance:
+4. \`category_suggestion\`: The name of the most suitable category from the "Available Categories" list provided above. If none fits perfectly, pick the closest one or leave as null.
+
+5. \`governance\`: A structured object for standardized governance:
    - \`domain\`: Knowledge domain (e.g., audience, technology, strategy, operation).
    - \`artifact\`: Output type (e.g., persona, sop, report, manual, policy).
    - \`owner\`: Responsible department or team name.
@@ -48,15 +53,15 @@ Return a valid JSON object with the following fields:
    - \`version\`: Version string (e.g., v20240101).
    - \`confidence\`: AI's confidence in this analysis (low, medium, high).
 
-5. \`tags\`: Array of 3-5 key labels for fast indexing (Traditional Chinese preferred).
+6. \`tags\`: Array of 3-5 key labels for fast indexing (Traditional Chinese preferred).
 
-6. \`topics\`: Array of specific entities or subjects mentioned in the text.
+7. \`topics\`: Array of specific entities or subjects mentioned in the text.
 
-7. \`dikw_level\`: Classify the content into one of the following levels (lowercase):
-   - \`data\`: Raw meetings logs, simple tables, unprocessed facts.
-   - \`information\`: Structured reports, summaries, organized facts.
-   - \`knowledge\`: Analysis, insights, frameworks (e.g. SWOT, Persona), causal relationships.
-   - \`wisdom\`: Principles, SOPs, policies, best practices, strategic advice.
+8. \`dikw_level\`: Classify the content into one of the following levels (lowercase):
+   - \`data\`: 原始、未經處理的資料 (Raw facts, logs)。
+   - \`information\`: 結構化的企業文件、報告、SOP、分析簡報。**注意：所有上傳或產出的「文件檔案」皆應歸類在此。**
+   - \`knowledge\`: 經 AI 深度萃取後的結構化知識實例、分析模型 (Framework instances like SWOT, Persona)。
+   - \`wisdom\`: 基於多項知識彙整後的綜合戰略與決策建議。
 
 **Example JSON Response:**
 \`\`\`json
@@ -64,6 +69,7 @@ Return a valid JSON object with the following fields:
   "suggested_filename": "MK-Persona-Origins_Users-v2025.md",
   "title": "品木宣言使用者畫像研究報告",
   "summary": "本文件透過社群大數據分析，識別出三類核心保養客群及其行為模式，為品牌提供精準行銷策略建議。",
+  "category_suggestion": "市場研究報告",
   "governance": {
     "domain": "audience",
     "artifact": "persona",
@@ -74,7 +80,7 @@ Return a valid JSON object with the following fields:
   },
   "tags": ["使用者畫像", "品木宣言", "社群分析"],
   "topics": ["Origins", "Dcard", "Skin Care"],
-  "dikw_level": "knowledge"
+  "dikw_level": "information"
 }
 \`\`\`
 `;
@@ -93,7 +99,8 @@ You are a "Strategic Analyst AI". Your goal is to determine which analytical fra
 1. Read the document content.
 2. Select the **top 3-5 most relevant frameworks** that can structurize the key insights of this document.
 3. If the document is very simple, you may select fewer (1-2).
-4. If no framework fits well (e.g., just a meeting agenda or simple log), return an empty list.
+4. **Self-Identification**: If the document title or content directly mentions a framework name (e.g. "Persona Report"), you MUST select that framework.
+5. If no framework fits well (e.g., just a meeting agenda or simple log), return an empty list.
 
 **Output:**
 Return a JSON object containing an array of selected frameworks.

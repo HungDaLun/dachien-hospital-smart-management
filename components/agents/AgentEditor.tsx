@@ -74,6 +74,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         mcp_config: (initialData as any)?.mcp_config || '{}',
     });
 
+    const [fileNames, setFileNames] = useState<Record<string, string>>({});
+
     const [newTag, setNewTag] = useState({ key: '', value: '' });
     const [newDept, setNewDept] = useState(''); // State for new department rule
     const [showFilePicker, setShowFilePicker] = useState(false); // File picker modal state
@@ -90,6 +92,33 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 .catch(console.error);
         }
     }, [isEditing, formData.id]);
+
+    // 取得檔案名稱映射
+    useEffect(() => {
+        const fetchFileNames = async () => {
+            if (!formData.knowledge_files || formData.knowledge_files.length === 0) return;
+
+            const missingIds = formData.knowledge_files.filter(id => !fileNames[id]);
+            if (missingIds.length === 0) return;
+
+            try {
+                // 這裡我們暫時重用 /api/files 取得所有檔案資訊來進行映射
+                const res = await fetch('/api/files');
+                const data = await res.json();
+                if (data.success) {
+                    const mapping: Record<string, string> = { ...fileNames };
+                    data.data.forEach((f: any) => {
+                        mapping[f.id] = f.filename;
+                    });
+                    setFileNames(mapping);
+                }
+            } catch (error) {
+                console.error('Failed to fetch file names:', error);
+            }
+        };
+
+        fetchFileNames();
+    }, [formData.knowledge_files]);
 
     const fetchVersions = async () => {
         if (!formData.id) return;
@@ -159,24 +188,38 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     };
 
     const handleArchitectApply = (blueprint: any) => {
-        setFormData(prev => ({
-            ...prev,
-            name: blueprint.name,
-            description: blueprint.description,
-            system_prompt: blueprint.system_prompt,
-            knowledge_rules: [
-                ...(prev.knowledge_rules || []),
-                ...(blueprint.suggested_knowledge_rules || [])
-            ],
-            knowledge_files: [
-                ...(prev.knowledge_files || []),
-                ...(blueprint.suggested_knowledge_files || [])
-            ],
-            // Merge or set MCP config if suggested
-            mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
-                ? JSON.stringify(blueprint.mcp_config, null, 2)
-                : prev.mcp_config
-        }));
+        setFormData(prev => {
+            // Deduplicate knowledge rules
+            const existingRules = prev.knowledge_rules || [];
+            const suggestedRules = blueprint.suggested_knowledge_rules || [];
+            const mergedRules = [...existingRules];
+
+            suggestedRules.forEach((sRule: any) => {
+                const exists = mergedRules.some(r =>
+                    r.rule_type === sRule.rule_type &&
+                    r.rule_value === sRule.rule_value
+                );
+                if (!exists) mergedRules.push(sRule);
+            });
+
+            // Deduplicate knowledge files
+            const existingFiles = prev.knowledge_files || [];
+            const suggestedFiles = blueprint.suggested_knowledge_files || [];
+            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFiles]));
+
+            return {
+                ...prev,
+                name: blueprint.name || prev.name,
+                description: blueprint.description || prev.description,
+                system_prompt: blueprint.system_prompt || prev.system_prompt,
+                knowledge_rules: mergedRules,
+                knowledge_files: mergedFiles,
+                // Merge or set MCP config if suggested
+                mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
+                    ? JSON.stringify(blueprint.mcp_config, null, 2)
+                    : prev.mcp_config
+            };
+        });
     };
 
     const removeRule = (index: number) => {
@@ -223,7 +266,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             let payload = { ...formData };
             try {
                 if (typeof payload.mcp_config === 'string') {
-                    JSON.parse(payload.mcp_config); // Validate
+                    payload.mcp_config = JSON.parse(payload.mcp_config); // Parse to object
                 }
             } catch (e) {
                 throw new Error('Invalid JSON in Skills Configuration');
@@ -447,7 +490,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                             key={idx}
                                             className="bg-emerald-50 text-emerald-700 border border-emerald-200"
                                         >
-                                            📄 檔案 ID: {fileId.slice(0, 8)}...
+                                            📄 {fileNames[fileId] || `檔案 ID: ${fileId.slice(0, 8)}...`}
                                             <button
                                                 type="button"
                                                 onClick={() => setFormData(prev => ({
@@ -629,6 +672,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             {/* 將 AI 架構師移到表單外部，避免 Enter 事件干擾主表單 */}
             <ArchitectChat
                 onApply={handleArchitectApply}
+                currentState={formData}
                 dict={dict}
             />
 

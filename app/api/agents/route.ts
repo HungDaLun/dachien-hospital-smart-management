@@ -58,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     const adminSupabase = await createAdminClient();
 
     const body = await request.json();
-    const { name, description, system_prompt, model_version, temperature } = body;
+    const { name, description, system_prompt, model_version, temperature, knowledge_files, mcp_config } = body;
 
     // 驗證必填欄位
     if (!name || !system_prompt || !model_version) {
@@ -77,6 +77,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         system_prompt,
         model_version,
         temperature: temperature ?? 0.7,
+        knowledge_files: knowledge_files || [],
+        mcp_config: mcp_config || {},
         department_id: profile.role === 'DEPT_ADMIN' ? profile.department_id : (body.department_id || null),
         created_by: profile.id,
       })
