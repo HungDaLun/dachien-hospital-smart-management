@@ -1,7 +1,7 @@
 /**
  * 新建 Agent 頁面
  */
-import AgentEditor from '@/components/agents/AgentEditor';
+import NewAgentFlow from '@/components/agents/NewAgentFlow';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -16,7 +16,7 @@ export default async function NewAgentPage() {
                 <p className="text-gray-600">{dict.dashboard_home.agent_card_desc}</p>
             </div>
 
-            <AgentEditor dict={dict} />
+            <NewAgentFlow dict={dict} />
         </div>
     );
 }
