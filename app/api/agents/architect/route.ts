@@ -19,16 +19,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Intent is required' }, { status: 400 });
         }
 
-        // 1. Fetch available "Knowledge Assets" (Simplified RAG for Metadata)
-        // In a real scenario, we search vector DB. For now, we list recent files.
+        // 1. Fetch available "Knowledge Assets" (包含完整 Metadata)
         const { data: recentFiles } = await supabase
             .from('files')
-            .select('id, filename, file_tags(tag_key, tag_value)')
-            .limit(20);
+            .select('id, filename, metadata_analysis, file_tags(tag_key, tag_value)')
+            .limit(30);
 
-        const fileList = recentFiles?.map(f =>
-            `- [${f.filename}] (ID: ${f.id}) Tags: ${f.file_tags.map((t: any) => `${t.tag_key}:${t.tag_value}`).join(', ')}`
-        ).join('\n') || "No files available.";
+        const fileList = recentFiles?.map(f => {
+            const meta = f.metadata_analysis || {};
+            return `- [${f.filename}] (ID: ${f.id})
+  標題: ${meta.title || '無'}
+  摘要: ${meta.summary || '無'}
+  標籤: ${f.file_tags?.map((t: any) => `${t.tag_key}:${t.tag_value}`).join(', ') || '無'}
+  DIKW層級: ${meta.governance?.dikw_level || '無'}
+  框架類型: ${meta.governance?.artifact || '無'}`;
+        }).join('\n\n') || "No files available.";
 
         // 2. Meta-Prompting for "Agent Architect"
         const metaPrompt = `
@@ -47,14 +52,19 @@ export async function POST(request: NextRequest) {
     Generate a JSON response with the following structure:
     {
       "name": "Suggest a professional name for the agent",
-      "description": "Short description",
+      "description": "Short description (2-3 sentences)",
       "system_prompt": "The full, professional system prompt following K-0 standards",
       "suggested_knowledge_rules": [
-        { "rule_type": "TAG", "rule_value": "suggested_tag" },
-        { "rule_type": "DEPARTMENT", "rule_value": "suggested_dept" }
+        { "rule_type": "TAG", "rule_value": "Product:Origins" },
+        { "rule_type": "DEPARTMENT", "rule_value": "Marketing" }
       ],
-      "suggested_file_ids": ["id1", "id2"]
+      "suggested_knowledge_files": ["uuid-1", "uuid-2", "uuid-3"]
     }
+
+    **IMPORTANT**:
+    - For "suggested_knowledge_files", ONLY include file IDs from the "Available Knowledge Assets" list above
+    - Prioritize files with DIKW level = "knowledge" or "wisdom"
+    - Select 3-7 most relevant files based on the user's intent
 
     **System Prompt Guidelines (K-0 Standard)**:
     1.  **Role & Mission**: Define clearly who the agent is.

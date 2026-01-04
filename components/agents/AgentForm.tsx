@@ -10,6 +10,7 @@ import { Button, Input, Textarea, Select, Modal } from '@/components/ui';
 import type { AgentData } from './AgentCard';
 import { getCategories, getDepartments } from '@/lib/actions/taxonomy';
 import { DocumentCategory } from '@/types';
+import TemplateSelector from './TemplateSelector';
 
 /**
  * Agent 表單屬性
@@ -43,6 +44,10 @@ const temperatureOptions = [
 export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFormProps) {
     const isEditing = !!agent;
 
+    // 步驟狀態: 0 = Template Selection, 1 = Edit Details
+    // 如果是編輯模式，直接跳到步驟 1
+    const [step, setStep] = useState(isEditing ? 1 : 0);
+
     // 表單狀態
     const [name, setName] = useState(agent?.name || '');
     const [description, setDescription] = useState(agent?.description || '');
@@ -67,6 +72,7 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
      * 重置表單
      */
     const resetForm = () => {
+        setStep(agent ? 1 : 0);
         setName('');
         setDescription('');
         setSystemPrompt('');
@@ -78,14 +84,46 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
         setError(null);
     };
 
+    /**
+     * 當選擇模板時
+     */
+    const handleTemplateSelect = (template: any) => {
+        setName(template.name); // 預設使用模板名稱，使用者可改
+        setDescription(template.description);
+        setSystemPrompt(template.system_prompt_template);
+
+        // 解析並填入建議的知識規則
+        const rules: any[] = [];
+        if (template.recommended_knowledge?.required_categories) {
+            template.recommended_knowledge.required_categories.forEach((catName: string) => {
+                const cat = categories.find(c => c.name === catName);
+                if (cat) {
+                    rules.push({ rule_type: 'CATEGORY', rule_value: cat.id });
+                }
+            });
+        }
+
+        // 這裡可以加入更多邏輯來處理 frameworks
+
+        setKnowledgeRules(rules);
+        setStep(1); // 前進到下一步
+    };
+
     useEffect(() => {
+        if (!isOpen) return;
+
         const fetchOptions = async () => {
             const [catRes, deptRes] = await Promise.all([getCategories(), getDepartments()]);
             if (catRes.data) setCategories(catRes.data);
             if (deptRes.data) setDepartments(deptRes.data);
         };
-        if (isOpen) fetchOptions();
-    }, [isOpen]);
+        fetchOptions();
+
+        // 重置步驟
+        if (!agent) setStep(0);
+        else setStep(1);
+
+    }, [isOpen, agent]);
 
     const addRule = () => {
         if (!newRuleValue) return;
@@ -160,6 +198,24 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
         }
     };
 
+    // Step 0: 模板選擇
+    if (step === 0 && !isEditing) {
+        return (
+            <Modal
+                isOpen={isOpen}
+                onClose={handleClose}
+                title="" // 隱藏標題，由 TemplateSelector 自己管理
+                size="xl"
+            >
+                <TemplateSelector
+                    onSelect={handleTemplateSelect}
+                    onSkip={() => setStep(1)}
+                />
+            </Modal>
+        );
+    }
+
+    // Step 1: 編輯詳情 (原本的表單)
     return (
         <Modal
             isOpen={isOpen}
@@ -283,7 +339,7 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
                             <div key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-gray-200 text-sm">
                                 <div className="flex items-center gap-2">
                                     <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${rule.rule_type === 'DEPARTMENT' ? 'bg-purple-100 text-purple-700' :
-                                            rule.rule_type === 'CATEGORY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                        rule.rule_type === 'CATEGORY' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
                                         }`}>
                                         {rule.rule_type}
                                     </span>
@@ -304,6 +360,11 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
 
                 {/* 操作按鈕 */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                    {!isEditing && (
+                        <Button type="button" variant="ghost" onClick={() => setStep(0)}>
+                            ← 上一步
+                        </Button>
+                    )}
                     <Button type="button" variant="ghost" onClick={handleClose}>
                         取消
                     </Button>

@@ -8,6 +8,77 @@
 
 ---
 
+## 📋 核心技術策略 (2026-01-04 更新)
+
+### 🎯 技術診斷結論
+
+基於 EAKAP 核心問題分析報告 (2026-01-04),本專案已具備**非常前瞻的設計理念**,但需要在以下三個關鍵環節進行升級:
+
+1. **語義中介層 (Semantic Middleware)** → 解決「AI 如何精準選擇檔案」
+2. **Agent 模板庫 (Agent Templates)** → 降低建置門檻,提升易用性
+3. **DIKW 層級化 (DIKW Leveling)** → 讓視覺化不只是好看,而是有實質治理意義
+
+### 🚀 技術升級路線圖
+
+#### Phase 1: 語義搜尋基礎建設 (最高優先級) 🔥
+**投資報酬率:** ⭐⭐⭐⭐⭐ | **預估工作量:** 2-3 週
+
+- [x] 啟用 Supabase pgvector Extension
+- [x] 修改 Ingestion Pipeline (新增 Embedding 步驟)
+- [x] 建立 `search_knowledge_by_embedding` SQL Function
+- [x] 修改 Architect API 使用語義搜尋
+- [ ] 前端優化:顯示「推薦原因」(相似度分數)
+
+**技術要點:**
+- 使用 Gemini `text-embedding-004` API (768 維向量)
+- 建立 HNSW 索引提升查詢效能
+- 結合 Metadata Filter (department, DIKW level) 精準篩選
+
+**成功指標:**
+- AI 推薦檔案相關性 > 80%
+- 平均推薦時間 < 3 秒
+
+#### Phase 2: Agent 模板庫 (次高優先級) 🎯
+**投資報酬率:** ⭐⭐⭐⭐ | **預估工作量:** 2 週
+
+- [x] 設計 `agent_templates` 表結構
+- [x] 建立 10 個內建模板 (Marketing, Sales, Support, HR, Legal, R&D)
+- [x] 修改 Agent Factory UI (Step 0: 選擇模板)
+- [ ] 實作「模板匯入/匯出」功能 (JSON/YAML) (Backlog)
+- [ ] 定義 EAKAP Skills 標準 (MCP-Compatible)
+
+**成功指標:**
+- 80% 使用者選擇「使用模板」
+- Agent 建置時間從 30 分鐘降至 < 5 分鐘
+
+#### Phase 3: DIKW 層級強化 (中優先級) 📊
+**投資報酬率:** ⭐⭐⭐ | **預估工作量:** 1 週
+
+- [ ] 新增 `files.dikw_level` 欄位
+- [ ] 修改 Mapper Agent 自動判斷 DIKW 層級
+- [ ] 視覺化升級:星系圖用「軌道高度」區分層級
+- [ ] 搜尋過濾:讓使用者可指定「只看 Wisdom 層級檔案」
+
+**成功指標:**
+- 90% 檔案被正確分類到 DIKW 層級
+- 使用者查詢速度提升 50%
+
+#### Phase 4: Skills 整合與 MCP 支援 (長期規劃) 🛒
+**投資報酬率:** ⭐⭐⭐⭐ (長期) | **預估工作量:** 4-6 週
+
+- [ ] 定義 EAKAP Skills 標準 (YAML/JSON Schema)
+- [ ] 實作「Skills 匯入器」(支援 Claude/Gemini/OpenAI/HuggingFace)
+- [ ] 建立「Skills 編輯器」(視覺化 Prompt 編輯)
+- [ ] 整合 MCP (Model Context Protocol) 標準
+- [ ] 開發「Skills Marketplace」(社群分享)
+
+**技術要點:**
+- 支援跨平台 Skills 轉換 (Claude Skills → EAKAP Skills)
+- MCP Tools 與 Gemini Function Calling 整合
+- 自動對映外部 Skills 到 knowledge_frameworks
+
+---
+
 ## 📋 開發進度追蹤
 
 ### ✅ 已完成項目
@@ -79,7 +150,29 @@
 - [x] **Dashboard Analytics**:
   - [x] System Stats Aggregation (Users/Files/Agents)
   - [x] Visual Charts (Recharts Integration)
+  - [x] Visual Charts (Recharts Integration)
   - [x] Activity Feed Integration
+
+#### 語義搜尋基礎建設 (Phase 1) ✅
+- [x] **Vector Database**:
+  - [x] 啟用 `pgvector` extension
+  - [x] `files.content_embedding` (768d) 欄位與 HNSW Index
+- [x] **Embedding Pipeline**:
+  - [x] `lib/knowledge/embedding.ts`: 整合 Gemini `text-embedding-004`
+  - [x] Ingestion 自動化: 上傳時自動計算向量
+- [x] **Semantic Search API**:
+  - [x] PostgreSQL RPC `search_knowledge_by_embedding`
+  - [x] `/api/agents/recommend-knowledge`: 支援基於意圖的檔案推薦
+
+#### Agent 模板庫 (Phase 2) ✅
+- [x] **Template System**:
+  - [x] `agent_templates` table & seed data (10 built-in templates)
+  - [x] 支援 Handlebars 語法 System Prompt (`{{variable}}`)
+  - [x] 支援 `recommended_knowledge` 規則定義
+- [x] **Agent Factory 3.0**:
+  - [x] 新增 Step 0: Template Selection UI
+  - [x] 自動填入 System Prompt 與 Knowledge Rules
+  - [x] 整合 `@heroicons/react` 顯示模板圖示
 
 ---
 

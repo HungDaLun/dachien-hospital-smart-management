@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         // 1. Fetch Files (Data Layer)
         let filesQuery = supabase
             .from('files')
-            .select('id, filename, mime_type, created_at, metadata_analysis, department_id')
+            .select('id, filename, mime_type, created_at, metadata_analysis, department_id, dikw_level')
             .eq('is_active', true)
             .eq('gemini_state', 'SYNCED');
 
@@ -106,7 +106,8 @@ export async function GET(request: NextRequest) {
                 label: file.filename,
                 data: {
                     mimeType: file.mime_type,
-                    metadata: file.metadata_analysis
+                    metadata: file.metadata_analysis,
+                    dikwLevel: file.dikw_level || 'data' // Pass the DB level, default to data
                 }
             });
         });

@@ -19,6 +19,7 @@ interface ArchitectResponse {
     description: string;
     system_prompt: string;
     suggested_knowledge_rules: { rule_type: 'TAG' | 'DEPARTMENT'; rule_value: string }[];
+    suggested_knowledge_files?: string[];  // 新增：推薦的檔案 ID 列表
 }
 
 interface ChatMessage {
@@ -293,23 +294,48 @@ export default function ArchitectChat({ onApply, departmentContext, dict }: Arch
                                                 </div>
                                             </div>
 
-                                            {/* 知識庫綁定 */}
+                                            {/* 知識庫來源 */}
                                             <div className="space-y-1">
-                                                <label className="text-xs font-semibold text-gray-500">{t.knowledge_bindings}</label>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {msg.blueprint.suggested_knowledge_rules.length > 0 ? (
-                                                        msg.blueprint.suggested_knowledge_rules.map((rule, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                className="px-2 py-1 bg-violet-50 text-violet-700 rounded text-xs border border-violet-100 font-medium"
-                                                            >
-                                                                {rule.rule_type === 'DEPARTMENT' ? '🏢' : '🏷️'} {rule.rule_value}
-                                                            </span>
-                                                        ))
-                                                    ) : (
-                                                        <span className="text-gray-400 text-xs italic">{t.no_bindings}</span>
+                                                <label className="text-xs font-semibold text-gray-500">建議知識來源</label>
+
+                                                {/* 推薦檔案 */}
+                                                {msg.blueprint.suggested_knowledge_files && msg.blueprint.suggested_knowledge_files.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs text-gray-500">📄 已選檔案</p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {msg.blueprint.suggested_knowledge_files.map((_fileId, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-100 font-medium"
+                                                                >
+                                                                    📄 檔案 {idx + 1}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 動態規則 */}
+                                                {msg.blueprint.suggested_knowledge_rules && msg.blueprint.suggested_knowledge_rules.length > 0 && (
+                                                    <div className="space-y-1 mt-2">
+                                                        <p className="text-xs text-gray-500">🔧 動態規則</p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {msg.blueprint.suggested_knowledge_rules.map((rule, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="px-2 py-1 bg-violet-50 text-violet-700 rounded text-xs border border-violet-100 font-medium"
+                                                                >
+                                                                    {rule.rule_type === 'DEPARTMENT' ? '🏢' : '🏷️'} {rule.rule_value}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {(!msg.blueprint.suggested_knowledge_files || msg.blueprint.suggested_knowledge_files.length === 0) &&
+                                                    (!msg.blueprint.suggested_knowledge_rules || msg.blueprint.suggested_knowledge_rules.length === 0) && (
+                                                        <span className="text-gray-400 text-xs italic">無建議來源</span>
                                                     )}
-                                                </div>
                                             </div>
 
                                             {/* 系統提示詞預覽 */}

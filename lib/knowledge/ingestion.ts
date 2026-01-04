@@ -14,6 +14,7 @@ import {
     generateContent,
     retryWithBackoff
 } from '@/lib/gemini/client';
+import { generateEmbedding } from './embedding';
 import { downloadFromS3 } from '@/lib/storage/s3';
 import { MARKDOWN_CONVERSION_PROMPT, METADATA_ANALYSIS_PROMPT } from './prompts';
 import { autoMapDocumentToFrameworks } from './mapper';
@@ -111,11 +112,23 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
             metadata = { raw_analysis: cleanedJsonString };
         }
 
+        // 5.5 生成 Embedding
+        await supabase.from('files').update({ markdown_content: `DEBUG: Generating Embedding...` }).eq('id', fileId);
+        let embedding: number[] | null = null;
+        try {
+            embedding = await generateEmbedding(markdown);
+        } catch (embErr) {
+            console.error('[Ingestion] Embedding generation failed:', embErr);
+            // Non-blocking failure
+        }
+
         // 6. 寫回資料庫
         await supabase.from('files').update({
             markdown_content: markdown,
             metadata_analysis: metadata,
+            content_embedding: embedding,
             gemini_state: 'NEEDS_REVIEW', // Enforce Human-in-the-Loop
+            dikw_level: metadata.dikw_level || 'data', // Default to 'data' if analysis fails to return level
         }).eq('id', fileId);
 
         // 7. 自動寫入標籤

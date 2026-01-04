@@ -182,8 +182,9 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
 
             // Format nodes for React Flow - DIKW 配色與神經脈動動畫
             const apiNodes = data.nodes.map((n: any) => {
-                const dikwLevel = getDIKWLevel(n.type);
-                const colors = DIKW_COLORS[dikwLevel];
+                // Use the level from DB (n.data.dikwLevel) if available, otherwise fallback to type-based inference
+                const dikwLevel = n.data?.dikwLevel || getDIKWLevel(n.type);
+                const colors = DIKW_COLORS[dikwLevel as keyof typeof DIKW_COLORS] || DIKW_COLORS.data;
 
                 // 為節點添加層級標記
                 return {

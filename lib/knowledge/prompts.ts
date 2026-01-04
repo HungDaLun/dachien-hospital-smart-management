@@ -52,6 +52,12 @@ Return a valid JSON object with the following fields:
 
 6. \`topics\`: Array of specific entities or subjects mentioned in the text.
 
+7. \`dikw_level\`: Classify the content into one of the following levels (lowercase):
+   - \`data\`: Raw meetings logs, simple tables, unprocessed facts.
+   - \`information\`: Structured reports, summaries, organized facts.
+   - \`knowledge\`: Analysis, insights, frameworks (e.g. SWOT, Persona), causal relationships.
+   - \`wisdom\`: Principles, SOPs, policies, best practices, strategic advice.
+
 **Example JSON Response:**
 \`\`\`json
 {
@@ -67,7 +73,8 @@ Return a valid JSON object with the following fields:
     "confidence": "high"
   },
   "tags": ["使用者畫像", "品木宣言", "社群分析"],
-  "topics": ["Origins", "Dcard", "Skin Care"]
+  "topics": ["Origins", "Dcard", "Skin Care"],
+  "dikw_level": "knowledge"
 }
 \`\`\`
 `;

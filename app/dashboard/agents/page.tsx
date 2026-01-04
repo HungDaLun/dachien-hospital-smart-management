@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Button, Card, Badge } from '@/components/ui';
 import Link from 'next/link';
-import { AgentStatsCards } from '@/components/agents/AgentStatsCards';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -51,9 +50,6 @@ export default async function AgentsPage() {
                     </Button>
                 </Link>
             </div>
-
-            {/* 統計卡片 */}
-            <AgentStatsCards dict={dict} />
 
             {/* Agent 列表 */}
             {(!agents || agents.length === 0) ? (
