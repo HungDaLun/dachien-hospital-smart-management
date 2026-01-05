@@ -80,6 +80,48 @@ const getStatusConfig = (state: string, dict: Dictionary) => {
 };
 
 /**
+ * File processing progress component
+ * Simulates progress based on elapsed time since creation
+ */
+const ProcessingProgress = ({ createdAt, label }: { createdAt: string; label: string }) => {
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        // Calculate initial progress based on time elapsed
+        // Assume typical processing takes ~20s for analysis + embedding
+        const elapsed = Date.now() - new Date(createdAt).getTime();
+        const startPercent = Math.min(90, Math.max(5, (elapsed / 20000) * 100));
+        setProgress(startPercent);
+
+        const interval = setInterval(() => {
+            setProgress((p) => {
+                if (p >= 95) return p;
+                // Logarithmic-like slowdown
+                const increment = p < 50 ? 5 : p < 80 ? 2 : 0.5;
+                return Math.min(95, p + increment);
+            });
+        }, 800);
+
+        return () => clearInterval(interval);
+    }, [createdAt]);
+
+    return (
+        <div className="flex flex-col items-center justify-center w-24 gap-1">
+            <div className="flex justify-between w-full px-0.5">
+                <span className="text-[10px] font-bold text-indigo-600 animate-pulse">{label}</span>
+                <span className="text-[10px] font-mono text-indigo-500">{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-indigo-50 rounded-full overflow-hidden border border-indigo-100">
+                <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+        </div>
+    );
+};
+
+/**
  * 檔案清單元件
  */
 export default function FileList({ canManage, dict, refreshTrigger = 0, initialFiles, initialTotal }: FileListProps) {
@@ -665,9 +707,14 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                         </button>
                                                         <span className="text-[11px] text-gray-400 mt-1">
                                                             {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
-                                                            {file.decay_status && file.decay_status !== 'fresh' && (
-                                                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${file.decay_status === 'expired' ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                                                                    {file.decay_status === 'expired' ? 'EXPIRED' : 'DECAYING'}
+                                                            {file.decay_status && (
+                                                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${file.decay_status === 'expired' ? 'bg-red-100 text-red-600 border border-red-200' :
+                                                                        file.decay_status === 'decaying' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                                                                            'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                                                    }`}>
+                                                                    {file.decay_status === 'expired' ? (dict.knowledge.status_expired || 'EXPIRED') :
+                                                                        file.decay_status === 'decaying' ? (dict.knowledge.status_decaying || 'DECAYING') :
+                                                                            (dict.knowledge.status_fresh || 'FRESH')}
                                                                 </span>
                                                             )}
                                                         </span>
@@ -746,9 +793,17 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                             </td>
                                             <td className="p-4 align-top text-center">
                                                 <div className="flex flex-col items-center gap-2">
-                                                    <Badge variant={statusStart.variant} dot={statusStart.dot} size="sm" className="whitespace-nowrap shrink-0">
-                                                        {statusStart.label}
-                                                    </Badge>
+
+                                                    {file.gemini_state === 'PROCESSING' ? (
+                                                        <ProcessingProgress
+                                                            createdAt={file.created_at}
+                                                            label={dict?.knowledge?.status_processing || '處理中'}
+                                                        />
+                                                    ) : (
+                                                        <Badge variant={statusStart.variant} dot={statusStart.dot} size="sm" className="whitespace-nowrap shrink-0">
+                                                            {statusStart.label}
+                                                        </Badge>
+                                                    )}
                                                     {file.gemini_state === 'NEEDS_REVIEW' && canManage && (
                                                         <button
                                                             onClick={(e) => {

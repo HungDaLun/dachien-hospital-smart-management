@@ -34,8 +34,8 @@ Analyze the provided document and generate standardized metadata for enterprise-
 Return a valid JSON object with the following fields:
 
 1. \`suggested_filename\`: Standardized filename following EAKAP naming convention.
-   - Format: \`[Dept]-[Type]-[Subject]-[Version]\` (e.g., \`PROD-Policy-Maintenance_SOP-v2024.md\`)
-   - Use English letters, numbers, hyphens only. NO Chinese characters.
+   - Format: \`[Dept]-[Type]-[Subject]-[Version]\` (e.g., \`行銷-人物誌-品木宣言_使用者-v2025.md\`)
+   - **Important**: If the content is in Chinese, you MUST use **Traditional Chinese (繁體中文)** for the filename segments. Do not use English unless the term is a proper noun or code.
 
 2. \`title\`: Clear human-readable title in Traditional Chinese (繁體中文).
 

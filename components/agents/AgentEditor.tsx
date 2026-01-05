@@ -76,10 +76,21 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
     const [fileNames, setFileNames] = useState<Record<string, string>>({});
     const [allFiles, setAllFiles] = useState<any[]>([]); // Store all files for name->uuid lookup
+    const [departments, setDepartments] = useState<any[]>([]); // New: Store available departments
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
     const [newDept, setNewDept] = useState(''); // State for new department rule
     const [showFilePicker, setShowFilePicker] = useState(false); // File picker modal state
+
+    // Fetch departments on mount
+    useEffect(() => {
+        fetch('/api/departments')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) setDepartments(data.data);
+            })
+            .catch(console.error);
+    }, []);
 
     // Fetch Stats & Versions if editing
     useEffect(() => {
@@ -537,7 +548,11 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                             <summary className="cursor-pointer text-sm font-semibold text-gray-700 hover:text-primary-600 transition-colors mb-2">
                                 🔧 進階：動態規則（選用）
                             </summary>
-                            <div className="mt-3 space-y-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="mt-3 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="text-xs text-gray-500 mb-2">
+                                    設定動態規則後，Agent 將能自動存取資料庫中符合條件的所有檔案（包含未來新增的檔案）。
+                                </div>
+
                                 {/* 已設定的規則 */}
                                 {formData.knowledge_rules && formData.knowledge_rules.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-3">
@@ -563,29 +578,31 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 )}
 
                                 {/* Tag 規則輸入 */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500">依標籤綁定</label>
+                                <div className="space-y-2 pb-2 border-b border-gray-200">
+                                    <label className="text-xs font-semibold text-gray-700">📌 依標籤綁定 (Metadata)</label>
+                                    <p className="text-[10px] text-gray-400">例如：鍵=Product, 值=Origins，將匯入所有產品原始資料。</p>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            placeholder="鍵（例如：Product）"
+                                            placeholder="標籤類別 (Key) - 例如：Product"
                                             value={newTag.key}
                                             onChange={(e) => setNewTag(prev => ({ ...prev, key: e.target.value }))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
                                         />
                                         <input
                                             type="text"
-                                            placeholder="值（例如：Origins）"
+                                            placeholder="標籤內容 (Value) - 例如：Origins"
                                             value={newTag.value}
                                             onChange={(e) => setNewTag(prev => ({ ...prev, value: e.target.value }))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
                                         />
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="text-xs px-2"
+                                            className="text-xs px-3"
                                             onClick={addTagRule}
+                                            disabled={!newTag.key || !newTag.value}
                                         >
                                             新增
                                         </Button>
@@ -594,21 +611,28 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
                                 {/* Department 規則輸入 */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-500">依部門綁定</label>
+                                    <label className="text-xs font-semibold text-gray-700">🏢 依部門直接綁定</label>
+                                    <p className="text-[10px] text-gray-400">選擇部門後，該部門所有的文件將自動授權給此 Agent 使用。</p>
                                     <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="部門名稱（例如：財務部）"
+                                        <select
                                             value={newDept}
                                             onChange={(e) => setNewDept(e.target.value)}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
-                                        />
+                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
+                                        >
+                                            <option value="">-- 請選擇部門 --</option>
+                                            {departments.map(dept => (
+                                                <option key={dept.id} value={dept.name}>
+                                                    {dept.name} ({dept.code})
+                                                </option>
+                                            ))}
+                                        </select>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="text-xs px-2"
+                                            className="text-xs px-3"
                                             onClick={addDeptRule}
+                                            disabled={!newDept}
                                         >
                                             新增
                                         </Button>
@@ -619,7 +643,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     </Card>
 
                     {/* 外部工具與技能 (MCP) */}
-                    <Card>
+                    {/* 外部工具與技能 (MCP) - 暫時隱藏
+                    {/* <Card>
                         <div className="mb-4">
                             <h3 className="text-lg font-semibold text-gray-900">外部工具與技能 (Skills / MCP)</h3>
                             <p className="text-sm text-gray-500 mt-1">
@@ -649,7 +674,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 }`}
                             />
                         </div>
-                    </Card>
+                    </Card> */}
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-100">
