@@ -34,8 +34,10 @@ Analyze the provided document and generate standardized metadata for enterprise-
 Return a valid JSON object with the following fields:
 
 1. \`suggested_filename\`: Standardized filename following EAKAP naming convention.
-   - Format: \`[Dept]-[Type]-[Subject]-[Version]\` (e.g., \`行銷-人物誌-品木宣言_使用者-v2025.md\`)
-   - **Important**: If the content is in Chinese, you MUST use **Traditional Chinese (繁體中文)** for the filename segments. Do not use English unless the term is a proper noun or code.
+   - Format: \`[Dept]-[Type]-[Subject]-[Version]\`
+   - **STRICT RULE**: Use ONLY hyphens (\`-\`) as separators. **DO NOT use underscores (\`_\`) or spaces anywhere.**
+   - **Language**: Use **Traditional Chinese (繁體中文)**. The [Subject] must be a concise, continuous phrase (e.g., \`品木宣言使用者研究\`, NOT \`品木宣言_使用者_研究\`).
+   - Example: \`行銷-人物誌-品木宣言使用者研究-v20250101.md\`
 
 2. \`title\`: Clear human-readable title in Traditional Chinese (繁體中文).
 
@@ -66,7 +68,7 @@ Return a valid JSON object with the following fields:
 **Example JSON Response:**
 \`\`\`json
 {
-  "suggested_filename": "MK-Persona-Origins_Users-v2025.md",
+  "suggested_filename": "行銷-人物誌-品木宣言使用者畫像-v20250101.md",
   "title": "品木宣言使用者畫像研究報告",
   "summary": "本文件透過社群大數據分析，識別出三類核心保養客群及其行為模式，為品牌提供精準行銷策略建議。",
   "category_suggestion": "市場研究報告",

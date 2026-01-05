@@ -224,36 +224,15 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
     }, [page, search, statusFilter, deptFilter, typeFilter, dict.common.error, pageSize]);
 
     // Initial load & Refresh
+    // Initial load & Filter Changes
     useEffect(() => {
-        // If we have initial files and this is the FIRST render (loading is false because of initial state), 
-        // AND refreshTrigger is 0 (initial), skip fetch.
-        // But if refreshTrigger changes, we MUST fetch.
-        // We use a ref or just logic: if we have files and no filters changed, maybe we don't need to fetch immediately?
-        // Actually simplest is: if initialFiles is passed, we mounted with data.
-        // But if the user navigates back (via browser back), we might want to refetch?
-        // For "Instant" feel, we rely on the initial state. 
-        // We should only fetch if we DON'T have files (which we handle in useState) OR if filters/page change.
-
-        // This effect runs on mount (deps changed).
-        // On mount: files = initialFiles.
-        // We warn: if we have initialFiles, we shouldn't re-fetch immediately.
-
-        // Let's modify fetchFiles logic or this effect.
-        // A common pattern:
-        // if (initialFiles && page === 1 && !search && !statusFilter...) { /* skip */ }
-
-        // However, the cleanest way is often to let the effect run but check a "mounted" flag or just rely on the fact 
-        // that Next.js component reconcilation is fast.
-        // But the user complained about "1 second delay".
-        // The previous code had `fetchFiles(false)` in useEffect which sets loading=true then fetches.
-        // We want to avoid that "flash" of loading if possible.
-
+        // Initial state check - prevent refetching if we have SSR data
         const isInitialState = initialFiles && page === 1 && !search && !statusFilter && !deptFilter && !typeFilter && refreshTrigger === 0;
 
         if (isInitialState && files.length > 0) {
             // Do NOT fetch. We effectively "hydrated" the data.
-            // But we still need to set actualDepartments
         } else {
+            // Standard fetch for page/filter changes (Shows loading spinner)
             fetchFiles(false);
         }
 
@@ -263,7 +242,14 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             .then(res => {
                 if (res.success) setActualDepartments(res.data);
             });
-    }, [fetchFiles, refreshTrigger, search, statusFilter, deptFilter, typeFilter, page, initialFiles, files.length]);
+    }, [fetchFiles, search, statusFilter, deptFilter, typeFilter, page, initialFiles]);
+
+    // Handle Refresh Trigger (Silent Update for Uploads/Actions)
+    useEffect(() => {
+        if (refreshTrigger > 0) {
+            fetchFiles(true); // Silent fetch without spinner
+        }
+    }, [refreshTrigger, fetchFiles]);
 
     // Polling for active states
     useEffect(() => {
@@ -709,8 +695,8 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                             {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
                                                             {file.decay_status && (
                                                                 <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${file.decay_status === 'expired' ? 'bg-red-100 text-red-600 border border-red-200' :
-                                                                        file.decay_status === 'decaying' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                                                                            'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                                                    file.decay_status === 'decaying' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                                                                        'bg-emerald-50 text-emerald-600 border border-emerald-200'
                                                                     }`}>
                                                                     {file.decay_status === 'expired' ? (dict.knowledge.status_expired || 'EXPIRED') :
                                                                         file.decay_status === 'decaying' ? (dict.knowledge.status_decaying || 'DECAYING') :
