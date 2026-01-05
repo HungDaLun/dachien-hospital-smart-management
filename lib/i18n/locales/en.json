@@ -282,7 +282,12 @@
             "storage_warning": "⚠️ Storage settings must be set via environment variables"
         },
         "analytics": {
-            "title": "Platform Analytics"
+            "title": "Platform Analytics",
+            "knowledge_growth": "Knowledge Growth (7 Days)",
+            "agent_distribution": "Agent Model Distribution",
+            "recent_activity": "Recent System Activity",
+            "view_all": "View All",
+            "no_activity": "No recent activity"
         },
         "management_console": "Management Console",
         "agents": {

@@ -9,8 +9,8 @@ import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
-import { Card } from '@/components/ui';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
+import { getSystemStats } from '@/lib/actions/analytics';
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -27,98 +27,83 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
+  // Server-side fetch data
+  const statsResult = await getSystemStats();
+  const stats = statsResult.data;
+
+  // 按鈕設定
+  const quickActions = [
+    {
+      href: "/dashboard/admin/departments",
+      icon: "🏢",
+      title: dict.navigation.departments,
+      subtitle: dict.admin.departments.subtitle
+    },
+    {
+      href: "/dashboard/admin/taxonomy",
+      icon: "📂",
+      title: dict.admin.taxonomy.title,
+      subtitle: dict.admin.taxonomy.subtitle
+    },
+    {
+      href: "/dashboard/admin/users",
+      icon: "👥",
+      title: dict.navigation.users,
+      subtitle: dict.admin.users.subtitle
+    },
+    {
+      href: "/dashboard/admin/audit",
+      icon: "📋",
+      title: dict.navigation.audit_logs,
+      subtitle: dict.admin.audit.subtitle
+    },
+    {
+      href: "/dashboard/admin/system",
+      icon: "⚙️",
+      title: dict.admin.system.title,
+      subtitle: dict.admin.system.subtitle
+    }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6">
       {/* 頁面標題 */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{dict.navigation.system_admin}</h1>
-        <p className="text-gray-600">管理系統設定、使用者與部門</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{dict.navigation.system_admin}</h1>
+          <p className="text-gray-600">管理系統設定、使用者與部門</p>
+        </div>
       </div>
 
-      {/* 1. 儀表板數據 */}
+      {/* 1. 快速管理入口 (原管理控制台) */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          {dict.admin.management_console || "Quick Actions"}
+        </h2>
+        <div className="flex flex-wrap gap-3">
+          {quickActions.map((action) => (
+            <Link key={action.href} href={action.href}>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:bg-gray-50 transition-all text-gray-700">
+                <span className="text-lg">{action.icon}</span>
+                <span className="font-medium">{action.title}</span>
+              </button>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. 平台分析與洞察 (SSR) */}
       <div className="mb-10">
         <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <span>📊</span> {dict.admin.analytics.title || "Platform Analytics"}
         </h2>
-        <AdminDashboardStats dict={dict} />
-      </div>
-
-      <div className="border-t border-gray-200 my-8"></div>
-
-      {/* 2. 系統管理功能卡片 */}
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <span>🛠️</span> {dict.admin.management_console || "Management Console"}
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* 部門管理 */}
-        <Link href="/dashboard/admin/departments">
-          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="text-3xl">🏢</div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.navigation.departments}</h2>
-                <p className="text-gray-600 text-sm mb-4">{dict.admin.departments.subtitle}</p>
-                <span className="text-primary-600 text-sm font-medium">前往管理 →</span>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        {/* 分類管理 */}
-        <Link href="/dashboard/admin/taxonomy">
-          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="text-3xl">📂</div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.admin.taxonomy.title}</h2>
-                <p className="text-gray-600 text-sm mb-4">{dict.admin.taxonomy.subtitle}</p>
-                <span className="text-primary-600 text-sm font-medium">前往管理 →</span>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        {/* 使用者管理 */}
-        <Link href="/dashboard/admin/users">
-          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="text-3xl">👥</div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.navigation.users}</h2>
-                <p className="text-gray-600 text-sm mb-4">{dict.admin.users.subtitle}</p>
-                <span className="text-primary-600 text-sm font-medium">前往管理 →</span>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        {/* 稽核日誌 */}
-        <Link href="/dashboard/admin/audit">
-          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="text-3xl">📋</div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.navigation.audit_logs}</h2>
-                <p className="text-gray-600 text-sm mb-4">{dict.admin.audit.subtitle}</p>
-                <span className="text-primary-600 text-sm font-medium">前往查看 →</span>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        {/* 系統設定 */}
-        <Link href="/dashboard/admin/system">
-          <Card padding className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="text-3xl">⚙️</div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{dict.admin.system.title}</h2>
-                <p className="text-gray-600 text-sm mb-4">{dict.admin.system.subtitle}</p>
-                <span className="text-primary-600 text-sm font-medium">前往設定 →</span>
-              </div>
-            </div>
-          </Card>
-        </Link>
+        {stats ? (
+          <AdminDashboardStats dict={dict} stats={stats} />
+        ) : (
+          <div className="p-8 text-center text-red-500 bg-white rounded-lg border border-red-100">
+            {statsResult.error || "Failed to load system analytics"}
+          </div>
+        )}
       </div>
     </div>
   );

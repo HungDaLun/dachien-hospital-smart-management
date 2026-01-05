@@ -287,7 +287,12 @@
             "storage_warning": "⚠️ 儲存設定需透過環境變數設定"
         },
         "analytics": {
-            "title": "平台分析與洞察"
+            "title": "平台分析與洞察",
+            "knowledge_growth": "知識庫成長 (近7日)",
+            "agent_distribution": "Agent 模型分佈",
+            "recent_activity": "近期系統活動",
+            "view_all": "查看全部",
+            "no_activity": "尚無活動記錄"
         },
         "management_console": "管理控制台",
         "agents": {

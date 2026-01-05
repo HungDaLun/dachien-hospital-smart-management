@@ -1,18 +1,20 @@
 'use client';
 
+import { Fragment, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { Menu, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
 
 interface UserMenuProps {
     email?: string;
     displayName?: string;
     role?: string;
+    avatarUrl?: string | null;
     logoutText?: string;
 }
 
-export default function UserMenu({ email, displayName, role, logoutText = '登出' }: UserMenuProps) {
+export default function UserMenu({ email, displayName, role, avatarUrl, logoutText = '登出' }: UserMenuProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
@@ -22,19 +24,16 @@ export default function UserMenu({ email, displayName, role, logoutText = '登�
         setLoading(true);
 
         try {
-            // 呼叫 API 端點進行伺服器端登出 (清除 Cookie)
             const response = await fetch('/api/auth/logout', {
                 method: 'POST',
             });
 
             if (response.ok) {
-                // 同步客戶端登出
                 await supabase.auth.signOut();
                 router.push('/login');
                 router.refresh();
             } else {
                 console.error('Logout failed');
-                // 強制客戶端登出並導向
                 await supabase.auth.signOut();
                 router.push('/login');
             }
@@ -46,38 +45,82 @@ export default function UserMenu({ email, displayName, role, logoutText = '登�
         }
     };
 
+    const initial = (displayName?.[0] || email?.[0] || 'U').toUpperCase();
+
     return (
-        <div className="flex items-center gap-4 border-l border-gray-100 pl-4 ml-2">
-            <div className="hidden lg:flex flex-col items-end">
-                <span className="text-sm font-semibold text-gray-900 leading-tight">
-                    {displayName || email?.split('@')[0] || 'User'}
-                </span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-primary-100 text-primary-700 rounded font-bold uppercase tracking-wider">
-                    {role || 'USER'}
-                </span>
+        <Menu as="div" className="relative ml-3">
+            <div>
+                <Menu.Button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <span className="sr-only">Open user menu</span>
+                    {avatarUrl ? (
+                        <img
+                            className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                            src={avatarUrl}
+                            alt={displayName || 'User avatar'}
+                        />
+                    ) : (
+                        <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">
+                            {initial}
+                        </div>
+                    )}
+                </Menu.Button>
             </div>
-
-            <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                {(displayName?.[0] || email?.[0] || 'U').toUpperCase()}
-            </div>
-
-            {/* 設定連結 */}
-            <Link
-                href="/dashboard/settings"
-                className="text-gray-400 hover:text-primary-600 transition-colors flex items-center justify-center p-1.5 hover:bg-primary-50 rounded-md"
-                title="設定"
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
             >
-                <span className="text-xl">⚙️</span>
-            </Link>
+                <Menu.Items className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm text-gray-900 font-medium truncate">
+                            {displayName || 'User'}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">{email}</p>
+                        <span className="mt-1 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                            {role || 'USER'}
+                        </span>
+                    </div>
 
-            <button
-                onClick={handleLogout}
-                disabled={loading}
-                className="text-gray-400 hover:text-error-500 transition-colors tooltip flex items-center justify-center p-1.5 hover:bg-error-50 rounded-md disabled:opacity-50"
-                title={logoutText}
-            >
-                <span className="text-xl">{loading ? '⌛' : '🚪'}</span>
-            </button>
-        </div>
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <Link
+                                    href="/dashboard/settings"
+                                    className={`
+                                        ${active ? 'bg-gray-50' : ''}
+                                        group flex w-full items-center px-4 py-2 text-sm text-gray-700
+                                    `}
+                                >
+                                    <span className="mr-3">⚙️</span>
+                                    個人設定
+                                </Link>
+                            )}
+                        </Menu.Item>
+                    </div>
+
+                    <div className="py-1 border-t border-gray-100">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={handleLogout}
+                                    disabled={loading}
+                                    className={`
+                                        ${active ? 'bg-red-50' : ''}
+                                        group flex w-full items-center px-4 py-2 text-sm text-red-600
+                                    `}
+                                >
+                                    <span className="mr-3">{loading ? '⌛' : '🚪'}</span>
+                                    {logoutText}
+                                </button>
+                            )}
+                        </Menu.Item>
+                    </div>
+                </Menu.Items>
+            </Transition>
+        </Menu>
     );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { getSystemStats, SystemStats } from '@/lib/actions/analytics';
+import React from 'react';
+import { SystemStats } from '@/lib/actions/analytics';
 import { Card } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import {
@@ -19,31 +19,14 @@ import {
 
 interface AdminDashboardStatsProps {
     dict: Dictionary;
+    stats: SystemStats;
 }
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
 
-export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) {
-    const [stats, setStats] = useState<SystemStats | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            const result = await getSystemStats();
-            if (result.success && result.data) {
-                setStats(result.data);
-            }
-            setLoading(false);
-        };
-        fetchStats();
-    }, []);
-
-    if (loading) {
-        return <div className="p-8 text-center text-gray-500">Loading analytics...</div>;
-    }
-
+export default function AdminDashboardStats({ dict, stats }: AdminDashboardStatsProps) {
     if (!stats) {
-        return <div className="p-8 text-center text-red-500">Failed to load analytics</div>;
+        return <div className="p-8 text-center text-red-500">No analytics data available</div>;
     }
 
     return (
@@ -79,8 +62,8 @@ export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) 
             {/* 2. Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* File Growth Chart */}
-                <Card padding className="h-80">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Knowledge Growth (7 Days)</h3>
+                <Card padding className="min-h-[350px] h-auto">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{dict.admin.analytics.knowledge_growth || "Knowledge Growth (7 Days)"}</h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={stats.filesGrowth}>
@@ -108,8 +91,8 @@ export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) 
                 </Card>
 
                 {/* Agent Distribution Chart */}
-                <Card padding className="h-80">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Agent Model Distribution</h3>
+                <Card padding className="min-h-[350px] h-auto">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{dict.admin.analytics.agent_distribution || "Agent Model Distribution"}</h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -129,7 +112,7 @@ export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) 
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
-                        <div className="flex justify-center gap-4 text-xs text-gray-500 mt-2">
+                        <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 mt-4 pb-2">
                             {stats.agentDistribution.map((entry, index) => (
                                 <div key={entry.name} className="flex items-center gap-1">
                                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
@@ -144,8 +127,8 @@ export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) 
             {/* 3. Recent Activity List */}
             <Card padding>
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent System Activity</h3>
-                    <a href="/dashboard/admin/audit" className="text-sm text-primary-600 hover:text-primary-700">View All</a>
+                    <h3 className="text-lg font-semibold text-gray-900">{dict.admin.analytics.recent_activity || "Recent System Activity"}</h3>
+                    <a href="/dashboard/admin/audit" className="text-sm text-primary-600 hover:text-primary-700">{dict.admin.analytics.view_all || "View All"}</a>
                 </div>
                 <div className="space-y-4">
                     {stats.recentActivity.map(log => (
@@ -168,7 +151,7 @@ export default function AdminDashboardStats({ dict }: AdminDashboardStatsProps) 
                         </div>
                     ))}
                     {stats.recentActivity.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+                        <p className="text-sm text-gray-500 text-center py-4">{dict.admin.analytics.no_activity || "No recent activity"}</p>
                     )}
                 </div>
             </Card>
@@ -195,3 +178,4 @@ function StatCard({ title, value, icon, trend }: { title: string; value: number;
         </Card>
     );
 }
+
