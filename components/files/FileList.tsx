@@ -588,7 +588,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                     onClick={() => setSortByExt(!sortByExt)}
                                 >
                                     <div className="flex items-center gap-1">
-                                        檔案名稱
+                                        檔案名稱 / 時效性
                                         {sortByExt && <span className="text-xs text-indigo-500 font-mono">(按副檔名歸類)</span>}
                                         <span className="opacity-0 group-hover:opacity-100 text-[10px] ml-1">⇅</span>
                                     </div>
@@ -665,6 +665,11 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                         </button>
                                                         <span className="text-[11px] text-gray-400 mt-1">
                                                             {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
+                                                            {file.decay_status && file.decay_status !== 'fresh' && (
+                                                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${file.decay_status === 'expired' ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                                                                    {file.decay_status === 'expired' ? 'EXPIRED' : 'DECAYING'}
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     </div>
                                                 </div>

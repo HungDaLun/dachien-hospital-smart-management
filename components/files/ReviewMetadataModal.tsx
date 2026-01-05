@@ -39,6 +39,9 @@ interface ReviewMetadataModalProps {
             confidence?: string;
         };
         category_suggestion?: string;
+        feedback_score?: number;
+        feedback_count?: number;
+        positive_ratio?: number;
     };
     dict: Dictionary;
 }
@@ -162,6 +165,28 @@ export default function ReviewMetadataModal({
                         {metadata.summary || dict.knowledge.review.no_summary}
                     </p>
                 </div>
+
+                {/* Feedback Stats (New) */}
+                {metadata.feedback_count !== undefined && metadata.feedback_count > 0 && (
+                    <div className="flex gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase text-gray-400 font-bold">Feedback Score</span>
+                            <span className="text-sm font-bold text-gray-800">
+                                {Math.round((metadata.feedback_score || 0.5) * 100)}/100
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase text-gray-400 font-bold">Review Count</span>
+                            <span className="text-sm font-bold text-gray-800">{metadata.feedback_count}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase text-gray-400 font-bold">Positive Ratio</span>
+                            <span className="text-sm font-bold text-green-600">
+                                {Math.round((metadata.positive_ratio || 0) * 100)}%
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Governance Editing Section */}
                 <div className="grid grid-cols-2 gap-4">

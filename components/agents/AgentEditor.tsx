@@ -75,6 +75,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     });
 
     const [fileNames, setFileNames] = useState<Record<string, string>>({});
+    const [allFiles, setAllFiles] = useState<any[]>([]); // Store all files for name->uuid lookup
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
     const [newDept, setNewDept] = useState(''); // State for new department rule
@@ -93,19 +94,16 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         }
     }, [isEditing, formData.id]);
 
-    // 取得檔案名稱映射
+    // Fetches all files to support both filename mapping (UI) and Architect ID resolution (Logic)
     useEffect(() => {
-        const fetchFileNames = async () => {
-            if (!formData.knowledge_files || formData.knowledge_files.length === 0) return;
-
-            const missingIds = formData.knowledge_files.filter(id => !fileNames[id]);
-            if (missingIds.length === 0) return;
-
+        const fetchAllFiles = async () => {
             try {
-                // 這裡我們暫時重用 /api/files 取得所有檔案資訊來進行映射
                 const res = await fetch('/api/files');
                 const data = await res.json();
                 if (data.success) {
+                    setAllFiles(data.data);
+
+                    // Update mapping for existing known IDs
                     const mapping: Record<string, string> = { ...fileNames };
                     data.data.forEach((f: any) => {
                         mapping[f.id] = f.filename;
@@ -117,8 +115,9 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             }
         };
 
-        fetchFileNames();
-    }, [formData.knowledge_files]);
+        fetchAllFiles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run once on mount to load the "Knowledge Asset" dictionary // Note: We might want to fetch this once on mount instead, but this works for now
 
     const fetchVersions = async () => {
         if (!formData.id) return;
@@ -202,10 +201,22 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 if (!exists) mergedRules.push(sRule);
             });
 
-            // Deduplicate knowledge files
+            // Deduplicate knowledge files and fix filename vs ID issues
             const existingFiles = prev.knowledge_files || [];
-            const suggestedFiles = blueprint.suggested_knowledge_files || [];
-            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFiles]));
+            const suggestedFilesRaw = blueprint.suggested_knowledge_files || [];
+
+            // Map any filenames back to IDs
+            const suggestedFilesResolved = suggestedFilesRaw.map((item: string) => {
+                // If it looks like a selected filename (not UUID), try to find ID
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item);
+                if (!isUuid) {
+                    const found = allFiles.find(f => f.filename === item);
+                    return found ? found.id : null;
+                }
+                return item;
+            }).filter(Boolean); // Remove nulls
+
+            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFilesResolved]));
 
             return {
                 ...prev,
@@ -674,6 +685,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 onApply={handleArchitectApply}
                 currentState={formData}
                 dict={dict}
+                fileNames={fileNames}
             />
 
             {/* 檔案選擇器 Modal */}

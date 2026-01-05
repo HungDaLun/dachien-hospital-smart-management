@@ -77,7 +77,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         system_prompt,
         model_version,
         temperature: temperature ?? 0.7,
-        knowledge_files: knowledge_files || [],
+        knowledge_files: Array.isArray(knowledge_files)
+          ? knowledge_files.filter((id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+          : [],
         mcp_config: mcp_config || {},
         department_id: profile.role === 'DEPT_ADMIN' ? profile.department_id : (body.department_id || null),
         created_by: profile.id,

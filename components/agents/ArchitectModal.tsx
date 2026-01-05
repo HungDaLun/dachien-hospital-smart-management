@@ -36,12 +36,13 @@ interface ArchitectChatProps {
     departmentContext?: string;
     currentState?: any; // 當前的 Agent 狀態
     dict: Dictionary;
+    fileNames?: Record<string, string>; // 新增：檔案名稱映射
 }
 
 // 閒置超時時間（20 分鐘）
 const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 
-export default function ArchitectChat({ onApply, departmentContext, currentState, dict }: ArchitectChatProps) {
+export default function ArchitectChat({ onApply, departmentContext, currentState, dict, fileNames = {} }: ArchitectChatProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -306,12 +307,13 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
                                                     <div className="space-y-1">
                                                         <p className="text-xs text-gray-500">📄 已選檔案</p>
                                                         <div className="flex flex-wrap gap-1.5">
-                                                            {msg.blueprint.suggested_knowledge_files.map((_fileId, idx) => (
+                                                            {msg.blueprint.suggested_knowledge_files.map((fileId, idx) => (
                                                                 <span
                                                                     key={idx}
                                                                     className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-100 font-medium"
+                                                                    title={fileId} // Tooltip 顯示 ID 可能有用
                                                                 >
-                                                                    📄 檔案 {idx + 1}
+                                                                    📄 {fileNames[fileId] || (fileId.length > 20 ? fileId.slice(0, 15) + '...' : fileId)}
                                                                 </span>
                                                             ))}
                                                         </div>

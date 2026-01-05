@@ -33,6 +33,12 @@ export interface FileData {
         display_name: string | null;
         email: string;
     };
+    decay_type?: string;
+    decay_score?: number;
+    decay_status?: 'fresh' | 'decaying' | 'expired';
+    valid_until?: string | null;
+    feedback_score?: number;
+    feedback_count?: number;
 }
 
 /**
@@ -275,6 +281,11 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                 </h3>
                                 <p className="text-[11px] text-gray-400 mt-0.5 uppercase tracking-wider">
                                     {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
+                                    {file.decay_status && file.decay_status !== 'fresh' && (
+                                        <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wide ${file.decay_status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {file.decay_status}
+                                        </span>
+                                    )}
                                 </p>
                             </div>
 
@@ -397,6 +408,42 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                                 </Button>
                             </div>
                         )}
+
+                        {/* Feedback Actions (Bottom Row) */}
+                        <div className="flex items-center gap-1 mt-2 justify-end">
+                            <span className="text-[10px] text-gray-400 mr-2">
+                                品質: {file.feedback_score !== undefined ? Math.round((file.feedback_score || 0.5) * 100) : '-'}/100
+                                {file.feedback_count ? ` (${file.feedback_count})` : ''}
+                            </span>
+                            <button
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await fetch('/api/knowledge/feedback', {
+                                        method: 'POST',
+                                        body: JSON.stringify({ fileId: file.id, type: 'helpful', score: 1.0 })
+                                    });
+                                    toast.success('Thanks for feedback!');
+                                }}
+                                className="text-gray-400 hover:text-green-500 p-1 rounded hover:bg-green-50 transition-colors"
+                                title="Helpful"
+                            >
+                                👍
+                            </button>
+                            <button
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await fetch('/api/knowledge/feedback', {
+                                        method: 'POST',
+                                        body: JSON.stringify({ fileId: file.id, type: 'not_helpful', score: -0.5 })
+                                    });
+                                    toast.success('Thanks for feedback!');
+                                }}
+                                className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 transition-colors"
+                                title="Not Helpful"
+                            >
+                                👎
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
