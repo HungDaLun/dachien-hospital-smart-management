@@ -13,7 +13,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
-const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const adminClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
 
@@ -22,15 +22,15 @@ async function diagnoseRLS() {
 
   // 1. 檢查 RLS 是否啟用
   console.log('1️⃣ 檢查 user_profiles 表的 RLS 狀態...');
-  const { data: rlsStatus, error: rlsError } = await adminClient.rpc('exec_sql', {
+  const { data: rlsStatus } = await adminClient.rpc('exec_sql', {
     query: `
-      SELECT 
+      SELECT
         tablename,
         rowsecurity
       FROM pg_tables
       WHERE schemaname = 'public' AND tablename = 'user_profiles';
     `
-  }).then(r => r.data).catch(() => null);
+  });
 
   if (rlsStatus && rlsStatus.length > 0) {
     console.log(`   ✅ RLS 已啟用: ${rlsStatus[0].rowsecurity}`);
@@ -40,9 +40,9 @@ async function diagnoseRLS() {
 
   // 2. 檢查所有 RLS 政策
   console.log('\n2️⃣ 檢查 user_profiles 表的 RLS 政策...');
-  const { data: policies, error: policiesError } = await adminClient.rpc('exec_sql', {
+  const { data: policies } = await adminClient.rpc('exec_sql', {
     query: `
-      SELECT 
+      SELECT
         policyname,
         cmd,
         qual,
@@ -51,7 +51,7 @@ async function diagnoseRLS() {
       WHERE schemaname = 'public' AND tablename = 'user_profiles'
       ORDER BY policyname;
     `
-  }).then(r => r.data).catch(() => null);
+  });
 
   if (policies && policies.length > 0) {
     console.log(`   ✅ 找到 ${policies.length} 個政策:\n`);
@@ -63,13 +63,13 @@ async function diagnoseRLS() {
     });
 
     // 檢查關鍵政策是否存在
-    const hasSelfReadPolicy = policies.some((p: any) => 
+    const hasSelfReadPolicy = policies.some((p: any) =>
       p.policyname === '使用者可讀取自己的資料' && p.cmd === 'SELECT'
     );
-    const hasSuperAdminPolicy = policies.some((p: any) => 
+    const hasSuperAdminPolicy = policies.some((p: any) =>
       p.policyname === '超級管理員可讀取所有使用者' && p.cmd === 'SELECT'
     );
-    const hasDeptAdminPolicy = policies.some((p: any) => 
+    const hasDeptAdminPolicy = policies.some((p: any) =>
       p.policyname === '部門管理員可讀取部門成員' && p.cmd === 'SELECT'
     );
 
@@ -94,18 +94,18 @@ async function diagnoseRLS() {
 
   // 3. 檢查輔助函式
   console.log('\n3️⃣ 檢查輔助函式...');
-  const { data: functions, error: funcError } = await adminClient.rpc('exec_sql', {
+  const { data: functions } = await adminClient.rpc('exec_sql', {
     query: `
-      SELECT 
+      SELECT
         routine_name,
         routine_type,
         data_type as return_type
       FROM information_schema.routines
-      WHERE routine_schema = 'public' 
+      WHERE routine_schema = 'public'
         AND routine_name IN ('get_user_role', 'get_user_dept', 'is_admin', 'is_super_admin')
       ORDER BY routine_name;
     `
-  }).then(r => r.data).catch(() => null);
+  });
 
   if (functions && functions.length > 0) {
     console.log(`   ✅ 找到 ${functions.length} 個輔助函式:\n`);
@@ -118,16 +118,16 @@ async function diagnoseRLS() {
 
   // 4. 檢查資料完整性（重複記錄）
   console.log('\n4️⃣ 檢查資料完整性...');
-  const { data: duplicateCheck, error: dupError } = await adminClient.rpc('exec_sql', {
+  const { data: duplicateCheck } = await adminClient.rpc('exec_sql', {
     query: `
-      SELECT 
+      SELECT
         id,
         COUNT(*) as count
       FROM user_profiles
       GROUP BY id
       HAVING COUNT(*) > 1;
     `
-  }).then(r => r.data).catch(() => null);
+  });
 
   if (duplicateCheck && duplicateCheck.length > 0) {
     console.log(`   ❌ 發現 ${duplicateCheck.length} 個重複的 user_id:`);
@@ -141,7 +141,7 @@ async function diagnoseRLS() {
   // 5. 檢查特定使用者的記錄
   console.log('\n5️⃣ 檢查測試使用者記錄...');
   const testUserId = '82eb6660-cc05-44f2-aa57-61ab33511d15';
-  const { data: userRecords, error: userError } = await adminClient
+  const { data: userRecords } = await adminClient
     .from('user_profiles')
     .select('*')
     .eq('id', testUserId);

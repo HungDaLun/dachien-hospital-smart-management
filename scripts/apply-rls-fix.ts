@@ -3,7 +3,7 @@
  * 確保「使用者可讀取自己的資料」政策存在
  */
 
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -18,22 +18,22 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false }
-});
+// const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+//     auth: { autoRefreshToken: false, persistSession: false }
+// });
 
 async function applyRLSFix() {
     console.log('🔧 應用 RLS 修復...\n');
 
     const migrationPath = path.join(process.cwd(), 'supabase/migrations/20260102000000_fix_user_profiles_select_policy.sql');
-    
+
     if (!fs.existsSync(migrationPath)) {
         console.error(`❌ Migration 檔案不存在: ${migrationPath}`);
         process.exit(1);
     }
 
     const sql = fs.readFileSync(migrationPath, 'utf8');
-    
+
     console.log('📋 Migration 內容：');
     console.log('─'.repeat(80));
     console.log(sql);

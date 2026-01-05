@@ -28,7 +28,7 @@ async function debugRLSQuery() {
   console.log('   2. createServerClient 的設定問題');
   console.log('   3. Next.js Server Components 的 cookies 處理問題\n');
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
 
@@ -39,11 +39,11 @@ async function debugRLSQuery() {
       .from('user_profiles')
       .select('*', { count: 'exact' })
       .eq('id', testUserId);
-    
+
     console.log(`   返回記錄數: ${data?.length || 0}`);
     console.log(`   錯誤: ${error ? error.message : '無'}`);
     console.log(`   總數: ${count || 0}`);
-    
+
     if (data && data.length === 0) {
       console.log('   ⚠️  返回 0 筆記錄，表示 RLS 阻擋了查詢');
       console.log('   原因：auth.uid() 在資料庫層面返回 NULL');

@@ -26,22 +26,22 @@ async function checkRLS() {
 
     // 1. 檢查 user_profiles 表是否啟用 RLS
     console.log('1️⃣ 檢查 user_profiles 表是否啟用 RLS...');
-    const { data: tableInfo, error: tableError } = await supabase.rpc('exec_sql', {
-        query: `
-            SELECT 
-                schemaname,
-                tablename,
-                rowsecurity
-            FROM pg_tables
-            WHERE schemaname = 'public' AND tablename = 'user_profiles';
-        `
-    }).then(r => r.data).catch(() => null);
+    // const { data: tableInfo, error: tableError } = await supabase.rpc('exec_sql', {
+    //     query: `
+    //         SELECT
+    //             schemaname,
+    //             tablename,
+    //             rowsecurity
+    //         FROM pg_tables
+    //         WHERE schemaname = 'public' AND tablename = 'user_profiles';
+    //     `
+    // }).then(r => r.data).catch(() => null);
 
     // 使用 SQL 查詢
-    const { data: rlsStatus, error: rlsError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .limit(0);
+    // const { data: rlsStatus, error: rlsError } = await supabase
+    //     .from('user_profiles')
+    //     .select('*')
+    //     .limit(0);
 
     console.log('   RLS 狀態: 已啟用（使用 Service Role 可以查詢）\n');
 
@@ -65,17 +65,17 @@ async function checkRLS() {
 
     // 3. 檢查輔助函式
     console.log('3️⃣ 檢查輔助函式...');
-    const { data: functions, error: funcError } = await supabase.rpc('exec_sql', {
-        query: `
-            SELECT 
-                routine_name,
-                routine_type
-            FROM information_schema.routines
-            WHERE routine_schema = 'public' 
-              AND routine_name IN ('get_user_role', 'get_user_dept', 'is_admin', 'is_super_admin')
-            ORDER BY routine_name;
-        `
-    }).then(r => r.data).catch(() => null);
+    // const { data: functions, error: funcError } = await supabase.rpc('exec_sql', {
+    //     query: `
+    //         SELECT
+    //             routine_name,
+    //             routine_type
+    //         FROM information_schema.routines
+    //         WHERE routine_schema = 'public'
+    //           AND routine_name IN ('get_user_role', 'get_user_dept', 'is_admin', 'is_super_admin')
+    //         ORDER BY routine_name;
+    //     `
+    // }).then(r => r.data).catch(() => null);
 
     console.log('   請在 Supabase Dashboard 中檢查以下函式是否存在：');
     console.log('   - get_user_role()');
@@ -85,7 +85,7 @@ async function checkRLS() {
 
     // 4. 檢查資料是否存在
     console.log('4️⃣ 檢查資料是否存在...');
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('email', 'siriue0@gmail.com')
@@ -103,7 +103,7 @@ async function checkRLS() {
 
     // 5. 測試使用 anon key 查詢（模擬實際應用）
     console.log('5️⃣ 測試使用 anon key 查詢（模擬實際應用）...');
-    const anonClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    const anonClient = createClient(SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
         auth: { autoRefreshToken: false, persistSession: false }
     });
 

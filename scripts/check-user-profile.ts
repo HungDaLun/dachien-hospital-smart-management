@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
     auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -32,7 +32,7 @@ async function checkAndFixUserProfile() {
 
     // 1. 查找 auth 使用者
     const { data: listData } = await supabase.auth.admin.listUsers();
-    const user = listData.users.find(u => u.email === ADMIN_EMAIL);
+    const user = listData?.users.find(u => u.email === ADMIN_EMAIL);
 
     if (!user) {
         console.error(`❌ 找不到使用者: ${ADMIN_EMAIL}`);

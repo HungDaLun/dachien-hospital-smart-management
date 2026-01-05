@@ -14,12 +14,12 @@ if (!supabaseUrl || !supabaseServiceKey) {
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
 async function resetKnowledgeGraph() {
     console.log('🧹 Clearing Knowledge Instances (Green Nodes) to prepare for re-analysis...');
 
-    const { error, count } = await supabase
+    const { error } = await supabase
         .from('knowledge_instances')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete All

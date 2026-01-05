@@ -3,7 +3,7 @@
  * 比較資料夾中的 migrations 與資料庫中的 migrations 記錄
  */
 
-import { readdir, readFile } from 'fs/promises';
+import { readdir } from 'fs/promises';
 import { join } from 'path';
 
 interface MigrationFile {
@@ -12,14 +12,11 @@ interface MigrationFile {
   name: string;
 }
 
-interface DatabaseMigration {
-  version: string;
-  name: string;
-}
+
 
 async function checkMigrationConsistency() {
   const migrationsDir = join(process.cwd(), 'supabase/migrations');
-  
+
   // 讀取資料夾中的所有 migration 檔案
   const files = await readdir(migrationsDir);
   const migrationFiles = files
