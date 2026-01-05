@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   const dict = await getDictionary(locale);
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
       {/* 歡迎區塊 - 增加漸變視覺 */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-accent-violet bg-clip-text text-transparent mb-3 animate-fade-in-up">

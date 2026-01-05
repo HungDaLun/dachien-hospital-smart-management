@@ -45,10 +45,10 @@
         "welcome_back": "歡迎回來"
     },
     "navigation": {
-        "overview": "總覽",
-        "knowledge": "知識庫管理",
-        "agents": "Agent 管理",
-        "chat": "AI 對話",
+        "overview": "平台總覽",
+        "knowledge": "知識管理",
+        "agents": "智能代理",
+        "chat": "智能對話",
         "system_admin": "系統管理",
         "departments": "部門管理",
         "users": "使用者管理",

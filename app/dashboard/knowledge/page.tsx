@@ -1,13 +1,14 @@
 /**
- * 知識庫管理頁面
- * 顯示檔案列表與上傳功能
- * 遵循 EAKAP 設計系統規範
+ * 知識庫管理頁面 - 戰情中心 (War Room)
+ * 顯示全寬度的分割視窗：左側列表、右側星系
+ * 遵循 Galaxy 2.0 設計
  */
 import { redirect } from 'next/navigation';
-import KnowledgeBaseClient from '@/components/files/KnowledgeBaseClient';
+import ControlCenter from '@/components/knowledge/ControlCenter'; // New Component
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
+import { createClient } from '@/lib/supabase/server';
 
 export default async function KnowledgePage() {
     const locale = await getLocale();
@@ -27,7 +28,6 @@ export default async function KnowledgePage() {
     const canUpload = profile && ['SUPER_ADMIN', 'DEPT_ADMIN', 'EDITOR'].includes(profile.role);
 
     // --- SSR: 預先抓取第一頁檔案資料 ---
-    const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
 
     let query = supabase
@@ -48,21 +48,25 @@ export default async function KnowledgePage() {
     // 預設抓取第 1 頁，每頁 50 筆
     const { data: initialFiles, count: initialTotal } = await query.range(0, 49);
 
-    return (
-        <div className="max-w-7xl mx-auto">
-            {/* 頁面標題 */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{dict.knowledge.title}</h1>
-                <p className="text-gray-600">
-                    {dict.dashboard_home.knowledge_card_desc}
-                </p>
-            </div>
+    // --- SSR: 抓取部門資料 (For Graph Filter) ---
+    // 即使不是 SUPER_ADMIN，也抓取部門以便標示
+    const { data: departments } = await supabase
+        .from('departments')
+        .select('id, name')
+        .order('name');
 
-            <KnowledgeBaseClient
+    return (
+        // Full Width Container (No Padding)
+        // Full Width Container (No Padding) with explicit height to prevent window scroll
+        <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden relative">
+            {/* 隱藏標題，直接進入戰情中心 */}
+            <ControlCenter
                 canUpload={canUpload || false}
                 dict={dict}
                 initialFiles={initialFiles || []}
                 initialTotal={initialTotal || 0}
+                initialDepartments={departments || []}
+                currentUserRole={profile?.role}
             />
         </div>
     );

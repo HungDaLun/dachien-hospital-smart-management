@@ -26,6 +26,8 @@ interface FileListProps {
     refreshTrigger?: number;
     initialFiles?: FileData[];
     initialTotal?: number;
+    onFileSelect?: (fileId: string) => void;
+    headerActions?: React.ReactNode;
 }
 
 /**
@@ -124,7 +126,7 @@ const ProcessingProgress = ({ createdAt, label }: { createdAt: string; label: st
 /**
  * 檔案清單元件
  */
-export default function FileList({ canManage, dict, refreshTrigger = 0, initialFiles, initialTotal }: FileListProps) {
+export default function FileList({ canManage, dict, refreshTrigger = 0, initialFiles, initialTotal, onFileSelect, headerActions }: FileListProps) {
     const [files, setFiles] = useState<FileData[]>(initialFiles || []);
     // If we have initial data, we are not loading initially
     const [loading, setLoading] = useState(initialFiles ? false : true);
@@ -495,87 +497,86 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
     return (
         <Card className="shadow-sm border-gray-200 overflow-hidden">
-            {/* Header Controls */}
-            <div className="p-4 border-b border-gray-100 bg-white space-y-4">
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-
-                    {/* Title & Count */}
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-800 tracking-tight">檔案管理</h2>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">Total files: {total}</p>
-                    </div>
+            {/* Header Controls: Compact Mode */}
+            <div className="p-3 border-b border-gray-100 bg-white space-y-3">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3">
 
                     {/* Action Bar / Batch Actions */}
-                    <div className="flex-1 w-full xl:w-auto flex flex-col sm:flex-row gap-3 items-center justify-end">
-                        {selectedIds.size > 0 ? (
-                            <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-100 animate-in fade-in slide-in-from-top-1">
-                                <span className="text-sm font-bold text-indigo-700 mr-2">已選取 {selectedIds.size} 個項目</span>
-                                <Button
-                                    size="sm"
-                                    variant="danger"
-                                    onClick={handleBatchDelete}
-                                    loading={isBatchDeleting}
-                                    leftIcon={<Trash2 size={16} />}
-                                    className="shadow-sm border border-red-600/20"
-                                >
-                                    刪除
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="primary"
-                                    onClick={handleAnalyzeSelected}
-                                    loading={isAnalyzingAll}
-                                    leftIcon={<Sparkles size={16} />}
-                                    className="shadow-sm border border-indigo-600/20"
-                                >
-                                    智慧分析
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={handleBatchDownload}
-                                    leftIcon={<Download size={16} />}
-                                    className="shadow-sm border border-gray-300"
-                                >
-                                    下載檔案
-                                </Button>
+                    <div className="flex-1 w-full flex flex-col sm:flex-row gap-2 items-center justify-between">
+                        {/* Search & Filters */}
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                            <div className="relative flex-1 sm:flex-none min-w-[200px]">
+                                <Input
+                                    placeholder="搜尋檔名, 部門, 關鍵字..."
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    inputSize="sm"
+                                    fullWidth
+                                    className="bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                                    leftElement={<Search size={16} className="text-gray-400" />}
+                                />
                             </div>
-                        ) : (
-                            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                <div className="relative flex-1 sm:flex-none min-w-[200px]">
-                                    <Input
-                                        placeholder="搜尋檔名, 部門, 關鍵字..."
-                                        value={searchInput}
-                                        onChange={(e) => setSearchInput(e.target.value)}
-                                        inputSize="sm"
-                                        fullWidth
-                                        className="bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                                        leftElement={<Search size={16} className="text-gray-400" />}
-                                    />
+                            <Select
+                                options={deptOptions}
+                                value={deptFilter}
+                                onChange={(e) => setDeptFilter(e.target.value)}
+                                selectSize="sm"
+                                className="w-28 bg-gray-50 border-gray-200"
+                            />
+                            <HierarchicalCategorySelect
+                                categories={categories}
+                                value={typeFilter}
+                                onChange={(value) => setTypeFilter(value)}
+                                selectSize="sm"
+                                className="w-28"
+                            />
+                            <Select
+                                options={getStatusOptions(dict)}
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                selectSize="sm"
+                                className="w-28 bg-gray-50 border-gray-200"
+                            />
+                        </div>
+
+                        {/* Right Area: Batch Actions OR Header Actions (Upload) */}
+                        <div className="flex items-center gap-2">
+                            {selectedIds.size > 0 ? (
+                                <div className="flex items-center gap-2 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 animate-in fade-in slide-in-from-top-1">
+                                    <span className="text-xs font-bold text-indigo-700 mx-1">{selectedIds.size} selected</span>
+                                    <Button
+                                        size="sm"
+                                        variant="danger"
+                                        onClick={handleBatchDelete}
+                                        loading={isBatchDeleting}
+                                        className="h-8 px-2 shadow-sm border border-red-600/20"
+                                    >
+                                        <Trash2 size={14} />
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        onClick={handleAnalyzeSelected}
+                                        loading={isAnalyzingAll}
+                                        className="h-8 px-2 shadow-sm border border-indigo-600/20"
+                                    >
+                                        <Sparkles size={14} />
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={handleBatchDownload}
+                                        className="h-8 px-2 shadow-sm border border-gray-300"
+                                    >
+                                        <Download size={14} />
+                                    </Button>
                                 </div>
-                                <Select
-                                    options={deptOptions}
-                                    value={deptFilter}
-                                    onChange={(e) => setDeptFilter(e.target.value)}
-                                    selectSize="sm"
-                                    className="w-32 bg-gray-50 border-gray-200"
-                                />
-                                <HierarchicalCategorySelect
-                                    categories={categories}
-                                    value={typeFilter}
-                                    onChange={(value) => setTypeFilter(value)}
-                                    selectSize="sm"
-                                    className="w-32"
-                                />
-                                <Select
-                                    options={getStatusOptions(dict)}
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    selectSize="sm"
-                                    className="w-32 bg-gray-50 border-gray-200"
-                                />
-                            </div>
-                        )}
+                            ) : (
+                                <>
+                                    {headerActions}
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -685,7 +686,11 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setPreviewFile(file);
+                                                                if (onFileSelect) {
+                                                                    onFileSelect(file.id);
+                                                                } else {
+                                                                    setPreviewFile(file);
+                                                                }
                                                             }}
                                                             className="file-preview-link text-left font-semibold break-words text-gray-900 hover:text-primary-600 hover:underline transition-all leading-tight"
                                                         >
@@ -723,20 +728,9 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                             </td>
                                             <td className="p-4 hidden md:table-cell align-top">
                                                 <div className="flex flex-col">
-                                                    <p className="text-gray-600 text-xs leading-relaxed" title={summary.length > 100 ? '' : summary}>
-                                                        {summary.length > 100 ? `${summary.substring(0, 100)}...` : summary}
+                                                    <p className="text-gray-600 text-xs leading-relaxed whitespace-normal break-words">
+                                                        {summary}
                                                     </p>
-                                                    {summary.length > 100 && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSummaryModalText(summary);
-                                                            }}
-                                                            className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold mt-1.5 flex items-center gap-1 hover:underline w-fit"
-                                                        >
-                                                            查看更多 →
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </td>
                                             <td className="p-4 hidden lg:table-cell align-top">

@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
-    Background,
     Controls,
     MiniMap,
     useNodesState,
@@ -11,121 +10,175 @@ import ReactFlow, {
     Connection,
     Edge,
     Node,
-    MarkerType,
     Panel,
+    useReactFlow,
+    ReactFlowProvider,
+    Handle,
     Position,
-    BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button, Spinner } from '@/components/ui';
 import KnowledgeDetailSidebar from './KnowledgeDetailSidebar';
-import NeuralParticles from './NeuralParticles';
-import NeuralWebGL from './NeuralWebGL';
 
-// DIKW 層級色彩配置 - 優化配色與對比度
+import {
+    forceSimulation,
+    forceLink,
+    forceManyBody,
+    forceCollide,
+    forceRadial
+} from 'd3-force';
+
+
+// DIKW Palette: Obsidian/Cosmic Style (High Contrast)
 const DIKW_COLORS = {
-    data: { bg: 'rgba(6, 182, 212, 0.25)', border: '#06B6D4', glow: 'rgba(6, 182, 212, 0.3)' },
-    information: { bg: 'rgba(14, 165, 233, 0.25)', border: '#0EA5E9', glow: 'rgba(14, 165, 233, 0.3)' },
-    knowledge: { bg: 'rgba(16, 185, 129, 0.25)', border: '#10B981', glow: 'rgba(16, 185, 129, 0.3)' },
-    wisdom: { bg: 'rgba(139, 92, 246, 0.25)', border: '#8B5CF6', glow: 'rgba(139, 92, 246, 0.3)' },
+    data: {
+        bg: '#06B6D4',
+        glow: 'rgba(6, 182, 212, 0.5)',
+        text: '#9CA3AF' // Light Gray text per request
+    },
+    information: {
+        bg: '#3B82F6',
+        glow: 'rgba(59, 130, 246, 0.5)',
+        text: '#9CA3AF'
+    },
+    knowledge: {
+        bg: '#10B981',
+        glow: 'rgba(16, 185, 129, 0.5)',
+        text: '#9CA3AF'
+    },
+    wisdom: {
+        bg: '#8B5CF6',
+        glow: 'rgba(139, 92, 246, 0.6)',
+        text: '#9CA3AF'
+    },
 };
 
-// Layout Helper - 類神經網路佈局（每層垂直排列，層與層之間水平推進）
+// --- Star Node Component (Obsidian Style - Pure Dot) ---
+const StarNode = ({ data, selected }: any) => {
+    const level = data.dikwLevel || 'data';
+    const colors = DIKW_COLORS[level as keyof typeof DIKW_COLORS] || DIKW_COLORS.data;
+
+    // Dimming Logic: Read from data.dimmed
+    const isDimmed = data.dimmed;
+    const isHighlighted = data.highlighted;
+
+    // Size: Slightly larger dots as requested
+    const baseSize = level === 'wisdom' ? 20 : level === 'knowledge' ? 16 : level === 'information' ? 12 : 8;
+    const size = isHighlighted ? baseSize * 1.6 : baseSize;
+
+    return (
+        <div
+            className={`group relative flex flex-col items-center justify-center pointer-events-auto transition-all duration-500 ease-out ${isDimmed ? 'opacity-30 grayscale-[0.5]' : 'opacity-100'}`}
+        >
+            {/* The Star Dot (Pure, no border) */}
+            <div
+                className="rounded-full transition-all duration-300 pointer-events-none"
+                style={{
+                    width: size,
+                    height: size,
+                    backgroundColor: isHighlighted || selected ? '#FFFFFF' : colors.bg,
+                    boxShadow: isHighlighted || selected
+                        ? `0 0 20px 4px ${colors.glow}, 0 0 8px #fff`
+                        : `0 0 0 transparent`, // No glow by default unless highlighted/selected for cleaner look? Or subtle glow?
+                    // User said "obsidian style", which is usually flat unless active.
+                    // Let's add very subtle glow for identification.
+                }}
+            />
+            {(!isHighlighted && !selected) && (
+                <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 6px ${colors.glow}`, opacity: 0.6 }} />
+            )}
+
+            {/* Label - Always visible but transparent white */}
+            <div
+                className={`
+                    absolute top-full mt-1.5 px-2 py-0.5 rounded text-[10px] font-sans tracking-wide whitespace-nowrap z-50
+                    transition-all duration-200 pointer-events-none font-medium
+                    ${(isHighlighted || selected) ? 'opacity-100 text-white scale-110 z-[60] bg-black/40 backdrop-blur-[1px]' :
+                        'opacity-40 text-white/80 hover:opacity-100'}
+                `}
+                style={{
+                    textShadow: '0 1px 3px rgba(0,0,0,1)' // Strong shadow for contrast
+                }}
+            >
+                {data.label}
+            </div>
+
+            {/* Interact Area - Changed cursor to grab */}
+            <div className="absolute inset-0 -m-3 rounded-full cursor-grab active:cursor-grabbing z-0 bg-transparent" />
+
+            <Handle
+                type="target"
+                position={Position.Top}
+                isConnectable={false} // Disable connection interaction (no crosshair)
+                className="opacity-0 !bg-transparent"
+                style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 1, height: 1, border: 'none', pointerEvents: 'none' }}
+            />
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                isConnectable={false} // Disable connection interaction (no crosshair)
+                className="opacity-0 !bg-transparent"
+                style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 1, height: 1, border: 'none', pointerEvents: 'none' }}
+            />
+        </div>
+    );
+};
+
+const nodeTypes = {
+    default: StarNode,
+    custom_particle: StarNode, // Register new type
+    file: StarNode,
+    input: StarNode,
+    framework_instance: StarNode,
+};
+
+// Helper to determine Ring Radius based on type/level
+const getNodeRadius = (node: any) => {
+    const type = node.data?.nodeType || node.type;
+    const level = node.data?.dikwLevel;
+
+    // Center: Wisdom or High-Level Concepts
+    if (level === 'wisdom') return 0;
+
+    // Inner Ring: Frameworks / Knowledge
+    if (type === 'framework_instance' || level === 'knowledge') return 250;
+
+    // Middle Ring: Files / Information
+    if (type === 'file' || type === 'input' || level === 'information') return 500;
+
+    // Outer Ring: Data / Other
+    return 750;
+};
+
+// Layout Helper
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
-    // 手動分層：依照 DIKW 層級（從左到右：Data → Information → Knowledge → Wisdom）
-    const dataNodes = nodes.filter(n => n.data.dikwLevel === 'data');
-    const infoNodes = nodes.filter(n => n.data.dikwLevel === 'information');
-    const knowledgeNodes = nodes.filter(n => n.data.dikwLevel === 'knowledge');
-    const wisdomNodes = nodes.filter(n => n.data.dikwLevel === 'wisdom');
+    const d3Nodes = nodes.map((n) => ({
+        ...n,
+        x: n.position.x || Math.random() * 100 - 50, // Start near center
+        y: n.position.y || Math.random() * 100 - 50
+    }));
+    const d3Links = edges.map((e) => ({ ...e, source: e.source, target: e.target }));
 
-    // 佈局參數：類神經網路風格
-    const nodeHeight = 80;
-    const verticalGap = 100; // 層內節點之間的垂直間距（同一列）
-    const horizontalGap = 400; // 層與層之間的水平間距（從左到右）
+    const simulation = forceSimulation(d3Nodes as any)
+        .force('link', forceLink(d3Links).id((d: any) => d.id).distance(100).strength(0.5)) // Looser links to allow radial structure
+        .force('charge', forceManyBody().strength(-300)) // Repulsion to spacing
+        .force('collide', forceCollide().radius(40).iterations(2)) // Avoid overlap
+        .force('radial', forceRadial((d: any) => getNodeRadius(d), 0, 0).strength(0.8)) // Strong Radial Force for Rings
+        .stop();
 
-    // 計算起始位置
-    const startX = -600; // 從左側開始
-    const startY = -300; // 垂直居中起始點
+    const TICK_COUNT = 300;
+    for (let i = 0; i < TICK_COUNT; ++i) {
+        simulation.tick();
+    }
 
-    // 定義層級配置（從左到右排列，每層的節點垂直排列）
-    const layers = [
-        {
-            nodes: dataNodes,
-            x: startX,
-            label: 'Data Layer',
-            level: 'data'
-        },
-        {
-            nodes: infoNodes,
-            x: startX + horizontalGap,
-            label: 'Information Layer',
-            level: 'information'
-        },
-        {
-            nodes: knowledgeNodes,
-            x: startX + horizontalGap * 2,
-            label: 'Knowledge Layer',
-            level: 'knowledge'
-        },
-        {
-            nodes: wisdomNodes,
-            x: startX + horizontalGap * 3,
-            label: 'Wisdom Layer',
-            level: 'wisdom'
-        }
-    ];
-
-    const layoutedNodes: Node[] = [];
-
-    // 類神經網路佈局：每層節點垂直排列（同一列），層與層之間水平推進（從左到右）
-    layers.forEach((layer, layerIndex) => {
-        const layerNodes = layer.nodes;
-        if (layerNodes.length === 0) return;
-
-        // 計算該層節點的總高度，並垂直居中對齊
-        const totalHeight = layerNodes.length * nodeHeight + (layerNodes.length - 1) * verticalGap;
-        const layerStartY = startY - totalHeight / 2;
-
-        // 為該層的每個節點設定位置（垂直排列在同一列）
-        layerNodes.forEach((node, index) => {
-            const y = layerStartY + index * (nodeHeight + verticalGap);
-
-            // 設定節點位置：X 軸是層的位置，Y 軸是節點在該層內的位置
-            node.position = { x: layer.x, y };
-
-            // 設定連接點位置：左側層從右側輸出，右側層從左側接收
-            node.targetPosition = Position.Left;   // 接收來自左側層的連接
-            node.sourcePosition = Position.Right;  // 向右側層輸出連接
-
-            // 為節點添加層級標記（用於視覺化）
-            if (!node.data) node.data = {};
-            node.data.layerIndex = layerIndex;
-            node.data.layerLabel = layer.label;
-
-            layoutedNodes.push(node);
-        });
-    });
-
-    // 優化邊線：確保連接線從左層指向右層（水平流向，類似神經網路）
-    const layoutedEdges = edges.map(edge => ({
-        ...edge,
-        // 確保動畫方向符合水平流向（從左到右）
-        animated: true,
-        style: {
-            ...edge.style,
-            stroke: '#64748B',
-            strokeWidth: 2,
-        },
-        markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: '#64748B',
-        },
+    const layoutedNodes = d3Nodes.map((n: any) => ({
+        ...n,
+        position: { x: n.x, y: n.y },
     }));
 
-    return { nodes: layoutedNodes, edges: layoutedEdges };
+    return { nodes: layoutedNodes, edges };
 };
 
-// 根據節點類型取得 DIKW 層級
 const getDIKWLevel = (nodeType: string): keyof typeof DIKW_COLORS => {
     if (nodeType === 'file' || nodeType === 'input') return 'information';
     if (nodeType === 'framework_instance') return 'knowledge';
@@ -135,41 +188,47 @@ const getDIKWLevel = (nodeType: string): keyof typeof DIKW_COLORS => {
 interface GalaxyGraphProps {
     initialDepartments?: Array<{ id: string; name: string }>;
     currentUserRole?: string;
-    enableWebGL?: boolean; // Phase C: WebGL 增強（預設禁用）
+    enableWebGL?: boolean;
+    focusNodeId?: string | null;
+    refreshTrigger?: number;
 }
 
-export default function GalaxyGraph({ initialDepartments = [], currentUserRole, enableWebGL: externalEnableWebGL = false }: GalaxyGraphProps) {
+function GalaxyGraphContent({
+    focusNodeId,
+    refreshTrigger = 0
+}: GalaxyGraphProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [loading, setLoading] = useState(true);
 
-    // UI State
-    const [selectedDept, setSelectedDept] = useState<string>('');
+    const [selectedDept] = useState<string>('');
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // 視覺效果模式控制（儲存在 localStorage）
-    const [visualMode, setVisualMode] = useState<'performance' | 'default' | 'flagship'>('default');
-    const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+    // Highlighting State
 
-    // 從 localStorage 讀取偏好設定
+
+    const { getEdges, getNodes, setCenter } = useReactFlow();
+
+    // Effect: Fly to focused node
     useEffect(() => {
-        const savedMode = localStorage.getItem('galaxy_visual_mode') as 'performance' | 'default' | 'flagship' | null;
-        if (savedMode) {
-            setVisualMode(savedMode);
+        if (focusNodeId && nodes.length > 0) {
+            handleHitNode(focusNodeId);
+
+            const target = nodes.find(n => n.id === focusNodeId);
+            if (target) {
+                // If focus is triggered externally, we assume sidebar opens
+                const zoomLevel = 1.2;
+                // Sidebar is on the RIGHT. We want the node to appear on the LEFT.
+                // Camera Center = Node Position + Offset (to the right)
+                const offsetX = 250;
+                setCenter(target.position.x + offsetX, target.position.y, { zoom: zoomLevel, duration: 1200 });
+
+                setSelectedNode(target);
+                setIsSidebarOpen(true);
+            }
         }
-    }, []);
-
-    // 計算是否啟用 WebGL（優先使用使用者設定）
-    const enableWebGL = visualMode === 'flagship' || externalEnableWebGL;
-    const enableParticles = visualMode !== 'performance';
-
-    // 更新視覺模式
-    const handleVisualModeChange = (mode: 'performance' | 'default' | 'flagship') => {
-        setVisualMode(mode);
-        localStorage.setItem('galaxy_visual_mode', mode);
-        setShowSettingsPanel(false);
-    };
+    }, [focusNodeId, nodes, setCenter]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -180,48 +239,38 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
             const res = await fetch(`/api/knowledge/graph?${params.toString()}`);
             const data = await res.json();
 
-            // Format nodes for React Flow - DIKW 配色與神經脈動動畫
+            // Initial Nodes without visual state
             const apiNodes = data.nodes.map((n: any) => {
-                // Use the level from DB (n.data.dikwLevel) if available, otherwise fallback to type-based inference
                 const dikwLevel = n.data?.dikwLevel || getDIKWLevel(n.type);
-                const colors = DIKW_COLORS[dikwLevel as keyof typeof DIKW_COLORS] || DIKW_COLORS.data;
-
-                // 為節點添加層級標記
                 return {
                     id: n.id,
-                    type: 'default',
+                    type: 'custom_particle', // Rename to avoid default ReactFlow styles
                     data: {
                         label: n.label,
                         dikwLevel,
                         nodeType: n.type,
-                        ...n.data
+                        ...n.data,
+                        dimmed: false,
+                        highlighted: false
                     },
                     position: { x: 0, y: 0 },
-                    style: {
-                        background: colors.border,
-                        color: '#FFFFFF',
-                        border: `2px solid ${colors.border}`,
-                        borderRadius: '8px',
-                        padding: '10px',
-                        fontSize: '12px',
-                        width: '200px',
-                    },
+                    // Explicitly override any wrapper styles
+                    style: { background: 'transparent', border: 'none', padding: 0.5, boxShadow: 'none', width: 'auto' },
+                    draggable: true, // Explicitly enable dragging
                 };
             });
 
-            // 能量流動邊線效果
             const apiEdges = data.edges.map((e: any) => ({
                 id: e.id,
                 source: e.source,
                 target: e.target,
-                animated: true,
+                id_source: e.source,
+                id_target: e.target,
+                type: 'straight', // Force straight lines as requested
+                animated: false,
                 style: {
-                    stroke: '#64748B',
-                    strokeWidth: 2,
-                },
-                markerEnd: {
-                    type: MarkerType.ArrowClosed,
-                    color: '#64748B',
+                    stroke: 'rgba(255, 255, 255, 0.4)', // Increased base visibility (was 0.1)
+                    strokeWidth: 1.0, // Thicker base lines
                 },
             }));
 
@@ -230,15 +279,6 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
                 apiEdges
             );
 
-            console.log('[Galaxy Graph] Nodes:', layoutedNodes.length);
-            console.log('[Galaxy Graph] Sample positions:', layoutedNodes.slice(0, 3).map(n => ({
-                id: n.id.substring(0, 8),
-                label: n.data.label.substring(0, 20),
-                x: n.position.x,
-                y: n.position.y
-            })));
-            console.log('[Galaxy Graph] Edges:', layoutedEdges.length, layoutedEdges);
-
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         } catch (error) {
@@ -246,7 +286,7 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
         } finally {
             setLoading(false);
         }
-    }, [setNodes, setEdges, selectedDept]);
+    }, [setNodes, setEdges, selectedDept, refreshTrigger]);
 
     useEffect(() => {
         fetchData();
@@ -257,57 +297,99 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
         [setEdges],
     );
 
+    // --- Neighbor Highlighting Logic ---
+    const handleHitNode = useCallback((nodeId: string) => {
+        const _edges = getEdges();
+
+
+        // Find neighbors
+        const neighborIds = new Set<string>();
+        neighborIds.add(nodeId); // Include self
+
+        _edges.forEach(edge => {
+            if (edge.source === nodeId) neighborIds.add(edge.target);
+            if (edge.target === nodeId) neighborIds.add(edge.source);
+        });
+
+        // Update Nodes State
+        setNodes(nds => nds.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                dimmed: !neighborIds.has(node.id),
+                highlighted: neighborIds.has(node.id)
+            }
+        })));
+
+        // Update Edges State
+        setEdges(eds => eds.map(edge => {
+            const isConnected = edge.source === nodeId || edge.target === nodeId;
+            return {
+                ...edge,
+                style: {
+                    ...edge.style,
+                    stroke: isConnected ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.05)',
+                    strokeWidth: isConnected ? 1.5 : 0.5
+                },
+                zIndex: isConnected ? 10 : 0
+            };
+        }));
+
+
+    }, [getEdges, getNodes, setNodes, setEdges]);
+
     const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-        setSelectedNode(node);
+        handleHitNode(node.id); // Trigger highlight
+        setSelectedNode(node);  // Show content
         setIsSidebarOpen(true);
-    }, []);
 
-    const showDeptFilter = currentUserRole === 'SUPER_ADMIN' && initialDepartments.length > 0;
+        // Center the node with offset to the LEFT (so it doesn't hide behind sidebar)
+        // Sidebar width is max-w-2xl (approx 670px) or similar. 
+        // We want the node to be centered in the remaining space.
+        // Assuming 1920 width, sidebar is 600, remaining is 1320. Center is 660.
+        // Screen center is 960. Diff is 300.
+        // So we need to shift the view center to the Right by ~300px.
+        const offset = 250;
+        setCenter(node.position.x + offset, node.position.y, { zoom: 1.5, duration: 800 });
+    }, [handleHitNode, setCenter]);
 
-    // 使用 useMemo 避免 ReactFlow 警告
-    const proOptions = useMemo(() => ({ hideAttribution: true }), []);
+    // Reset on background click
+    const onPaneClick = useCallback(() => {
+        setNodes(nds => nds.map(node => ({
+            ...node,
+            data: { ...node.data, dimmed: false, highlighted: false }
+        })));
+        setEdges(eds => eds.map(edge => ({
+            ...edge,
+
+            style: { ...edge.style, stroke: 'rgba(255, 255, 255, 0.4)', strokeWidth: 1.0 }
+        })));
+        setIsSidebarOpen(false); // Close sidebar when clicking empty space
+    }, [setNodes, setEdges]);
+
+    // Listen to changes in edges to ensure they get updated if simulation runs late? 
+    // Usually d3 runs once. ReactFlow manages state. This is fine.
+
+
 
     return (
-        <div className="w-full h-full relative galaxy-graph-container">
-            {/* 深色背景與微光點陣效果 */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 galaxy-background">
-                {/* 星空粒子層 - 多層次 CSS 呼吸動畫 */}
+        <div className="w-full h-full relative galaxy-graph-container bg-[#0B0C0E]">
+            {/* Obsidian-like Dark Background with subtle grid */}
+            <div className="absolute inset-0 pointer-events-none">
                 <div
-                    className="absolute inset-0"
+                    className="absolute inset-0 opacity-[0.05]"
                     style={{
-                        backgroundImage: `
-                            radial-gradient(2px 2px at 20% 30%, rgba(6, 182, 212, 0.6), transparent),
-                            radial-gradient(2px 2px at 60% 70%, rgba(14, 165, 233, 0.6), transparent),
-                            radial-gradient(1.5px 1.5px at 50% 50%, rgba(16, 185, 129, 0.5), transparent),
-                            radial-gradient(1.5px 1.5px at 80% 10%, rgba(139, 92, 246, 0.6), transparent),
-                            radial-gradient(2px 2px at 90% 60%, rgba(6, 182, 212, 0.5), transparent),
-                            radial-gradient(1px 1px at 33% 85%, rgba(14, 165, 233, 0.5), transparent),
-                            radial-gradient(1px 1px at 15% 55%, rgba(16, 185, 129, 0.6), transparent),
-                            radial-gradient(1.5px 1.5px at 75% 25%, rgba(139, 92, 246, 0.4), transparent),
-                            radial-gradient(1px 1px at 45% 15%, rgba(6, 182, 212, 0.4), transparent),
-                            radial-gradient(1px 1px at 85% 85%, rgba(14, 165, 233, 0.4), transparent),
-                            radial-gradient(2px 2px at 10% 75%, rgba(16, 185, 129, 0.5), transparent),
-                            radial-gradient(1px 1px at 65% 40%, rgba(139, 92, 246, 0.3), transparent)
-                        `,
-                        backgroundSize: '300% 300%',
-                        animation: 'galaxy-breathe 8s ease-in-out infinite',
+                        backgroundImage: 'radial-gradient(#333 1px, transparent 1px)',
+                        backgroundSize: '20px 20px'
                     }}
                 />
             </div>
 
-            {/* 載入狀態 */}
             {loading && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0B0C0E]">
                     <div className="flex flex-col items-center gap-4">
-                        <div className="relative">
-                            <Spinner size="lg" />
-                            <div className="absolute inset-0 animate-ping opacity-20">
-                                <Spinner size="lg" />
-                            </div>
-                        </div>
-                        <span className="text-gray-300 font-medium animate-pulse">
-                            🌌 Mapping Galaxy...
-                        </span>
+                        <Spinner size="lg" />
+                        <span className="text-gray-500 font-mono text-xs tracking-widest">LOADING GALAXY...</span>
                     </div>
                 </div>
             )}
@@ -315,169 +397,51 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
+                nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
                 fitView
                 fitViewOptions={{ padding: 0.2, includeHiddenNodes: false, duration: 200 }}
-                panOnDrag={true}
-                panOnScroll={false}
-                zoomOnScroll={true}
-                zoomOnDoubleClick={false}
-                selectionOnDrag={false}
-                minZoom={0.05}
-                maxZoom={1.5}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-                proOptions={proOptions}
+                minZoom={0.1}
+                maxZoom={4}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                 attributionPosition="bottom-right"
                 className="galaxy-flow"
+                style={{ background: 'transparent' }}
+
+                // Interaction Props Fixes
+                panOnDrag={true}
+                panOnScroll={true}
+                zoomOnScroll={true}
+                nodesDraggable={true} // Allow node dragging
+                selectionOnDrag={false} // Disable selection box to ensure panning works
+                preventScrolling={false}
             >
-                <Controls className="galaxy-controls" />
+                <Controls className="galaxy-controls !bg-[#1A1B1E] !border-[#2C2E33] !fill-gray-400" />
                 <MiniMap
-                    className="galaxy-minimap"
+                    className="galaxy-minimap !bg-[#1A1B1E] !border-[#2C2E33]"
                     nodeColor={(node) => {
                         const level = node.data?.dikwLevel || 'data';
-                        return DIKW_COLORS[level as keyof typeof DIKW_COLORS]?.border || '#64748B';
+                        return DIKW_COLORS[level as keyof typeof DIKW_COLORS]?.bg || '#fff';
                     }}
-                    maskColor="rgba(15, 23, 42, 0.8)"
-                />
-                <Background
-                    gap={20}
-                    size={1}
-                    variant={BackgroundVariant.Dots}
-                    color="#334155"
+                    maskColor="rgba(0, 0, 0, 0.6)"
                 />
 
-                {/* Glassmorphism 控制面板 - 高度對齊修正 */}
                 <Panel position="top-right" className="flex items-center gap-3 pr-4 pt-4">
-                    {showDeptFilter && (
-                        /* 直接使用 select，移除多餘外框 div，確保高度與 Button 一致 */
-                        <select
-                            className="h-9 w-40 rounded-md bg-white/5 px-3 py-1 text-sm text-gray-200
-                                       border border-white/20 shadow-sm transition-all
-                                       hover:bg-white/10 hover:border-white/30
-                                       focus:outline-none focus:ring-2 focus:ring-accent-violet/50"
-                            value={selectedDept}
-                            onChange={(e) => setSelectedDept(e.target.value)}
-                        >
-                            <option value="" className="bg-gray-800 text-gray-200">All Departments</option>
-                            {initialDepartments.map(dept => (
-                                <option key={dept.id} value={dept.id} className="bg-gray-800 text-gray-200">
-                                    {dept.name}
-                                </option>
-                            ))}
-                        </select>
-                    )}
-
-                    {/* 視覺效果設定按鈕 */}
-                    <div className="relative">
-                        <Button
-                            onClick={() => setShowSettingsPanel(!showSettingsPanel)}
-                            size="sm"
-                            variant="outline"
-                            className="h-9 !border-white/20 !bg-white/5 !text-gray-200 hover:!bg-white/10 hover:!border-white/30 backdrop-blur-sm shadow-sm"
-                        >
-                            🎨 視覺效果
-                        </Button>
-
-                        {/* 設定面板 - 保持不變 */}
-                        {showSettingsPanel && (
-                            <div className="absolute top-12 right-0 w-64 glass-dark rounded-lg p-4 shadow-xl border border-white/10 z-50 animate-scale-in">
-                                <h3 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
-                                    🌌 Neural Galaxy 模式
-                                </h3>
-
-                                <div className="space-y-2">
-                                    {/* Performance Mode */}
-                                    <button
-                                        onClick={() => handleVisualModeChange('performance')}
-                                        className={`w-full text-left px-3 py-2 rounded-md transition-all ${visualMode === 'performance'
-                                            ? 'bg-accent-emerald/20 border border-accent-emerald/50 text-accent-emerald'
-                                            : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        <div className="font-medium text-sm">⚡ 效能模式</div>
-                                        <div className="text-xs opacity-75 mt-0.5">僅 CSS 動畫 (&lt; 5% CPU)</div>
-                                    </button>
-
-                                    {/* Default Mode */}
-                                    <button
-                                        onClick={() => handleVisualModeChange('default')}
-                                        className={`w-full text-left px-3 py-2 rounded-md transition-all ${visualMode === 'default'
-                                            ? 'bg-accent-sky/20 border border-accent-sky/50 text-accent-sky'
-                                            : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        <div className="font-medium text-sm">✨ 平衡模式 (推薦)</div>
-                                        <div className="text-xs opacity-75 mt-0.5">CSS + 粒子 (~15% CPU)</div>
-                                    </button>
-
-                                    {/* Flagship Mode */}
-                                    <button
-                                        onClick={() => handleVisualModeChange('flagship')}
-                                        className={`w-full text-left px-3 py-2 rounded-md transition-all ${visualMode === 'flagship'
-                                            ? 'bg-accent-violet/20 border border-accent-violet/50 text-accent-violet'
-                                            : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        <div className="font-medium text-sm">🚀 旗艦模式</div>
-                                        <div className="text-xs opacity-75 mt-0.5">全效果 + WebGL (~30% CPU)</div>
-                                    </button>
-                                </div>
-
-                                <div className="mt-3 pt-3 border-t border-white/10 text-xs text-gray-400">
-                                    目前模式會自動儲存
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     <Button
                         onClick={fetchData}
                         size="sm"
-                        variant="outline"
-                        className="h-9 !border-white/20 !bg-white/5 !text-gray-200 hover:!bg-white/10 hover:!border-white/30 backdrop-blur-sm shadow-sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 rounded-md border border-white/5 bg-white/5 text-gray-400 hover:text-white"
+                        title="Refresh"
                     >
-                        ✨ 重新整理
+                        ↻
                     </Button>
                 </Panel>
-
-                {/* DIKW 圖例 */}
-                <Panel position="bottom-left" className="glass-dark rounded-lg p-3">
-                    <div className="text-xs text-gray-400 font-medium mb-2">DIKW Layers</div>
-                    <div className="flex flex-col gap-1.5">
-                        {Object.entries(DIKW_COLORS).map(([level, colors]) => (
-                            <div key={level} className="flex items-center gap-2">
-                                <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{
-                                        backgroundColor: colors.border,
-                                        boxShadow: `0 0 8px ${colors.glow}`
-                                    }}
-                                />
-                                <span className="text-xs text-gray-300 capitalize">{level}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Panel>
             </ReactFlow>
-
-            {/* Phase B: 能量粒子系統 (Canvas 2D) - 動態啟用 */}
-            <NeuralParticles
-                nodes={nodes}
-                edges={edges}
-                enabled={enableParticles && !loading && nodes.length > 0}
-                maxNodes={100}
-            />
-
-            {/* Phase C: WebGL 後處理效果（可選啟用） */}
-            <NeuralWebGL
-                nodes={nodes}
-                enabled={enableWebGL && !loading && nodes.length > 0}
-                bloomIntensity={0.5}
-                depthIntensity={0.3}
-            />
 
             <KnowledgeDetailSidebar
                 isOpen={isSidebarOpen}
@@ -488,3 +452,10 @@ export default function GalaxyGraph({ initialDepartments = [], currentUserRole, 
     );
 }
 
+export default function GalaxyGraph(props: GalaxyGraphProps) {
+    return (
+        <ReactFlowProvider>
+            <GalaxyGraphContent {...props} />
+        </ReactFlowProvider>
+    );
+}

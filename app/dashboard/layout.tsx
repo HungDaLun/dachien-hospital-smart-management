@@ -46,7 +46,7 @@ export default async function DashboardLayout({
   const navItems = [
     { href: '/dashboard', label: dict.navigation.overview, icon: '🏠' },
     { href: '/dashboard/knowledge', label: dict.navigation.knowledge, icon: '📚' },
-    { href: '/dashboard/brain', label: dict.navigation.brain, icon: '🌌' },
+
     { href: '/dashboard/agents', label: dict.navigation.agents, icon: '🤖' },
     { href: '/dashboard/chat', label: dict.navigation.chat, icon: '💬' },
   ];
@@ -65,7 +65,7 @@ export default async function DashboardLayout({
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* 頂部導航列 */}
         <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-40 shrink-0">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="w-full flex items-center justify-between">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
               <span className="text-2xl">🧠</span>
@@ -101,7 +101,7 @@ export default async function DashboardLayout({
         </nav>
 
         {/* 主內容區 */}
-        <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 overflow-auto">
+        <main className="flex-1 w-full overflow-auto">
           {children}
         </main>
       </div>

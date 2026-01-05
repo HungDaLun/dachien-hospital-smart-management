@@ -677,7 +677,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     </Card> */}
                 </div>
 
-                <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-center pt-6 pb-20 border-t border-gray-100">
                     {isEditing ? (
                         <Button
                             type="button"
