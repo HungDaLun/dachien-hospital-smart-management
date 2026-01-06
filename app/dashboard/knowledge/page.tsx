@@ -1,14 +1,12 @@
-/**
- * 知識庫管理頁面 - 戰情中心 (War Room)
- * 顯示全寬度的分割視窗：左側列表、右側星系
- * 遵循 Galaxy 2.0 設計
- */
 import { redirect } from 'next/navigation';
-import ControlCenter from '@/components/knowledge/ControlCenter'; // New Component
+import ControlCenter from '@/components/knowledge/ControlCenter';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
 import { createClient } from '@/lib/supabase/server';
+import PageHeader from '@/components/layout/PageHeader';
+import { Library } from 'lucide-react';
+
 
 export default async function KnowledgePage() {
     const locale = await getLocale();
@@ -56,18 +54,22 @@ export default async function KnowledgePage() {
         .order('name');
 
     return (
-        // Full Width Container (No Padding)
-        // Full Width Container (No Padding) with explicit height to prevent window scroll
-        <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden relative">
-            {/* 隱藏標題，直接進入戰情中心 */}
-            <ControlCenter
-                canUpload={canUpload || false}
-                dict={dict}
-                initialFiles={initialFiles || []}
-                initialTotal={initialTotal || 0}
-                initialDepartments={departments || []}
-                currentUserRole={profile?.role}
+        <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-background-primary px-6 xl:px-10 py-6">
+            <PageHeader
+                title="知識管理"
+                icon={Library}
             />
+            <div className="flex-1 overflow-hidden relative">
+                <ControlCenter
+                    canUpload={canUpload || false}
+                    dict={dict}
+                    initialFiles={initialFiles || []}
+                    initialTotal={initialTotal || 0}
+                    initialDepartments={departments || []}
+                    currentUserRole={profile?.role}
+                />
+            </div>
         </div>
     );
 }
+

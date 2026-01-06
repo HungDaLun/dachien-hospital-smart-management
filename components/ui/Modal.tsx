@@ -1,17 +1,18 @@
 /**
  * Modal 元件
  * 模態對話框元件，用於確認、表單等場景
- * 遵循 EAKAP 設計系統規範
+ * 遵循 EAKAP 科技戰情室設計規範
  */
 'use client';
 
-import { Fragment, ReactNode, useEffect, useCallback } from 'react';
+import { ReactNode, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 /**
  * Modal 尺寸類型
  */
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full' | '6xl';
 
 /**
  * Modal 屬性介面
@@ -35,7 +36,7 @@ export interface ModalProps {
     closeOnEsc?: boolean;
     /** 頁尾操作區 */
     footer?: ReactNode;
-    /** 是否為關鍵 Modal（使用 Glassmorphism 風格） */
+    /** 是否為關鍵 Modal（使用更高對比度的 Glassmorphism） */
     critical?: boolean;
 }
 
@@ -48,27 +49,11 @@ const sizeStyles: Record<ModalSize, string> = {
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     full: 'max-w-4xl',
+    '6xl': 'max-w-6xl',
 };
 
 /**
  * Modal 元件
- * 
- * @example
- * ```tsx
- * <Modal
- *   isOpen={isOpen}
- *   onClose={handleClose}
- *   title="確認刪除"
- *   footer={
- *     <>
- *       <Button variant="ghost" onClick={handleClose}>取消</Button>
- *       <Button variant="danger" onClick={handleDelete}>刪除</Button>
- *     </>
- *   }
- * >
- *   確定要刪除這個項目嗎？此操作無法復原。
- * </Modal>
- * ```
  */
 export function Modal({
     isOpen,
@@ -124,76 +109,78 @@ export function Modal({
     if (typeof window === 'undefined') return null;
 
     return createPortal(
-        <Fragment>
+        <div
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6 animate-in fade-in duration-300"
+            role="dialog"
+            aria-modal="true"
+        >
             {/* 遮罩層 */}
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in"
+                className="absolute inset-0 bg-background-primary/80 backdrop-blur-md"
                 onClick={handleOverlayClick}
-                aria-modal="true"
-                role="dialog"
-                aria-labelledby={title ? 'modal-title' : undefined}
+            />
+
+            {/* Modal 內容 */}
+            <div
+                className={`
+                    relative w-full overflow-hidden
+                    flex flex-col
+                    bg-background-secondary/90
+                    backdrop-blur-xl
+                    border border-white/10
+                    shadow-floating
+                    rounded-[32px]
+                    animate-in zoom-in-95 slide-in-from-bottom-2 duration-400
+                    ${sizeStyles[size]}
+                    ${critical ? 'ring-2 ring-primary-500/30' : ''}
+                `}
+                onClick={handleContentClick}
             >
-                {/* Modal 內容 */}
-                <div
-                    className={`
-            rounded-lg shadow-xl w-full
-            ${sizeStyles[size]}
-            animate-scale-in
-            ${critical
-                            ? 'glass-critical'
-                            : 'bg-white'
-                        }
-          `}
-                    onClick={handleContentClick}
-                >
-                    {/* 標題列 */}
-                    {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                            {title && (
+                {/* 裝飾線 */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent" />
+
+                {/* 標題列 */}
+                {(title || showCloseButton) && (
+                    <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
+                        {title && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
                                 <h2
                                     id="modal-title"
-                                    className="text-lg font-semibold text-gray-900"
+                                    className="text-lg font-black text-text-primary uppercase tracking-tight"
                                 >
                                     {title}
                                 </h2>
-                            )}
-                            {showCloseButton && (
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
-                                    aria-label="關閉"
-                                >
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
-                            )}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                        {showCloseButton && (
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-text-tertiary hover:text-text-primary hover:bg-white/10 border border-white/5 transition-all"
+                                aria-label="關閉"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
+                    </div>
+                )}
 
-                    {/* 內容區 */}
-                    <div className="px-6 py-4">{children}</div>
-
-                    {/* 頁尾 */}
-                    {footer && (
-                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-                            {footer}
-                        </div>
-                    )}
+                {/* 內容區 */}
+                <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
+                    <div className="text-text-secondary leading-relaxed font-medium">
+                        {children}
+                    </div>
                 </div>
+
+                {/* 頁尾 */}
+                {footer && (
+                    <div className="flex items-center justify-end gap-3 px-8 py-6 border-t border-white/5 bg-white/[0.02]">
+                        {footer}
+                    </div>
+                )}
             </div>
-        </Fragment>,
+        </div>,
         document.body
     );
 }

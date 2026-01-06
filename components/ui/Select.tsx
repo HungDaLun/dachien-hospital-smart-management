@@ -1,7 +1,7 @@
 /**
  * Select 元件
  * 下拉選擇元件
- * 遵循 EAKAP 設計系統規範
+ * 遵循 EAKAP 科技戰情室設計系統規範
  */
 'use client';
 
@@ -41,24 +41,12 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
  */
 const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-4 py-3 text-lg',
+    md: 'px-4 py-3 text-base',
+    lg: 'px-5 py-4 text-lg',
 };
 
 /**
  * Select 元件
- * 
- * @example
- * ```tsx
- * <Select
- *   label="模型版本"
- *   options={[
- *     { value: 'gemini-3-flash', label: 'Gemini 3 Flash' },
- *     { value: 'gemini-3-pro', label: 'Gemini 3 Pro' },
- *   ]}
- *   placeholder="選擇模型版本"
- * />
- * ```
  */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     (
@@ -88,14 +76,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 {label && (
                     <label
                         htmlFor={selectId}
-                        className="block text-sm font-medium text-gray-700 mb-1.5"
+                        className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest"
                     >
                         {label}
                     </label>
                 )}
 
                 {/* 下拉選擇 */}
-                <div className="relative">
+                <div className="relative group/select">
                     <select
                         ref={ref}
                         id={selectId}
@@ -103,24 +91,28 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         aria-invalid={hasError}
                         aria-describedby={hasError ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
                         className={`
-              w-full
-              appearance-none
-              bg-white
-              border rounded-md
-              transition-all duration-150
-              pr-10
-              ${sizeStyles[selectSize]}
-              ${hasError
-                                ? 'border-error-500 focus:ring-2 focus:ring-error-500 focus:border-error-500'
-                                : 'border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+                            w-full
+                            appearance-none
+                            bg-white/[0.03]
+                            backdrop-blur-sm
+                            border
+                            rounded-xl
+                            text-white
+                            font-medium
+                            transition-all duration-300
+                            pr-12
+                            ${sizeStyles[selectSize]}
+                            ${hasError
+                                ? 'border-semantic-danger/50 focus:ring-4 focus:ring-semantic-danger/10 focus:border-semantic-danger shadow-glow-red/5'
+                                : 'border-white/10 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 shadow-glow-cyan/5'
                             }
-              ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
-              ${className}
-            `}
+                            ${disabled ? 'opacity-30 cursor-not-allowed bg-white/[0.01]' : 'hover:border-white/20'}
+                            ${className}
+                        `}
                         {...props}
                     >
                         {placeholder && (
-                            <option value="" disabled>
+                            <option value="" disabled className="bg-background-secondary text-text-tertiary">
                                 {placeholder}
                             </option>
                         )}
@@ -129,6 +121,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                                 key={option.value}
                                 value={option.value}
                                 disabled={option.disabled}
+                                className="bg-background-secondary text-text-primary"
                             >
                                 {option.label}
                             </option>
@@ -136,9 +129,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     </select>
 
                     {/* 下拉箭頭 */}
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary group-focus-within/select:text-primary-400 transition-colors">
                         <svg
-                            className="w-4 h-4 text-gray-400"
+                            className="w-4 h-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -146,7 +139,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
+                                strokeWidth={2.5}
                                 d="M19 9l-7 7-7-7"
                             />
                         </svg>
@@ -155,20 +148,23 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
                 {/* 錯誤訊息 */}
                 {error && (
-                    <p
-                        id={`${selectId}-error`}
-                        className="mt-1.5 text-sm text-error-500"
-                        role="alert"
-                    >
-                        {error}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                        <span className="w-1 h-1 rounded-full bg-semantic-danger" />
+                        <p
+                            id={`${selectId}-error`}
+                            className="text-[11px] font-bold text-semantic-danger/90 uppercase tracking-tight"
+                            role="alert"
+                        >
+                            {error}
+                        </p>
+                    </div>
                 )}
 
                 {/* 提示文字 */}
                 {hint && !error && (
                     <p
                         id={`${selectId}-hint`}
-                        className="mt-1.5 text-sm text-gray-500"
+                        className="mt-2 text-[10px] font-bold text-text-tertiary uppercase tracking-tight opacity-70"
                     >
                         {hint}
                     </p>

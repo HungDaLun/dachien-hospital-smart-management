@@ -1,13 +1,27 @@
 'use client';
 
+/**
+ * 分類管理元件
+ * 管理全公司的文件分類架構 (DIKW 語義網路)
+ * 遵循 EAKAP 科技戰情室設計系統規範
+ */
 import React, { useState, useEffect } from 'react';
 import { DocumentCategory } from '@/types';
 import { createCategory, updateCategory, deleteCategory } from '@/lib/actions/taxonomy';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { Modal } from '@/components/ui/Modal';
-import { Plus, Edit2, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
+import { Button, Input, Textarea, Modal, Card, Badge } from '@/components/ui';
+import {
+    Plus,
+    Edit2,
+    Trash2,
+    Folder,
+    FolderOpen,
+    ChevronRight,
+    ChevronDown,
+    Network,
+    Database,
+    Binary,
+    Sparkles
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface TaxonomyManagerProps {
@@ -74,7 +88,6 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
                 description: formData.description
             });
             if (res.success) {
-                // Optimistic update or wait for revalidate
                 router.refresh();
             }
         } else {
@@ -88,7 +101,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('確定要刪除此分類嗎？包含的子分類也會被移除連結（或需要遞迴刪除實作）。')) return;
+        if (!confirm('確定要刪除此分類嗎？此動作將會影響所有關聯文件的語義連結。')) return;
         const res = await deleteCategory(id);
         if (res.success) {
             router.refresh();
@@ -107,49 +120,71 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
             <div key={node.id} className="relative select-none">
                 <div
                     className={`
-            group flex items-center p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors
-            ${level > 0 ? 'ml-6' : ''}
-          `}
+                        group flex items-center p-3 rounded-2xl transition-all duration-300
+                        ${isExpanded ? 'bg-white/[0.04]' : 'bg-transparent hover:bg-white/[0.02]'}
+                        ${level > 0 ? 'ml-8' : ''}
+                        mb-1 border border-transparent hover:border-white/10
+                    `}
                 >
                     {/* Indent connector */}
-                    {level > 0 && <div className="absolute left-[-1.5rem] top-1/2 w-4 h-[1px] bg-gray-300" />}
+                    {level > 0 && (
+                        <div className="absolute left-[-2rem] top-0 bottom-1/2 w-4 border-l border-b border-white/10 rounded-bl-xl" />
+                    )}
 
                     {/* Expand/Collapse */}
                     <button
                         onClick={() => toggleExpand(node.id)}
-                        className={`mr-2 p-1 rounded-md text-gray-400 hover:text-gray-600 ${!hasChildren ? 'invisible' : ''}`}
+                        className={`mr-2 p-1.5 rounded-lg transition-all ${!hasChildren ? 'invisible' : 'text-text-tertiary hover:bg-white/5 hover:text-text-primary'}`}
                     >
-                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
 
-                    {/* Icon */}
-                    <div className="mr-3 text-cyan-600">
-                        {isExpanded ? <FolderOpen size={20} /> : <Folder size={20} />}
+                    {/* Icon Node */}
+                    <div className={`mr-4 p-2 rounded-xl border transition-all duration-500 ${isExpanded ? 'bg-primary-500/10 border-primary-500/20 text-primary-400 shadow-glow-cyan/5' : 'bg-white/5 border-white/5 text-text-tertiary'}`}>
+                        {isExpanded ? <FolderOpen size={18} /> : <Folder size={18} />}
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1">
-                        <h3 className="text-gray-900 font-medium">{node.name}</h3>
-                        {node.description && <p className="text-gray-500 text-xs">{node.description}</p>}
+                    {/* Content Section */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight truncate">{node.name}</h3>
+                            {level === 0 && <Badge variant="outline" size="sm" className="text-[9px] font-black opacity-30 px-1.5 border-white/5">ROOT_NODE</Badge>}
+                        </div>
+                        {node.description && <p className="text-[11px] font-bold text-text-tertiary truncate opacity-60 group-hover:opacity-100 transition-opacity mt-0.5">{node.description}</p>}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="sm" variant="ghost" onClick={() => handleOpenModal(null, node)} title="編輯">
+                    {/* Actions Terminal */}
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenModal(null, node)}
+                            className="h-9 w-9 p-0 rounded-xl bg-white/5 border-white/5 hover:bg-white/10 hover:text-primary-400"
+                        >
                             <Edit2 size={14} />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleOpenModal(node.id)} title="新增子分類">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenModal(node.id)}
+                            className="h-9 w-9 p-0 rounded-xl bg-white/5 border-white/5 hover:bg-white/10 hover:text-secondary-400"
+                        >
                             <Plus size={14} />
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => handleDelete(node.id)} title="刪除">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 w-9 p-0 rounded-xl bg-white/5 border-white/5 hover:bg-semantic-danger/10 hover:text-semantic-danger"
+                            onClick={() => handleDelete(node.id)}
+                        >
                             <Trash2 size={14} />
                         </Button>
                     </div>
                 </div>
 
-                {/* Children */}
+                {/* Recursive Children Container */}
                 {hasChildren && isExpanded && (
-                    <div className="pl-2 border-l border-gray-100 ml-4">
+                    <div className="pl-4 border-l border-white/5 ml-4 my-1 space-y-1">
                         {node.children.map(child => renderNode(child, level + 1))}
                     </div>
                 )}
@@ -158,66 +193,107 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-[500px]">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-lg font-semibold text-gray-900">分類架構</h2>
-                    <p className="text-sm text-gray-500">管理全公司的文件分類標準</p>
+        <Card variant="glass" className="p-8 min-h-[600px] border-white/5 relative overflow-hidden">
+            {/* Background Decorative */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/[0.02] blur-[100px] pointer-events-none -mr-32 -mt-32" />
+
+            <div className="flex justify-between items-start mb-10">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400 shadow-glow-cyan/5">
+                        <Network size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-text-primary uppercase tracking-tight">智庫語義架構 <span className="opacity-30">|</span> TAXONOMY</h2>
+                        <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">定義全域知識網絡的維度與階層基準</p>
+                    </div>
                 </div>
-                <Button onClick={() => handleOpenModal(null)}>
+                <Button
+                    variant="cta"
+                    onClick={() => handleOpenModal(null)}
+                    className="h-11 px-6 rounded-xl shadow-glow-cyan/10"
+                >
                     <Plus size={16} className="mr-2" />
-                    新增主分類
+                    <span className="font-black uppercase tracking-widest text-[10px]">建立頂級節點</span>
                 </Button>
             </div>
 
-            <div className="space-y-1">
+            <div className="bg-black/20 rounded-[32px] border border-white/5 p-6 shadow-inner min-h-[400px]">
                 {tree.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                        尚未建立任何與知識分類。
+                    <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-30">
+                        <div className="p-6 rounded-3xl border border-dashed border-white/10">
+                            <Binary size={48} className="text-text-tertiary" />
+                        </div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.3em] italic">
+                            Awaiting Schema Initialization...
+                        </p>
                     </div>
                 ) : (
-                    tree.map(node => renderNode(node))
+                    <div className="space-y-2">
+                        {tree.map(node => renderNode(node))}
+                    </div>
                 )}
             </div>
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                title={editingCategory ? '編輯分類' : (parentId ? '新增次分類' : '新增主分類')}
+                title={editingCategory ? '編輯節點配置' : '初始化語義節點'}
+                size="md"
             >
-                <div className="space-y-4">
-                    {/* 如果是新增次分類，顯示父分類資訊 */}
+                <div className="space-y-6">
+                    {/* Context Badge */}
                     {!editingCategory && parentId && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-blue-900">
-                                <span className="font-medium">父分類：</span>
-                                {categories.find(c => c.id === parentId)?.name || '未知'}
-                            </p>
-                            <p className="text-xs text-blue-600 mt-1">
-                                此分類將成為「{categories.find(c => c.id === parentId)?.name || '未知'}」的子分類
-                            </p>
+                        <div className="flex items-center gap-4 p-4 bg-primary-500/[0.03] border border-primary-500/10 rounded-2xl">
+                            <div className="p-2 bg-primary-500/10 rounded-lg text-primary-400">
+                                <Database size={16} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-0.5">PARENT_IDENTIFIED</p>
+                                <p className="text-xs font-bold text-text-secondary">
+                                    將於 「{categories.find(c => c.id === parentId)?.name}」 下建立子維度
+                                </p>
+                            </div>
                         </div>
                     )}
 
-                    <Input
-                        label="分類名稱"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder={parentId ? "例如：招募文件" : "例如：人力資源"}
-                        required
-                    />
-                    <Textarea
-                        label="描述"
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="描述此分類的用途..."
-                    />
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button variant="ghost" onClick={handleCloseModal}>取消</Button>
-                        <Button onClick={handleSubmit}>儲存</Button>
+                    <div className="space-y-6">
+                        <Input
+                            label="節點識別名稱 (NODE_NAME)"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder={parentId ? "例如：招募與面試協議" : "例如：人力資源管理"}
+                            required
+                            className="bg-black/20"
+                        />
+                        <Textarea
+                            label="語義定義描述 (SEMANTIC_DEF)"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="描述此節點在全域語義網路中的定位與用途..."
+                            rows={4}
+                            className="bg-black/20"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t border-white/5 mt-8">
+                        <Button
+                            variant="outline"
+                            onClick={handleCloseModal}
+                            className="h-11 px-8 rounded-xl border-white/10 text-[10px] font-black uppercase tracking-widest"
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleSubmit}
+                            className="h-11 px-10 rounded-xl shadow-glow-cyan/10 text-[10px] font-black uppercase tracking-widest"
+                        >
+                            <Sparkles size={16} className="mr-2" />
+                            同步變更
+                        </Button>
                     </div>
                 </div>
             </Modal>
-        </div>
+        </Card>
     );
 }

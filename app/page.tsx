@@ -12,27 +12,37 @@ export default async function HomePage() {
   const dict = await getDictionary(locale);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center relative">
-      <div className="absolute top-4 right-4">
+    <main className="min-h-screen bg-background-primary text-text-primary flex items-center justify-center relative overflow-hidden">
+      {/* 裝飾性背景 */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 blur-[120px] rounded-full" />
+        <div className="war-room-grid absolute inset-0 opacity-20" />
+      </div>
+
+      <div className="absolute top-6 right-6 z-20">
         <LanguageSwitcher />
       </div>
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+
+      <div className="text-center relative z-10">
+        <div className="w-24 h-24 bg-primary-500/10 border border-primary-500/20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-glow-cyan animate-pulse-slow">
+          🧠
+        </div>
+        <h1 className="text-6xl font-black bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent mb-4 uppercase tracking-tighter">
           EAKAP
         </h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-text-secondary text-lg mb-12 font-medium tracking-wide">
           {dict.common.subtitle}
         </p>
-        <div className="space-x-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/login"
-            className="inline-block px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+            className="w-full sm:w-auto px-10 py-4 bg-primary-500 text-background-primary font-black rounded-xl hover:bg-primary-400 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-500/20 uppercase tracking-widest text-sm"
           >
             {dict.auth.sign_in}
           </Link>
           <Link
             href="/dashboard"
-            className="inline-block px-6 py-3 bg-white text-primary-500 border border-primary-500 rounded-lg hover:bg-primary-50 transition-colors"
+            className="w-full sm:w-auto px-10 py-4 glass-card text-text-primary font-bold rounded-xl hover:bg-white/10 hover:scale-105 active:scale-95 transition-all border border-white/10 uppercase tracking-widest text-sm"
           >
             {dict.common.enter_dashboard}
           </Link>

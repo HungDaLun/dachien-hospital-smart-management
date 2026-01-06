@@ -29,13 +29,18 @@ export default async function PendingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-soft p-8 text-center">
-          <div className="mb-6">
-            <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+    <div className="min-h-screen bg-background-primary flex items-center justify-center px-4 overflow-hidden relative">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-semantic-warning/5 blur-[100px] rounded-full" />
+        <div className="war-room-grid absolute inset-0 opacity-10" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="glass-warning rounded-3xl p-10 text-center border border-semantic-warning/20 shadow-glow-yellow">
+          <div className="mb-8">
+            <div className="mx-auto w-20 h-20 bg-semantic-warning/10 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-semantic-warning/20">
               <svg
-                className="w-8 h-8 text-yellow-600"
+                className="w-10 h-10 text-semantic-warning animate-pulse-slow"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -48,40 +53,49 @@ export default async function PendingPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-black text-text-primary mb-3 uppercase tracking-tight">
               帳號審核中
             </h1>
-            <p className="text-gray-600 mb-4">
+            <p className="text-text-secondary font-medium">
               您的帳號已成功註冊，目前正在等待管理員審核。
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <strong>審核通過後，您將可以：</strong>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 text-left">
+            <p className="text-sm text-text-primary font-bold mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(0,217,255,1)]" />
+              審核通過後，您將可以：
             </p>
-            <ul className="text-sm text-blue-700 mt-2 text-left list-disc list-inside space-y-1">
-              <li>使用系統的所有功能</li>
-              <li>上傳和管理知識庫檔案</li>
-              <li>與 AI Agent 進行對話</li>
-              <li>根據您的角色權限執行相應操作</li>
+            <ul className="text-xs text-text-secondary space-y-3 font-medium uppercase tracking-wide">
+              <li className="flex items-center gap-2">
+                <span className="text-primary-500">✓</span> 使用系統的所有功能
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-primary-500">✓</span> 上傳和管理知識庫檔案
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-primary-500">✓</span> 與 AI Agent 進行對話
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-primary-500">✓</span> 執行權限範圍內的操作
+              </li>
             </ul>
           </div>
 
-          <div className="text-sm text-gray-500">
+          <div className="text-xs text-text-tertiary font-medium mb-8">
             <p>如有任何問題，請聯絡系統管理員。</p>
-            <p className="mt-2">
-              電子郵件：{user.email}
+            <p className="mt-2 text-text-secondary font-mono">
+              {user.email}
             </p>
           </div>
 
-          <div className="mt-6">
+          <div>
             <form action="/api/auth/logout" method="POST">
               <button
                 type="submit"
-                className="text-sm text-gray-600 hover:text-gray-900 underline"
+                className="text-xs font-bold text-text-secondary hover:text-text-primary uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 mx-auto"
               >
-                登出
+                🚪 登出系統
               </button>
             </form>
           </div>

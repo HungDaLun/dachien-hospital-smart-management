@@ -119,37 +119,37 @@ export default function ControlCenter({
     return (
         <div
             ref={containerRef}
-            className="flex h-full w-full overflow-hidden bg-gray-50 relative group/app select-none"
+            className="flex h-full w-full overflow-hidden bg-background-primary relative group/app select-none text-text-primary"
         >
-            {/* View Mode Controls (Docked Bottom Center) - Unobtrusive & Higher Z-Index */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 opacity-80 hover:opacity-100 pointer-events-auto">
-                <div className="flex gap-2 p-1.5 bg-[#1A1B1E]/90 backdrop-blur-md border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            {/* View Mode Controls (Docked Bottom Center) */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 opacity-90 hover:opacity-100 pointer-events-auto">
+                <div className="flex gap-2 p-2 bg-background-tertiary/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-floating shadow-black/50">
                     <Button
                         size="sm"
                         variant={viewMode === 'list' ? 'primary' : 'ghost'}
                         onClick={() => setViewMode('list')}
-                        className={`rounded-full w-9 h-9 p-0 transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg scale-110' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                        className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'list' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
                         title="檔案列表 (List View)"
                     >
-                        <Layout size={16} />
+                        <Layout size={18} />
                     </Button>
                     <Button
                         size="sm"
                         variant={viewMode === 'split' ? 'primary' : 'ghost'}
                         onClick={() => setViewMode('split')}
-                        className={`rounded-full w-9 h-9 p-0 transition-all ${viewMode === 'split' ? 'bg-indigo-500 text-white shadow-lg scale-110' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                        className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'split' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
                         title="分割檢視 (Brain Split)"
                     >
-                        <Activity size={16} />
+                        <Activity size={18} />
                     </Button>
                     <Button
                         size="sm"
                         variant={viewMode === 'graph' ? 'primary' : 'ghost'}
                         onClick={() => setViewMode('graph')}
-                        className={`rounded-full w-9 h-9 p-0 transition-all ${viewMode === 'graph' ? 'bg-indigo-500 text-white shadow-lg scale-110' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                        className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'graph' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
                         title="沉浸式大腦 (Immersion)"
                     >
-                        <BrainCircuit size={16} />
+                        <BrainCircuit size={18} />
                     </Button>
                 </div>
             </div>
@@ -157,7 +157,7 @@ export default function ControlCenter({
             {/* Left Panel: File List */}
             <div
                 className={`
-                    h-full flex flex-col bg-white shadow-xl z-20 relative transition-[width] ease-linear
+                    h-full flex flex-col bg-background-secondary/30 backdrop-blur-sm z-20 relative transition-[width] ease-linear border-r border-white/5
                     ${viewMode === 'list' ? 'w-full' : viewMode === 'split' ? '' : 'w-0 overflow-hidden border-none opacity-0'}
                 `}
                 style={{
@@ -167,7 +167,7 @@ export default function ControlCenter({
                 }}
             >
                 {/* File List Area (Include Header Actions) */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden p-0">
+                <div className="flex-1 flex flex-col overflow-hidden p-0">
                     <FileList
                         canManage={canUpload}
                         dict={dict}
@@ -184,19 +184,19 @@ export default function ControlCenter({
             {viewMode === 'split' && (
                 <div
                     className={`
-                        w-1.5 h-full bg-gray-900 cursor-col-resize z-30 flex items-center justify-center hover:bg-indigo-500 transition-colors
-                        ${isResizing ? 'bg-indigo-600 w-2' : ''}
+                        w-1 h-full bg-white/5 cursor-col-resize z-30 flex items-center justify-center hover:bg-primary-500/50 transition-colors
+                        ${isResizing ? 'bg-primary-500 w-1.5 shadow-glow-cyan' : ''}
                     `}
                     onMouseDown={startResize}
                 >
-                    <div className="h-8 w-0.5 bg-gray-600 rounded-full" />
+                    <div className="h-10 w-px bg-white/20 rounded-full" />
                 </div>
             )}
 
             {/* Right Panel: Galaxy Graph */}
             <div
                 className={`
-                    h-full bg-black transition-all duration-300 ease-in-out relative overflow-hidden
+                    h-full bg-background-primary transition-all duration-300 ease-in-out relative overflow-hidden
                     ${viewMode === 'list' ? 'w-0 opacity-0' : 'flex-1 opacity-100'}
                 `}
             >

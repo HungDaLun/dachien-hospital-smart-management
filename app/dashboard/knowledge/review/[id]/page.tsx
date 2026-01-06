@@ -27,12 +27,12 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     // Let's rely on a hypothetical helper or component that can fetch via API.
 
     return (
-        <div className="h-[calc(100vh-4rem)] -m-6 flex flex-col">
-            <div className="border-b px-6 py-3 bg-white flex justify-between items-center shadow-sm z-10">
+        <div className="h-[calc(100vh-65px)] -m-6 flex flex-col overflow-hidden bg-background-primary">
+            <div className="border-b border-white/5 px-8 py-4 bg-background-secondary/80 backdrop-blur-md flex justify-between items-center z-10">
                 <div>
-                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-xl font-black text-text-primary flex items-center gap-3 uppercase tracking-tight">
                         🔍 Review Information
-                        <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{file.filename}</span>
+                        <span className="text-[10px] font-black text-primary-400 bg-primary-500/10 border border-primary-500/20 px-2 py-0.5 rounded-md uppercase tracking-widest">{file.filename}</span>
                     </h2>
                 </div>
             </div>

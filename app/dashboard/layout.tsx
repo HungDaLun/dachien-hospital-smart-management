@@ -30,7 +30,7 @@ export default async function DashboardLayout({
   if (profile && profile.status === 'PENDING') {
     return (
       <ToastProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background-primary text-text-primary">
           {children}
         </div>
       </ToastProvider>
@@ -62,15 +62,17 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* 頂部導航列 */}
-        <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-40 shrink-0">
+      <div className="min-h-screen bg-background-primary text-text-primary flex flex-col">
+        {/* 頂部導航列 - 採用更明確的分隔與高品質玻璃效果 */}
+        <nav className="bg-background-tertiary/90 backdrop-blur-xl border-b border-white/10 px-6 py-4 sticky top-0 z-40 shrink-0 shadow-2xl shadow-black/40">
           <div className="w-full flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-6">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <span className="text-2xl">🧠</span>
-                <span className="text-xl font-bold text-primary-600">EAKAP</span>
+              <Link href="/dashboard" className="flex items-center gap-2 group">
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-xl group-hover:bg-primary-500/20 transition-all">
+                  🧠
+                </div>
+                <span className="text-xl font-black tracking-tighter text-white uppercase">EAKAP</span>
               </Link>
 
               <div className="scale-90 origin-left">
@@ -86,10 +88,10 @@ export default async function DashboardLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all font-medium"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-text-secondary hover:text-primary-400 hover:bg-white/5 transition-all font-medium border border-transparent hover:border-white/5"
                   >
                     <span className="text-lg">{item.icon}</span>
-                    <span className="hidden xl:inline text-sm">{item.label}</span>
+                    <span className="hidden xl:inline text-sm tracking-wide">{item.label}</span>
                   </Link>
                 ))}
               </div>
@@ -107,8 +109,16 @@ export default async function DashboardLayout({
         </nav>
 
         {/* 主內容區 */}
-        <main className="flex-1 w-full overflow-auto">
-          {children}
+        <main className="flex-1 w-full overflow-auto relative">
+          {/* 背景裝飾效果 - 增加深度感 */}
+          <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-50">
+            <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-500/10 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary-500/10 blur-[120px] rounded-full" />
+          </div>
+
+          <div className="relative z-10">
+            {children}
+          </div>
         </main>
       </div >
     </ToastProvider >

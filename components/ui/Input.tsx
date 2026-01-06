@@ -1,7 +1,7 @@
 /**
  * Input 元件
  * 通用輸入框元件，支援 label、錯誤訊息、disabled 狀態
- * 遵循 EAKAP 設計系統規範
+ * 遵循 EAKAP 科技戰情室設計規範
  */
 'use client';
 
@@ -32,19 +32,12 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
  */
 const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-4 py-3 text-lg',
+    md: 'px-4 py-3 text-base',
+    lg: 'px-5 py-4 text-lg',
 };
 
 /**
  * Input 元件
- * 
- * @example
- * ```tsx
- * <Input label="電子郵件" type="email" placeholder="輸入您的電子郵件" />
- * <Input label="密碼" type="password" error="密碼至少需要 8 個字元" />
- * <Input leftElement={<SearchIcon />} placeholder="搜尋..." />
- * ```
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
     (
@@ -74,17 +67,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {label && (
                     <label
                         htmlFor={inputId}
-                        className="block text-sm font-medium text-gray-700 mb-1.5"
+                        className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest"
                     >
                         {label}
                     </label>
                 )}
 
                 {/* 輸入框容器 */}
-                <div className="relative">
+                <div className="relative group/input">
                     {/* 左側元素 */}
                     {leftElement && (
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within/input:text-primary-400 transition-colors">
                             {leftElement}
                         </div>
                     )}
@@ -97,27 +90,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                         aria-invalid={hasError}
                         aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
                         className={`
-              w-full
-              bg-white
-              border rounded-md
-              transition-all duration-150
-              ${sizeStyles[inputSize]}
-              ${leftElement ? 'pl-10' : ''}
-              ${rightElement ? 'pr-10' : ''}
-              ${hasError
-                                ? 'border-error-500 focus:ring-2 focus:ring-error-500 focus:border-error-500'
-                                : 'border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+                            w-full
+                            bg-white/[0.03]
+                            backdrop-blur-sm
+                            border
+                            rounded-xl
+                            text-white
+                            font-medium
+                            transition-all duration-300
+                            ${sizeStyles[inputSize]}
+                            ${leftElement ? 'pl-11' : ''}
+                            ${rightElement ? 'pr-11' : ''}
+                            ${hasError
+                                ? 'border-semantic-danger/50 focus:ring-4 focus:ring-semantic-danger/10 focus:border-semantic-danger shadow-glow-red/5'
+                                : 'border-white/10 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 shadow-glow-cyan/5'
                             }
-              ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
-              placeholder:text-gray-400
-              ${className}
-            `}
+                            ${disabled ? 'opacity-30 cursor-not-allowed bg-white/[0.01]' : 'hover:border-white/20'}
+                            placeholder:text-text-tertiary/50
+                            placeholder:font-normal
+                            ${className}
+                        `}
                         {...props}
                     />
 
                     {/* 右側元素 */}
                     {rightElement && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within/input:text-primary-400 transition-colors">
                             {rightElement}
                         </div>
                     )}
@@ -125,20 +123,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
                 {/* 錯誤訊息 */}
                 {error && (
-                    <p
-                        id={`${inputId}-error`}
-                        className="mt-1.5 text-sm text-error-500"
-                        role="alert"
-                    >
-                        {error}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                        <span className="w-1 h-1 rounded-full bg-semantic-danger" />
+                        <p
+                            id={`${inputId}-error`}
+                            className="text-[11px] font-bold text-semantic-danger/90 uppercase tracking-tight"
+                            role="alert"
+                        >
+                            {error}
+                        </p>
+                    </div>
                 )}
 
                 {/* 提示文字 */}
                 {hint && !error && (
                     <p
                         id={`${inputId}-hint`}
-                        className="mt-1.5 text-sm text-gray-500"
+                        className="mt-2 text-[10px] font-bold text-text-tertiary uppercase tracking-tight opacity-70"
                     >
                         {hint}
                     </p>

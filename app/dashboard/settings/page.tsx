@@ -1,7 +1,3 @@
-/**
- * 使用者設定頁面
- * 讓使用者可以編輯自己的個人資料（顯示名稱等）
- */
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
@@ -9,6 +5,9 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
 import SettingsForm from './SettingsForm';
 import { Card } from '@/components/ui';
+import PageHeader from '@/components/layout/PageHeader';
+import { User } from 'lucide-react';
+
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -47,15 +46,16 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{dict.settings.title}</h1>
-        <p className="text-gray-600 mt-2">{dict.settings.subtitle}</p>
-      </div>
+    <div className="w-full p-4 md:p-6 bg-background-primary text-text-primary min-h-screen">
+      <PageHeader
+        title="個人設定"
+        icon={User}
+      />
 
-      <Card>
+
+      <Card variant="glass">
         <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">{dict.settings.profile_section}</h2>
+          <h2 className="text-xl font-semibold text-text-primary mb-6">{dict.settings.profile_section}</h2>
           <SettingsForm
             profile={profile}
             email={user.email || ''}

@@ -13,7 +13,7 @@ const GalaxyGraph = dynamic(
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900">
                 <div className="flex flex-col items-center gap-4">
                     <Spinner size="lg" />
-                    <span className="text-gray-300 animate-pulse">🌌 Loading Neural Galaxy...</span>
+                    <span className="text-text-tertiary animate-pulse font-black uppercase tracking-[0.2em] text-[10px]">🌌 Initializing Neural Galaxy...</span>
                 </div>
             </div>
         ),
@@ -36,22 +36,22 @@ export default async function BrainPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] -m-6 flex flex-col">
-            <div className="border-b px-6 py-3 bg-white flex justify-between items-center shadow-sm z-10">
+        <div className="h-[calc(100vh-65px)] -m-6 flex flex-col overflow-hidden bg-background-primary">
+            <div className="border-b border-white/5 px-8 py-4 bg-background-secondary/80 backdrop-blur-md flex justify-between items-center z-10">
                 <div>
-                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-xl font-black text-text-primary flex items-center gap-3 uppercase tracking-tight">
                         🧠 Enterprise Brain
-                        <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black text-primary-400 bg-primary-500/10 border border-primary-500/20 px-2 py-0.5 rounded-md uppercase tracking-widest">
                             Neural Galaxy 2.0
                         </span>
                     </h2>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[10px] text-text-tertiary mt-1 font-bold uppercase tracking-widest">
                         Visualizing Departmental Knowledge Silos & Insights
-                        <span className="ml-2 text-accent-violet">· 視覺效果可在右上角切換</span>
+                        <span className="ml-3 text-secondary-400">· 視覺效果可在右上角切換</span>
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-gray-400">
+                <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-mono text-text-tertiary uppercase tracking-widest px-3 py-1 bg-white/[0.03] rounded-full border border-white/5">
                         {profile.department_id ? `Scope: Current Department` : 'Scope: Personal'}
                     </span>
                 </div>

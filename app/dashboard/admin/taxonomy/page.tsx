@@ -44,10 +44,10 @@ export default async function TaxonomyPage() {
     }
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">統一分類表管理 (Unified Taxonomy)</h1>
-                <p className="text-gray-600">
+        <div className="p-6 max-w-5xl mx-auto text-text-primary">
+            <div className="mb-10 border-b border-white/5 pb-8">
+                <h1 className="text-3xl font-black text-text-primary mb-2 uppercase tracking-tight">統一分類表管理 (Unified Taxonomy)</h1>
+                <p className="text-text-secondary font-medium leading-relaxed">
                     定義企業知識庫的標準分類架構。此分類將應用於所有上傳文件，並協助 AI 進行自動歸檔與權限劃分。
                 </p>
             </div>

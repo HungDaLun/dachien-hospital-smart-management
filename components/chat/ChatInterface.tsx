@@ -60,43 +60,37 @@ export default function ChatInterface({ agents, initialAgentId, dict }: ChatInte
     // 如果沒有選擇 Agent，顯示選擇器
     if (!selectedAgent) {
         return (
-            <div className="h-full flex flex-col">
-                {/* 標題 */}
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">{dict.chat.title}</h1>
-                    <p className="text-gray-600">{dict.chat.select_agent}</p>
-                </div>
-
+            <div className="h-full flex flex-col text-text-primary">
                 {/* Agent 列表 */}
+
                 {agents.length === 0 ? (
-                    <Card>
-                        <div className="text-center py-12 text-gray-500">
-                            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center text-3xl">
+                    <Card variant="glass" className="py-20 border-dashed border-white/10">
+                        <div className="text-center text-text-tertiary">
+                            <div className="w-20 h-20 mx-auto mb-6 bg-white/[0.03] rounded-3xl flex items-center justify-center text-5xl shadow-inner border border-white/5">
                                 🤖
                             </div>
-                            <p>{dict.common.no_data}</p>
-                            <p className="text-sm mt-2">{dict.common.no_data}</p>
+                            <p className="font-bold tracking-widest uppercase">{dict.common.no_data}</p>
                         </div>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                         {agents.map((agent) => (
                             <div
                                 key={agent.id}
                                 onClick={() => handleSelectAgent(agent)}
-                                className="cursor-pointer"
+                                className="cursor-pointer group"
                             >
-                                <Card interactive padding className="h-full">
+                                <Card variant="glass" interactive padding className="h-full hover:border-primary-500/30 transition-all duration-300">
                                     <div className="flex items-start gap-4">
                                         {/* Agent 圖示 */}
-                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0">
+                                        <div className="w-14 h-14 bg-gradient-to-br from-primary-500/20 to-purple-500/20 rounded-xl flex items-center justify-center border border-white/10 text-white text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                                             🤖
                                         </div>
 
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">{agent.name}</h3>
+                                            <h3 className="font-bold text-lg text-text-primary group-hover:text-primary-400 transition-colors tracking-tight">{agent.name}</h3>
                                             {agent.description && (
-                                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                                <p className="text-sm text-text-secondary mt-1 line-clamp-2 leading-relaxed">
                                                     {agent.description}
                                                 </p>
                                             )}
@@ -113,21 +107,21 @@ export default function ChatInterface({ agents, initialAgentId, dict }: ChatInte
 
     // 顯示對話視窗
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col text-text-primary">
             {/* 頂部列 */}
-            <div className="flex items-center gap-4 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToSelector}>
+            <div className="flex items-center gap-6 mb-6 pb-6 border-b border-white/5">
+                <Button variant="outline" size="sm" onClick={handleBackToSelector} className="uppercase tracking-widest text-[10px] font-black">
                     ← {dict.common.back}
                 </Button>
 
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg flex items-center justify-center text-white">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500/20 to-purple-500/20 rounded-xl flex items-center justify-center border border-white/10 text-white text-2xl shadow-glow-cyan animate-pulse-slow">
                         🤖
                     </div>
                     <div>
-                        <h2 className="font-semibold text-gray-900">{selectedAgent.name}</h2>
+                        <h2 className="text-xl font-black text-text-primary tracking-tight">{selectedAgent.name}</h2>
                         {selectedAgent.description && (
-                            <p className="text-sm text-gray-500">{selectedAgent.description}</p>
+                            <p className="text-xs text-text-secondary font-medium">{selectedAgent.description}</p>
                         )}
                     </div>
                 </div>

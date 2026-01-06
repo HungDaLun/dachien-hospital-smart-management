@@ -1,13 +1,14 @@
 /**
- * 階層式分類下拉選單元件 V2
+ * 階層式分類下拉選單元件 V2 - 科技戰情室版本
  * 使用 Portal 將次分類選單渲染到 body，避免 overflow 問題
+ * 遵循 EAKAP 科技戰情室設計系統規範
  */
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DocumentCategory } from '@/types';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Hash } from 'lucide-react';
 
 interface HierarchicalCategorySelectProps {
     categories: DocumentCategory[];
@@ -77,31 +78,18 @@ export default function HierarchicalCategorySelect({
         }
     };
 
-    // 設置懸停的主分類（立即生效）
+    // 設置懸停的主分類
     const handleParentEnter = (parentId: string) => {
         clearHoverTimeout();
         setHoveredParentId(parentId);
     };
 
-    // 離開主分類（延遲清除）
+    // 離開主分類
     const handleParentLeave = () => {
         clearHoverTimeout();
         hoverTimeoutRef.current = setTimeout(() => {
             setHoveredParentId(null);
-        }, 200); // 增加到 200ms
-    };
-
-    // 進入次分類選單（取消清除）
-    const handleSubmenuEnter = () => {
-        clearHoverTimeout();
-    };
-
-    // 離開次分類選單（延遲清除）
-    const handleSubmenuLeave = () => {
-        clearHoverTimeout();
-        hoverTimeoutRef.current = setTimeout(() => {
-            setHoveredParentId(null);
-        }, 200);
+        }, 150);
     };
 
     // 更新子選單位置
@@ -139,13 +127,6 @@ export default function HierarchicalCategorySelect({
         };
     }, [isOpen]);
 
-    // 清理計時器（元件卸載時）
-    useEffect(() => {
-        return () => {
-            clearHoverTimeout();
-        };
-    }, []);
-
     const handleSelect = (categoryId: string) => {
         onChange(categoryId);
         setIsOpen(false);
@@ -163,32 +144,44 @@ export default function HierarchicalCategorySelect({
 
         return createPortal(
             <div
-                className="fixed w-56 bg-white border border-gray-200 rounded-md shadow-xl max-h-80 overflow-y-auto"
+                className="fixed w-56 bg-background-tertiary/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-floating shadow-black/80 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-left-2 duration-200"
                 style={{
                     top: `${submenuPosition.top}px`,
                     left: `${submenuPosition.left}px`,
                     zIndex: 99999,
                 }}
-                onMouseEnter={handleSubmenuEnter}
+                onMouseEnter={() => clearHoverTimeout()}
                 onMouseLeave={handleSubmenuLeave}
             >
-                {hoveredParent.children.map((child) => (
-                    <button
-                        key={child.id}
-                        type="button"
-                        onClick={() => handleSelect(child.id)}
-                        className={`
-                            w-full px-3 py-2 text-left text-sm
-                            hover:bg-gray-50 transition-colors
-                            ${value === child.id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}
-                        `}
-                    >
-                        {child.name}
-                    </button>
-                ))}
+                <div className="p-1 space-y-0.5">
+                    {hoveredParent.children.map((child) => (
+                        <button
+                            key={child.id}
+                            type="button"
+                            onClick={() => handleSelect(child.id)}
+                            className={`
+                                w-full px-4 py-2 text-left text-[11px] font-bold rounded-lg transition-all
+                                hover:bg-white/5 uppercase tracking-widest
+                                ${value === child.id ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20 shadow-glow-cyan/5' : 'text-text-secondary border border-transparent'}
+                            `}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Hash size={10} className="opacity-30" />
+                                {child.name}
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>,
             document.body
         );
+    };
+
+    const handleSubmenuLeave = () => {
+        clearHoverTimeout();
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredParentId(null);
+        }, 150);
     };
 
     return (
@@ -201,39 +194,44 @@ export default function HierarchicalCategorySelect({
                     className={`
                         w-full
                         flex items-center justify-between
-                        bg-white border rounded-md
-                        transition-all duration-150
+                        bg-white/[0.03] backdrop-blur-sm
+                        border rounded-xl
+                        transition-all duration-300
                         ${sizeStyles[selectSize]}
-                        border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                        hover:border-gray-400
-                        ${isOpen ? 'ring-2 ring-primary-500 border-primary-500' : ''}
+                        font-medium
+                        ${isOpen
+                            ? 'border-primary-500/50 ring-4 ring-primary-500/10 text-text-primary shadow-glow-cyan/5'
+                            : 'border-white/10 text-text-primary hover:border-white/20'
+                        }
                     `}
                 >
                     <span className="text-left truncate">{displayValue}</span>
                     <ChevronDown
-                        size={16}
-                        className={`text-gray-400 ml-2 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        size={14}
+                        className={`text-text-tertiary ml-2 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary-400' : ''}`}
                     />
                 </button>
 
                 {/* 下拉選單 */}
                 {isOpen && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                    <div className="absolute z-50 w-64 mt-2 bg-background-tertiary/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-floating shadow-black/80 animate-in fade-in slide-in-from-top-2 duration-300">
                         {/* 所有類型選項 */}
-                        <button
-                            type="button"
-                            onClick={() => handleSelect('')}
-                            className={`
-                                w-full px-3 py-2 text-left text-sm
-                                hover:bg-gray-50 transition-colors
-                                ${value === '' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}
-                            `}
-                        >
-                            所有類型
-                        </button>
+                        <div className="p-1.5 border-b border-white/5">
+                            <button
+                                type="button"
+                                onClick={() => handleSelect('')}
+                                className={`
+                                        w-full px-4 py-2 text-left text-sm font-medium rounded-xl transition-all
+                                        hover:bg-white/5
+                                        ${value === '' ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'text-text-secondary border border-transparent'}
+                                    `}
+                            >
+                                所有類型
+                            </button>
+                        </div>
 
                         {/* 主分類列表 */}
-                        <div className="border-t border-gray-100 max-h-96 overflow-y-auto">
+                        <div className="p-1.5 space-y-0.5 max-h-96 overflow-y-auto custom-scrollbar">
                             {tree.map((parent) => (
                                 <div
                                     key={parent.id}
@@ -251,15 +249,15 @@ export default function HierarchicalCategorySelect({
                                     {/* 主分類項目 */}
                                     <div
                                         className={`
-                                            px-3 py-2 text-sm font-medium cursor-pointer
-                                            ${hoveredParentId === parent.id ? 'bg-gray-50' : ''}
-                                            ${value === parent.id ? 'bg-primary-50 text-primary-700' : 'text-gray-700'}
+                                            px-4 py-2 text-sm font-medium rounded-xl cursor-pointer transition-all
+                                            ${hoveredParentId === parent.id ? 'bg-white/5 text-text-primary' : 'text-text-secondary'}
+                                            ${value === parent.id ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'border border-transparent'}
                                         `}
                                     >
                                         <div className="flex items-center justify-between">
                                             <span>{parent.name}</span>
                                             {parent.children.length > 0 && (
-                                                <span className="text-gray-400 text-xs ml-2">▶</span>
+                                                <ChevronRight size={12} className={`text-text-tertiary transition-transform ${hoveredParentId === parent.id ? 'translate-x-1 text-primary-400' : ''}`} />
                                             )}
                                         </div>
                                     </div>

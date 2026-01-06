@@ -5,6 +5,9 @@ import UserRow from './UserRow';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
+import PageHeader from '@/components/layout/PageHeader';
+import { Settings } from 'lucide-react';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -38,11 +41,11 @@ export default async function UsersPage() {
         .from('user_profiles')
         .select('*')
         .order('created_at', { ascending: false });
-    
+
     // 分離待審核和已審核的使用者
     const pendingUsers = users?.filter(u => u.status === 'PENDING') || [];
     const approvedUsers = users?.filter(u => u.status === 'APPROVED') || [];
-    
+
     // 除錯：檢查查詢結果
     if (process.env.NODE_ENV === 'development') {
         console.log('🔍 使用者列表查詢結果:', {
@@ -97,33 +100,35 @@ export default async function UsersPage() {
     const deptList = departments || [];
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{dict.admin.users.title}</h1>
-                <p className="text-gray-500">{dict.admin.users.subtitle}</p>
-            </div>
+        <div className="p-6 w-full text-text-primary">
+            <PageHeader
+                title="系統管理"
+                icon={Settings}
+            />
+
 
             {/* 待審核使用者區塊 */}
             {pendingUsers.length > 0 && (
-                <div className="mb-6">
-                    <div className="mb-3 flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900">待審核使用者</h2>
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                <div className="mb-10 animate-fade-in">
+                    <div className="mb-4 flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-semantic-warning shadow-[0_0_10px_rgba(255,184,0,0.5)]" />
+                        <h2 className="text-lg font-bold text-text-primary uppercase tracking-widest">待審核使用者</h2>
+                        <span className="px-2 py-0.5 bg-semantic-warning/10 text-semantic-warning text-[10px] font-black rounded-full border border-semantic-warning/20">
                             {pendingUsers.length}
                         </span>
                     </div>
-                    <Card padding={false} className="overflow-hidden border-yellow-200">
+                    <Card variant="glass" padding={false} className="overflow-hidden border-semantic-warning/20 bg-semantic-warning/[0.02]">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-yellow-50 border-b border-yellow-200">
+                                <thead className="bg-semantic-warning/5 border-b border-white/5">
                                     <tr>
-                                        <th className="py-3 px-4 font-semibold text-gray-700 w-1/3">姓名</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-700">角色權限</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-700">部門</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-700 text-right">操作</th>
+                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest w-1/3">姓名</th>
+                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">角色權限</th>
+                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">部門</th>
+                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest text-right">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-white/[0.02]">
                                     {pendingUsers.map(u => (
                                         <UserRow key={u.id} user={u} departments={deptList} dict={dict} />
                                     ))}
@@ -136,39 +141,43 @@ export default async function UsersPage() {
 
             {/* 除錯資訊（僅在開發環境顯示） */}
             {process.env.NODE_ENV === 'development' && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-                    <p className="font-semibold text-blue-900">除錯資訊：</p>
-                    <p>使用者數量: {users?.length || 0}</p>
-                    <p>當前登入: {user.email}</p>
-                    <p>角色: {profile.role}</p>
+                <div className="mb-6 p-4 bg-primary-500/5 border border-primary-500/10 rounded-xl text-[10px] font-mono text-text-tertiary uppercase tracking-wider">
+                    <p className="font-black text-primary-400 mb-1">DEBUG SYSTEM INFORMATION:</p>
+                    <div className="flex gap-6">
+                        <p>USERS: {users?.length || 0}</p>
+                        <p>CURRENT: {user.email}</p>
+                        <p>ROLE: {profile.role}</p>
+                    </div>
                 </div>
             )}
 
             {/* 已審核使用者區塊 */}
-            <div>
-                <div className="mb-3">
-                    <h2 className="text-lg font-semibold text-gray-900">已審核使用者</h2>
+            <div className="animate-fade-in">
+                <div className="mb-4 flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary-500 shadow-[0_0_10px_rgba(0,217,255,0.5)]" />
+                    <h2 className="text-lg font-bold text-text-primary uppercase tracking-widest">已審核使用者</h2>
                 </div>
-                <Card padding={false} className="overflow-hidden">
+                <Card variant="glass" padding={false} className="overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-200">
+                            <thead className="bg-white/[0.02] border-b border-white/5">
                                 <tr>
-                                    <th className="py-3 px-4 font-semibold text-gray-700 w-1/3">{dict.admin.users.name}</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-700">{dict.admin.users.role_permission}</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-700">{dict.admin.users.department}</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-700 text-right">{dict.common.actions}</th>
+                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest w-1/3">{dict.admin.users.name}</th>
+                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">{dict.admin.users.role_permission}</th>
+                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">{dict.admin.users.department}</th>
+                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest text-right">{dict.common.actions}</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-white/[0.02]">
                                 {approvedUsers.map(u => (
                                     <UserRow key={u.id} user={u} departments={deptList} dict={dict} />
                                 ))}
                                 {approvedUsers.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="py-12 text-center text-gray-500">
-                                            <div>
-                                                <p className="mb-2">{dict.common.no_data}</p>
+                                        <td colSpan={4} className="py-20 text-center text-text-tertiary">
+                                            <div className="flex flex-col items-center">
+                                                <div className="text-4xl mb-4 opacity-20">👥</div>
+                                                <p className="font-bold tracking-widest uppercase text-xs">{dict.common.no_data}</p>
                                             </div>
                                         </td>
                                     </tr>

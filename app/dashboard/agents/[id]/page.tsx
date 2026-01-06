@@ -49,10 +49,11 @@ export default async function AgentDetailsPage({ params }: AgentDetailsPageProps
 
     if (!canEdit) {
         return (
-            <div className="text-center py-20">
-                <h2 className="text-xl font-bold text-gray-900">{dict.common.error}</h2>
-                <p className="text-gray-600 mt-2">{dict.agents.form.access_control}</p>
-                <Link href="/dashboard/agents" className="inline-block mt-6">
+            <div className="text-center py-20 text-text-primary">
+                <div className="text-4xl mb-4 text-semantic-danger opacity-50">🚫</div>
+                <h2 className="text-2xl font-black uppercase tracking-tight">{dict.common.error}</h2>
+                <p className="text-text-secondary mt-2 font-medium">{dict.agents.form.access_control}</p>
+                <Link href="/dashboard/agents" className="inline-block mt-8">
                     <Button variant="outline">{dict.common.back}</Button>
                 </Link>
             </div>
@@ -60,15 +61,15 @@ export default async function AgentDetailsPage({ params }: AgentDetailsPageProps
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div className="max-w-6xl mx-auto space-y-10 p-6 text-text-primary">
+            <div className="flex items-center justify-between border-b border-white/5 pb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{dict.agents.edit_agent}: {agent.name}</h1>
-                    <p className="text-gray-600">{dict.dashboard_home.agent_card_desc}</p>
+                    <h1 className="text-3xl font-black text-text-primary mb-2 uppercase tracking-tight">{dict.agents.edit_agent}: {agent.name}</h1>
+                    <p className="text-text-secondary font-medium">{dict.dashboard_home.agent_card_desc}</p>
                 </div>
-                <div className="flex gap-2">
-                    <Link href={`/chat?agent=${agent.id}`}>
-                        <Button variant="primary">{dict.dashboard_home.chat_card_btn}</Button>
+                <div className="flex gap-4">
+                    <Link href={`/dashboard/chat?agent=${agent.id}`}>
+                        <Button variant="cta" size="lg">{dict.dashboard_home.chat_card_btn}</Button>
                     </Link>
                 </div>
             </div>

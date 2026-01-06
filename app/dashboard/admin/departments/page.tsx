@@ -6,6 +6,9 @@ import DeleteDepartmentButton from './DeleteDepartmentButton';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
+import PageHeader from '@/components/layout/PageHeader';
+import { Settings } from 'lucide-react';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -68,36 +71,33 @@ export default async function DepartmentsPage() {
     }));
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{dict.admin.departments.title}</h1>
-                    <p className="text-gray-500">{dict.admin.departments.subtitle}</p>
-                </div>
+        <div className="p-6 w-full text-text-primary">
+            <PageHeader
+                title="系統管理"
+                icon={Settings}
+                actions={<CreateDepartmentForm dict={dict} />}
+            />
 
-                {/* 新增部門表單 */}
-                <CreateDepartmentForm dict={dict} />
-            </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-6">
                 {departmentsWithCounts.map((dept) => (
-                    <Card key={dept.id} padding className="flex justify-between items-center">
+                    <Card key={dept.id} variant="glass" padding className="flex justify-between items-center">
                         <div>
                             <div className="flex items-center gap-3">
-                                <h3 className="font-semibold text-lg">{dept.name}</h3>
+                                <h3 className="font-bold text-lg text-text-primary">{dept.name}</h3>
                                 {dept.code && (
-                                    <Badge variant="primary" size="sm">
+                                    <Badge variant="secondary" size="sm">
                                         {dept.code}
                                     </Badge>
                                 )}
-                                <Badge variant="default">
+                                <Badge variant="outline">
                                     {dept.member_count} {dict.admin.departments.people}
                                 </Badge>
                             </div>
-                            <p className="text-gray-500 text-sm mt-1">
+                            <p className="text-text-secondary text-sm mt-2 leading-relaxed">
                                 {dept.description || dict.admin.departments.no_desc}
                             </p>
-                            <p className="text-xs text-gray-400 mt-2">
+                            <p className="text-[10px] text-text-tertiary font-mono mt-3 uppercase tracking-wider">
                                 ID: {dept.id}
                             </p>
                         </div>
@@ -109,8 +109,9 @@ export default async function DepartmentsPage() {
                 ))}
 
                 {(!departmentsWithCounts || departmentsWithCounts.length === 0) && (
-                    <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        {dict.admin.departments.no_data}
+                    <div className="text-center py-20 text-text-tertiary bg-white/[0.02] rounded-2xl border border-dashed border-white/10">
+                        <div className="text-4xl mb-4 opacity-20">🏢</div>
+                        <p>{dict.admin.departments.no_data}</p>
                     </div>
                 )}
             </div>

@@ -1,11 +1,13 @@
 /**
  * 引用來源列表元件
  * 顯示 AI 回應所參考的資料來源
+ * 遵循 EAKAP 科技戰情室設計系統規範
  */
 'use client';
 
 import { useState } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import { BookOpen, ChevronDown, ExternalLink, Hash } from 'lucide-react';
 
 export interface Citation {
     startIndex?: number;
@@ -37,32 +39,44 @@ export default function CitationList({ citations, dict }: CitationListProps) {
     );
 
     return (
-        <div className="mt-3 pt-3 border-t border-gray-200/50">
+        <div className="mt-4 pt-4 border-t border-white/5">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary-600 transition-colors"
+                className="group/btn flex items-center gap-3 text-[10px] font-black text-text-tertiary hover:text-primary-400 transition-all uppercase tracking-widest"
             >
-                <span className="flex items-center justify-center w-4 h-4 rounded-full border border-gray-300 text-[10px]">
-                    i
-                </span>
+                <div className={`p-1 rounded-md border transition-all ${isExpanded ? 'bg-primary-500/20 border-primary-500/30 text-primary-400' : 'bg-white/5 border-white/5 group-hover/btn:border-primary-500/20'}`}>
+                    <BookOpen size={12} />
+                </div>
                 <span>{dict.chat.citations.ref_count.replace('{{count}}', uniqueCitations.length.toString())}</span>
-                <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                    ▼
-                </span>
+                <ChevronDown size={14} className={`transform transition-transform duration-300 opacity-40 ${isExpanded ? 'rotate-180 text-primary-400' : ''}`} />
             </button>
 
             {isExpanded && (
-                <div className="mt-2 text-xs space-y-2">
+                <div className="mt-4 grid grid-cols-1 gap-2 animate-in slide-in-from-top-2 duration-300">
                     {uniqueCitations.map((citation, idx) => (
-                        <div key={idx} className="bg-white/50 p-2 rounded border border-gray-200">
-                            <div className="font-medium text-gray-700 truncate" title={citation.title}>
-                                {idx + 1}. {citation.title || dict.chat.citations.untitled}
+                        <div
+                            key={idx}
+                            className="group/item flex items-center gap-4 bg-white/[0.02] hover:bg-white/[0.04] p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-default"
+                        >
+                            <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center text-[10px] font-mono text-text-tertiary">
+                                {idx + 1}
                             </div>
-                            {citation.uri && (
-                                <div className="text-gray-400 mt-1 truncate max-w-full text-[10px]">
-                                    {citation.uri}
+
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[11px] font-bold text-text-secondary truncate group-hover/item:text-text-primary transition-colors" title={citation.title}>
+                                    {citation.title || dict.chat.citations.untitled}
                                 </div>
-                            )}
+                                {citation.uri && (
+                                    <div className="flex items-center gap-1.5 text-[9px] font-medium text-text-tertiary mt-1 opacity-40 group-hover/item:opacity-60 transition-opacity truncate">
+                                        <Hash size={10} />
+                                        {citation.uri}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="opacity-0 group-hover/item:opacity-100 transition-opacity text-primary-400">
+                                <ExternalLink size={12} />
+                            </div>
                         </div>
                     ))}
                 </div>

@@ -74,43 +74,45 @@ export default function UserMenu({ email, displayName, role, avatarUrl, logoutTe
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
             >
-                <Menu.Items className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm text-gray-900 font-medium truncate">
+                <Menu.Items className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl bg-background-tertiary border border-white/10 shadow-floating focus:outline-none overflow-hidden backdrop-blur-xl">
+                    <div className="px-5 py-4 border-b border-white/5 bg-white/[0.02]">
+                        <p className="text-sm text-text-primary font-bold truncate">
                             {displayName || 'User'}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">{email}</p>
-                        <span className="mt-1 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                            {role || 'USER'}
-                        </span>
+                        <p className="text-[10px] text-text-tertiary truncate font-mono mt-0.5">{email}</p>
+                        <div className="mt-2.5">
+                            <span className="inline-flex items-center rounded-lg bg-primary-500/10 px-2 py-0.5 text-[10px] font-black text-primary-400 border border-primary-500/20 uppercase tracking-wider">
+                                {role || 'USER'}
+                            </span>
+                        </div>
                     </div>
 
-                    <div className="py-1">
+                    <div className="p-1.5">
                         <Menu.Item>
                             {({ active }) => (
                                 <Link
                                     href="/dashboard/settings"
                                     className={`
-                                        ${active ? 'bg-gray-50' : ''}
-                                        group flex w-full items-center px-4 py-2 text-sm text-gray-700
+                                        ${active ? 'bg-white/5 text-primary-400' : 'text-text-secondary'}
+                                        group flex w-full items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all
                                     `}
                                 >
-                                    <span className="mr-3">⚙️</span>
+                                    <span className="mr-3 filter grayscale group-hover:grayscale-0 transition-all">⚙️</span>
                                     個人設定
                                 </Link>
                             )}
                         </Menu.Item>
                     </div>
 
-                    <div className="py-1 border-t border-gray-100">
+                    <div className="p-1.5 border-t border-white/5">
                         <Menu.Item>
                             {({ active }) => (
                                 <button
                                     onClick={handleLogout}
                                     disabled={loading}
                                     className={`
-                                        ${active ? 'bg-red-50' : ''}
-                                        group flex w-full items-center px-4 py-2 text-sm text-red-600
+                                        ${active ? 'bg-semantic-danger/10 text-semantic-danger' : 'text-text-tertiary'}
+                                        group flex w-full items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all
                                     `}
                                 >
                                     <span className="mr-3">{loading ? '⌛' : '🚪'}</span>

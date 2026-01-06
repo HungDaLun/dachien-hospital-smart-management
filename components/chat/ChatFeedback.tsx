@@ -3,10 +3,12 @@
 /**
  * 對話回饋元件
  * 提供 👍/👎 按鈕與回饋表單
+ * 遵循 EAKAP 科技戰情室設計系統規範
  */
 import { useState } from 'react';
-
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import { ThumbsUp, ThumbsDown, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button, Spinner } from '@/components/ui';
 
 interface ChatFeedbackProps {
   messageId: string;
@@ -30,27 +32,17 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
   const [submitted, setSubmitted] = useState(false);
 
   const handlePositiveFeedback = async () => {
-    if (rating === 1) return; // 已經點擊過
+    if (rating === 1) return;
 
     setLoading(true);
     try {
       const response = await fetch('/api/chat/feedback', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message_id: messageId,
-          rating: 1,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, rating: 1 }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || '提交回饋失敗');
-      }
-
+      if (!response.ok) throw new Error(data.error?.message || '提交回饋失敗');
       setRating(1);
       setSubmitted(true);
       onFeedbackSubmitted?.();
@@ -64,10 +56,8 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
 
   const handleNegativeFeedback = () => {
     if (rating === -1) {
-      // 如果已經點擊過負評，顯示表單
       setShowForm(!showForm);
     } else {
-      // 第一次點擊負評，顯示表單
       setRating(-1);
       setShowForm(true);
     }
@@ -83,9 +73,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
     try {
       const response = await fetch('/api/chat/feedback', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message_id: messageId,
           rating: -1,
@@ -93,13 +81,8 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
           comment: comment.trim() || null,
         }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || '提交回饋失敗');
-      }
-
+      if (!response.ok) throw new Error(data.error?.message || '提交回饋失敗');
       setSubmitted(true);
       setShowForm(false);
       onFeedbackSubmitted?.();
@@ -111,40 +94,32 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
     }
   };
 
-  if (submitted && rating === 1) {
+  if (submitted) {
     return (
-      <div className="mt-2 text-sm text-success-500">
-        ✓ {dict.chat.feedback.success}
-      </div>
-    );
-  }
-
-  if (submitted && rating === -1) {
-    return (
-      <div className="mt-2 text-sm text-success-500">
-        ✓ {dict.chat.feedback.success_negative}
+      <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-semantic-success uppercase tracking-widest animate-in fade-in slide-in-from-left-2 duration-300">
+        <CheckCircle2 size={12} />
+        {rating === 1 ? dict.chat.feedback.success : dict.chat.feedback.success_negative}
       </div>
     );
   }
 
   return (
-    <div className="mt-2">
-      {/* 回饋按鈕 */}
-      <div className="flex items-center gap-2">
+    <div className="mt-4">
+      {/* Feedback buttons */}
+      <div className="flex items-center gap-3">
         <button
           onClick={handlePositiveFeedback}
           disabled={loading || submitted}
           className={`
-            flex items-center gap-1 px-2 py-1 text-sm rounded
-            transition-colors
+            flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300
             ${rating === 1
-              ? 'bg-success-100 text-success-600'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-semantic-success/20 text-semantic-success border border-semantic-success/30 shadow-glow-green/10'
+              : 'bg-white/5 text-text-tertiary border border-white/5 hover:bg-white/10 hover:border-white/20'
             }
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:opacity-40 disabled:cursor-not-allowed
           `}
         >
-          <span>👍</span>
+          <ThumbsUp size={12} className={rating === 1 ? 'animate-bounce' : ''} />
           <span>{dict.chat.feedback.helpful}</span>
         </button>
 
@@ -152,40 +127,46 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
           onClick={handleNegativeFeedback}
           disabled={loading || (submitted && rating !== -1)}
           className={`
-            flex items-center gap-1 px-2 py-1 text-sm rounded
-            transition-colors
+            flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300
             ${rating === -1
-              ? 'bg-error-100 text-error-600'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-semantic-danger/20 text-semantic-danger border border-semantic-danger/30 shadow-glow-red/10'
+              : 'bg-white/5 text-text-tertiary border border-white/5 hover:bg-white/10 hover:border-white/20'
             }
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:opacity-40 disabled:cursor-not-allowed
           `}
         >
-          <span>👎</span>
+          <ThumbsDown size={12} className={rating === -1 ? 'animate-shake' : ''} />
           <span>{dict.chat.feedback.not_helpful}</span>
         </button>
       </div>
 
-      {/* 負評表單 */}
+      {/* Negative Feedback Form */}
       {showForm && rating === -1 && !submitted && (
-        <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-          <p className="text-sm font-medium text-gray-700 mb-2">
-            {dict.chat.feedback.title}
-          </p>
+        <div className="mt-4 p-5 bg-background-secondary/80 border border-white/10 rounded-[28px] shadow-floating animate-in slide-in-from-top-2 duration-300 max-w-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={14} className="text-secondary-400" />
+              <h4 className="text-[10px] font-black text-text-primary uppercase tracking-widest">
+                {dict.chat.feedback.title}
+              </h4>
+            </div>
+            <button onClick={() => setShowForm(false)} className="text-text-tertiary hover:text-text-primary transition-colors">
+              <X size={14} />
+            </button>
+          </div>
 
-          <div className="space-y-2">
-            {/* 原因選項 */}
+          <div className="space-y-4">
+            {/* Reasons */}
             <div className="flex flex-wrap gap-2">
               {FEEDBACK_REASONS.map((reason) => (
                 <button
                   key={reason.code}
                   onClick={() => setReasonCode(reason.code)}
                   className={`
-                    px-3 py-1 text-xs rounded
-                    transition-colors
+                    px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all
                     ${reasonCode === reason.code
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      ? 'bg-primary-500 text-black border-primary-500 shadow-glow-cyan/20'
+                      : 'bg-white/5 text-text-tertiary border-white/5 hover:bg-white/10 hover:border-white/10'
                     }
                   `}
                 >
@@ -194,25 +175,27 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
               ))}
             </div>
 
-            {/* 自由文字 */}
+            {/* Comment */}
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder={dict.chat.feedback.comment_placeholder}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              rows={2}
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-xs text-text-secondary focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500/30 outline-none transition-all placeholder:text-text-tertiary/20 resize-none"
+              rows={3}
             />
 
-            {/* 提交按鈕 */}
+            {/* Actions */}
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={handleSubmitNegativeFeedback}
                 disabled={loading}
-                className="px-4 py-2 text-sm bg-primary-500 text-white rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                size="sm"
+                className="flex-1 h-9 text-[10px] font-black uppercase tracking-widest rounded-xl"
               >
-                {loading ? dict.chat.feedback.submitting : dict.chat.feedback.submit}
-              </button>
-              <button
+                {loading ? <Spinner size="sm" color="black" /> : dict.chat.feedback.submit}
+              </Button>
+              <Button
                 onClick={() => {
                   setShowForm(false);
                   setRating(null);
@@ -220,10 +203,12 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
                   setComment('');
                 }}
                 disabled={loading}
-                className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 rounded-xl border-white/10 text-[10px] font-black uppercase tracking-widest"
               >
                 {dict.chat.feedback.cancel}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -389,7 +389,7 @@ function GalaxyGraphContent({
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0B0C0E]">
                     <div className="flex flex-col items-center gap-4">
                         <Spinner size="lg" />
-                        <span className="text-gray-500 font-mono text-xs tracking-widest">LOADING GALAXY...</span>
+                        <span className="text-text-tertiary font-black text-[10px] tracking-[0.2em] uppercase animate-pulse">Neural Galaxy Synchronizing...</span>
                     </div>
                 </div>
             )}
@@ -420,9 +420,9 @@ function GalaxyGraphContent({
                 selectionOnDrag={false} // Disable selection box to ensure panning works
                 preventScrolling={false}
             >
-                <Controls className="galaxy-controls !bg-[#1A1B1E] !border-[#2C2E33] !fill-gray-400" />
+                <Controls className="galaxy-controls !bg-background-secondary/80 !backdrop-blur-md !border-white/10 !fill-text-tertiary" />
                 <MiniMap
-                    className="galaxy-minimap !bg-[#1A1B1E] !border-[#2C2E33]"
+                    className="galaxy-minimap !bg-background-secondary/80 !backdrop-blur-md !border-white/10"
                     nodeColor={(node) => {
                         const level = node.data?.dikwLevel || 'data';
                         return DIKW_COLORS[level as keyof typeof DIKW_COLORS]?.bg || '#fff';
@@ -435,7 +435,7 @@ function GalaxyGraphContent({
                         onClick={fetchData}
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 rounded-md border border-white/5 bg-white/5 text-gray-400 hover:text-white"
+                        className="h-9 w-9 p-0 rounded-xl border border-white/5 bg-white/5 text-text-tertiary hover:text-text-primary hover:bg-white/10 transition-all"
                         title="Refresh"
                     >
                         ↻

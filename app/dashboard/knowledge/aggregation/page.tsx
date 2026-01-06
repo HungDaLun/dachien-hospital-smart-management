@@ -64,46 +64,52 @@ export default function AggregationDashboard() {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Knowledge Fragment Aggregation</h1>
-                <p className="text-gray-600">
+        <div className="p-8 max-w-7xl mx-auto text-text-primary">
+            <div className="mb-10 border-b border-white/5 pb-8">
+                <h1 className="text-4xl font-black text-text-primary mb-2 uppercase tracking-tight">KNOWLEDGE AGGREGATION</h1>
+                <p className="text-text-secondary font-medium leading-relaxed">
                     Automatically discovered knowledge clusters. Synthesize them into unified Knowledge Units.
                 </p>
             </div>
 
-            <div className="flex justify-end mb-4">
-                <Button onClick={fetchCandidates} variant="ghost" size="sm" loading={isLoading}>
+            <div className="flex justify-end mb-6">
+                <Button onClick={fetchCandidates} variant="cta" size="sm" loading={isLoading}>
                     🔄 Refresh Suggestions
                 </Button>
             </div>
 
             {isLoading ? (
-                <div className="text-center py-12 text-gray-400">Scanning knowledge base...</div>
+                <div className="text-center py-20 text-text-tertiary">
+                    <div className="animate-spin inline-block w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mb-4"></div>
+                    <p className="font-bold tracking-widest uppercase text-xs">Scanning knowledge base...</p>
+                </div>
             ) : candidates.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                    <p className="text-gray-500">No aggregation candidates found.</p>
-                    <p className="text-sm text-gray-400 mt-2">Try uploading more related documents.</p>
+                <div className="text-center py-24 bg-white/[0.02] rounded-3xl border border-dashed border-white/5">
+                    <div className="text-6xl mb-6 opacity-10">🧩</div>
+                    <p className="text-text-secondary font-bold text-lg mb-2">No aggregation candidates found.</p>
+                    <p className="text-sm text-text-tertiary">Try uploading more related documents to help AI find patterns.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {candidates.map((candidate) => (
-                        <div key={candidate.concept_name} className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex flex-col">
+                        <div key={candidate.concept_name} className="bg-background-secondary/50 backdrop-blur-sm rounded-2xl border border-white/5 p-6 flex flex-col group hover:border-primary-500/30 transition-all duration-300">
                             <div className="flex-1">
-                                <div className="flex items-start justify-between mb-2">
-                                    <Badge variant="info" className="mb-2">Cluster</Badge>
-                                    <span className="text-xs text-gray-400 font-mono">{candidate.file_ids.length} Sources</span>
+                                <div className="flex items-start justify-between mb-4">
+                                    <Badge variant="secondary" className="font-black uppercase tracking-widest text-[9px]">Cluster</Badge>
+                                    <span className="text-[10px] text-text-tertiary font-mono uppercase tracking-widest">{candidate.file_ids.length} Sources</span>
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">{candidate.concept_name}</h3>
-                                <p className="text-sm text-gray-600 mb-4 bg-gray-50 p-2 rounded">
-                                    {candidate.reason}
-                                </p>
+                                <h3 className="text-xl font-bold text-text-primary mb-3 group-hover:text-primary-400 transition-colors tracking-tight">{candidate.concept_name}</h3>
+                                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
+                                    <p className="text-sm text-text-secondary leading-relaxed italic">
+                                        "{candidate.reason}"
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-gray-100">
+                            <div className="mt-auto">
                                 <Button
-                                    variant="primary"
-                                    className="w-full justify-center"
+                                    variant="cta"
+                                    className="w-full justify-center shadow-lg hover:shadow-primary-500/10"
                                     onClick={() => handleSynthesize(candidate)}
                                     loading={processingState[candidate.concept_name]}
                                     disabled={processingState[candidate.concept_name]}

@@ -6,14 +6,31 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, Button, Spinner, Badge } from '@/components/ui';
+import { Card, Button, Spinner, Badge, Input, Select } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import ArchitectChat from './ArchitectModal';
 import FilePickerModal from './FilePickerModal';
+import {
+    Users,
+    MessageSquare,
+    History,
+    Trash2,
+    ChevronLeft,
+    ArrowRight,
+    Sparkles,
+    FileText,
+    Plus,
+    X,
+    Cpu,
+    Target,
+    Zap,
+    AlertCircle,
+    Database
+} from 'lucide-react';
 
 interface KnowledgeRule {
     id?: string;
-    rule_type: 'TAG' | 'FOLDER' | 'DEPARTMENT'; // Updated type
+    rule_type: 'TAG' | 'FOLDER' | 'DEPARTMENT';
     rule_value: string;
 }
 
@@ -25,11 +42,9 @@ interface AgentData {
     model_version: string;
     temperature: number;
     knowledge_rules?: KnowledgeRule[];
-    knowledge_files?: string[];  // 新增：直接綁定檔案 ID 列表
-    mcp_config?: string; // Stored as JSON string in UI state for editing, but JSONB in DB
+    knowledge_files?: string[];
+    mcp_config?: string;
 }
-
-
 
 interface PromptVersion {
     id: string;
@@ -70,19 +85,18 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         model_version: 'gemini-3-flash-preview',
         temperature: 0.7,
         knowledge_rules: [],
-        knowledge_files: [],  // 新增：預設空陣列
+        knowledge_files: [],
         mcp_config: (initialData as any)?.mcp_config || '{}',
     });
 
     const [fileNames, setFileNames] = useState<Record<string, string>>({});
-    const [allFiles, setAllFiles] = useState<any[]>([]); // Store all files for name->uuid lookup
-    const [departments, setDepartments] = useState<any[]>([]); // New: Store available departments
+    const [allFiles, setAllFiles] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
-    const [newDept, setNewDept] = useState(''); // State for new department rule
-    const [showFilePicker, setShowFilePicker] = useState(false); // File picker modal state
+    const [newDept, setNewDept] = useState('');
+    const [showFilePicker, setShowFilePicker] = useState(false);
 
-    // Fetch departments on mount
     useEffect(() => {
         fetch('/api/departments')
             .then(res => res.json())
@@ -92,10 +106,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             .catch(console.error);
     }, []);
 
-    // Fetch Stats & Versions if editing
     useEffect(() => {
         if (isEditing && formData.id) {
-            // Fetch Stats
             fetch(`/api/agents/${formData.id}/stats`)
                 .then(res => res.json())
                 .then(data => {
@@ -105,7 +117,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         }
     }, [isEditing, formData.id]);
 
-    // Fetches all files to support both filename mapping (UI) and Architect ID resolution (Logic)
     useEffect(() => {
         const fetchAllFiles = async () => {
             try {
@@ -113,8 +124,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 const data = await res.json();
                 if (data.success) {
                     setAllFiles(data.data);
-
-                    // Update mapping for existing known IDs
                     const mapping: Record<string, string> = { ...fileNames };
                     data.data.forEach((f: any) => {
                         mapping[f.id] = f.filename;
@@ -125,10 +134,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 console.error('Failed to fetch file names:', error);
             }
         };
-
         fetchAllFiles();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run once on mount to load the "Knowledge Asset" dictionary // Note: We might want to fetch this once on mount instead, but this works for now
+    }, []);
 
     const fetchVersions = async () => {
         if (!formData.id) return;
@@ -184,9 +191,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
     const addDeptRule = () => {
         if (!newDept) return;
-        // Check if already exists
         if (formData.knowledge_rules?.some(r => r.rule_type === 'DEPARTMENT' && r.rule_value === newDept)) return;
-
         setFormData(prev => ({
             ...prev,
             knowledge_rules: [
@@ -199,7 +204,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
     const handleArchitectApply = (blueprint: any) => {
         setFormData(prev => {
-            // Deduplicate knowledge rules
             const existingRules = prev.knowledge_rules || [];
             const suggestedRules = blueprint.suggested_knowledge_rules || [];
             const mergedRules = [...existingRules];
@@ -212,20 +216,17 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 if (!exists) mergedRules.push(sRule);
             });
 
-            // Deduplicate knowledge files and fix filename vs ID issues
             const existingFiles = prev.knowledge_files || [];
             const suggestedFilesRaw = blueprint.suggested_knowledge_files || [];
 
-            // Map any filenames back to IDs
             const suggestedFilesResolved = suggestedFilesRaw.map((item: string) => {
-                // If it looks like a selected filename (not UUID), try to find ID
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item);
                 if (!isUuid) {
                     const found = allFiles.find(f => f.filename === item);
                     return found ? found.id : null;
                 }
                 return item;
-            }).filter(Boolean); // Remove nulls
+            }).filter(Boolean);
 
             const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFilesResolved]));
 
@@ -236,7 +237,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 system_prompt: blueprint.system_prompt || prev.system_prompt,
                 knowledge_rules: mergedRules,
                 knowledge_files: mergedFiles,
-                // Merge or set MCP config if suggested
                 mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
                     ? JSON.stringify(blueprint.mcp_config, null, 2)
                     : prev.mcp_config
@@ -252,7 +252,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     };
 
     const handleDelete = async () => {
-        // Use default confirmation message if not in dictionary
         const confirmMsg = '確定要刪除此 Agent 嗎？此動作無法復原。';
         if (!confirm(confirmMsg)) return;
 
@@ -284,11 +283,10 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             const url = isEditing ? `/api/agents/${formData.id}` : '/api/agents';
             const method = isEditing ? 'PUT' : 'POST';
 
-            // Ensure mcp_config is valid JSON before sending
             let payload = { ...formData };
             try {
                 if (typeof payload.mcp_config === 'string') {
-                    payload.mcp_config = JSON.parse(payload.mcp_config); // Parse to object
+                    payload.mcp_config = JSON.parse(payload.mcp_config);
                 }
             } catch (e) {
                 throw new Error('Invalid JSON in Skills Configuration');
@@ -301,17 +299,11 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             });
 
             const result = await response.json();
-
             if (!response.ok || !result.success) {
                 throw new Error(result.error?.message || dict.common.error);
             }
-
-            // Refresh to update stats or show latest info
-            router.refresh(); // Refresh server components
-
-            // Redirect to list page whether creating or editing
+            router.refresh();
             router.push('/dashboard/agents');
-
         } catch (err) {
             setError(err instanceof Error ? err.message : dict.common.error);
         } finally {
@@ -320,392 +312,424 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     };
 
     return (
-        <>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-w-6xl mx-auto">
+            <form onSubmit={handleSubmit} className="space-y-8 pb-32">
                 {error && (
-                    <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
-                        {error}
-                    </div>
-                )}
-
-                {/* Stats Header (Only when editing) */}
-                {isEditing && stats && (
-                    <div className="flex gap-4 mb-4">
-                        <Badge variant="default" className="bg-white border border-gray-200 text-gray-600">
-                            {dict.agents.stats.total_chats}: <span className="font-bold ml-1">{stats.total_sessions}</span>
-                        </Badge>
-                        <Badge variant="default" className="bg-white border border-gray-200 text-gray-600">
-                            {dict.agents.stats.total_messages}: <span className="font-bold ml-1">{stats.total_messages}</span>
-                        </Badge>
-                    </div>
-                )}
-
-                {/* 單欄佈局 - 更平衡的視覺比例 */}
-                <div className="space-y-6">
-                    {/* Agent 基本資料 */}
-                    <Card>
-                        <div className="mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Agent 基本資料</h3>
-                            <p className="text-sm text-gray-500 mt-1">定義 Agent 的身份與行為模式</p>
+                    <div className="p-4 bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle size={16} />
+                            {error}
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* 左欄 */}
+                    </div>
+                )}
+
+                {/* Stats Header */}
+                {isEditing && stats && (
+                    <div className="flex gap-4 p-1 bg-white/[0.02] border border-white/5 rounded-2xl inline-flex mb-2">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-xl border border-white/5">
+                            <Users size={14} className="text-primary-400" />
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">{dict.agents.stats.total_chats}</span>
+                            <span className="text-xs font-black text-text-primary tabular-nums ml-2">{stats.total_sessions}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-xl border border-white/5">
+                            <MessageSquare size={14} className="text-secondary-400" />
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">{dict.agents.stats.total_messages}</span>
+                            <span className="text-xs font-black text-text-primary tabular-nums ml-2">{stats.total_messages}</span>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-8">
+                    {/* Identification Layer */}
+                    <Card variant="glass" className="p-8 border-white/10">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-primary-500/10 text-primary-400 border border-primary-500/20 shadow-glow-cyan/5">
+                                <Target size={20} />
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {dict.agents.form.name}
-                                </label>
-                                <input
-                                    type="text"
+                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">Agent 身份辨識 <span className="opacity-30">|</span> IDENTITY</h3>
+                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">定義此 Agent 在戰情室中的權限與特徵</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <Input
+                                    label={dict.agents.form.name}
                                     name="name"
                                     required
                                     value={formData.name}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
                                     placeholder={dict.agents.form.name_placeholder}
+                                    className="bg-black/20"
                                 />
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-text-tertiary uppercase tracking-widest ml-1">{dict.agents.form.description}</label>
+                                    <textarea
+                                        name="description"
+                                        rows={3}
+                                        value={formData.description}
+                                        onChange={handleChange}
+                                        className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 text-sm text-text-secondary focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500/30 outline-none transition-all placeholder:text-text-tertiary/30"
+                                        placeholder={dict.agents.form.description_placeholder}
+                                    />
+                                </div>
                             </div>
 
-                            {/* 右欄 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {dict.agents.form.model_version}
-                                </label>
-                                <select
+                            <div className="space-y-8">
+                                <Select
+                                    label={dict.agents.form.model_version}
                                     name="model_version"
                                     value={formData.model_version}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white"
-                                >
-                                    <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
-                                    <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
-                                </select>
-                            </div>
-                        </div>
+                                    options={[
+                                        { value: 'gemini-3-flash-preview', label: 'GEMINI-3 FLASH • 高速響應' },
+                                        { value: 'gemini-3-pro-preview', label: 'GEMINI-3 PRO • 深度推理' }
+                                    ]}
+                                    className="bg-black/20"
+                                />
 
-                        {/* 完整寬度的描述欄位 */}
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {dict.agents.form.description}
-                            </label>
-                            <textarea
-                                name="description"
-                                rows={3}
-                                value={formData.description}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                                placeholder={dict.agents.form.description_placeholder}
-                            />
-                        </div>
-
-                        {/* 創意度滑桿 */}
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
-                                {dict.agents.form.temperature} <span className="text-primary-600 font-semibold">{formData.temperature}</span>
-                            </label>
-                            <input
-                                type="range"
-                                name="temperature"
-                                min="0"
-                                max="1.5"
-                                step="0.1"
-                                value={formData.temperature}
-                                onChange={handleChange}
-                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                            />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>精確</span>
-                                <span>創意</span>
+                                <div className="space-y-6 pt-2">
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">
+                                            {dict.agents.form.temperature} <span className="text-primary-400 ml-2 font-mono tabular-nums">{formData.temperature}</span>
+                                        </label>
+                                        <div className="flex gap-4 text-[9px] font-black text-text-tertiary uppercase tracking-tighter opacity-40">
+                                            <span>PRECISION</span>
+                                            <span>CREATIVE</span>
+                                        </div>
+                                    </div>
+                                    <div className="relative h-6 flex items-center group/slider">
+                                        <div className="absolute inset-0 bg-white/5 rounded-full h-1 my-auto" />
+                                        <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-400 rounded-full h-1 my-auto shadow-glow-cyan" style={{ width: `${(formData.temperature / 1.5) * 100}%` }} />
+                                        <input
+                                            type="range"
+                                            name="temperature"
+                                            min="0"
+                                            max="1.5"
+                                            step="0.1"
+                                            value={formData.temperature}
+                                            onChange={handleChange}
+                                            className="w-full h-full bg-transparent appearance-none cursor-pointer z-10 accent-primary-500 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-glow-cyan [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </Card>
 
-                    {/* 系統提示詞 */}
-                    <Card>
-                        <div className="flex justify-between items-center mb-4">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {showHistory ? dict.agents.versions : dict.agents.form.system_prompt}
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-1">定義 Agent 的角色、任務與行為準則</p>
+                    {/* Logic & Directive Layer */}
+                    <Card variant="glass" className="p-8 border-white/10 group/prompt">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-secondary-500/10 text-secondary-400 border border-secondary-500/20 shadow-glow-purple/5 group-hover/prompt:shadow-glow-purple/20 transition-all duration-500">
+                                    <Cpu size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
+                                        {showHistory ? '提示詞演進紀錄' : '核心任務指令庫'} <span className="opacity-30">|</span> {showHistory ? 'VERSIONS' : 'DIRECTIVES'}
+                                    </h3>
+                                    <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">定義 Agent 的行為底盤與邏輯樹狀</p>
+                                </div>
                             </div>
 
                             {isEditing && (
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={toggleHistory}
+                                    className="border-white/10 hover:bg-white/5 h-9 px-4 rounded-xl text-[10px] font-black"
                                 >
-                                    {showHistory ? dict.common.back : '🕒 ' + dict.agents.versions}
+                                    {showHistory ? (
+                                        <span className="flex items-center gap-2"><ChevronLeft size={14} /> {dict.common.back}</span>
+                                    ) : (
+                                        <span className="flex items-center gap-2"><History size={14} /> {dict.agents.versions}</span>
+                                    )}
                                 </Button>
                             )}
                         </div>
 
                         {showHistory ? (
-                            <div className="space-y-4 max-h-[600px] overflow-auto pr-2">
+                            <div className="space-y-4 max-h-[600px] overflow-auto pr-2 custom-scrollbar">
                                 {loadingVersions ? (
-                                    <div className="text-center py-8"><Spinner /></div>
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                        <Spinner />
+                                        <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">Rewinding Logic Stream...</span>
+                                    </div>
                                 ) : versions.length === 0 ? (
-                                    <div className="text-center text-gray-500 py-8">{dict.common.no_data}</div>
+                                    <div className="text-center py-20 text-text-tertiary bg-white/[0.01] rounded-3xl border border-dashed border-white/5 uppercase tracking-widest text-xs font-black opacity-40">
+                                        {dict.common.no_data}
+                                    </div>
                                 ) : (
                                     versions.map((ver) => (
-                                        <div key={ver.id} className="border rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors border-gray-200">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <span className="font-bold text-gray-900">v{ver.version_number}</span>
-                                                    <span className="text-xs text-gray-500 ml-2">
-                                                        {new Date(ver.created_at).toLocaleString()}
-                                                    </span>
-                                                    {ver.created_by_user?.display_name && (
-                                                        <span className="text-xs text-gray-400 ml-2">by {ver.created_by_user.display_name}</span>
-                                                    )}
+                                        <div key={ver.id} className="group/version border border-white/5 rounded-[24px] p-6 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="flex items-center gap-4">
+                                                    <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-secondary-500/20 text-secondary-400 text-xs font-black border border-secondary-500/20">v{ver.version_number}</span>
+                                                    <div>
+                                                        <span className="text-[10px] font-black text-text-primary uppercase tracking-wider block">
+                                                            {new Date(ver.created_at).toLocaleString()}
+                                                        </span>
+                                                        {ver.created_by_user?.display_name && (
+                                                            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Commit by {ver.created_by_user.display_name}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <Button
                                                     size="sm"
-                                                    variant="outline"
+                                                    variant="primary"
                                                     onClick={() => handleRestore(ver.system_prompt)}
-                                                    className="text-xs h-7"
+                                                    className="h-8 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl"
                                                 >
-                                                    {dict.agents.restore}
+                                                    回溯應用
                                                 </Button>
                                             </div>
-                                            <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-gray-100 max-h-24 overflow-hidden truncate">
+                                            <div className="text-xs text-text-tertiary font-mono bg-black/40 p-4 rounded-xl border border-white/5 max-h-32 overflow-hidden relative group-hover/version:border-primary-500/30 transition-all">
                                                 {ver.system_prompt}
+                                                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/60 to-transparent" />
                                             </div>
                                         </div>
                                     ))
                                 )}
                             </div>
                         ) : (
-                            <textarea
-                                name="system_prompt"
-                                required
-                                value={formData.system_prompt}
-                                onChange={handleChange}
-                                className="w-full p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none min-h-[400px]"
-                                placeholder={dict.agents.form.system_prompt}
-                            />
+                            <div className="relative">
+                                <textarea
+                                    name="system_prompt"
+                                    required
+                                    value={formData.system_prompt}
+                                    onChange={handleChange}
+                                    className="w-full bg-black/40 border border-white/10 rounded-[32px] p-8 font-mono text-sm leading-relaxed text-text-secondary focus:ring-4 focus:ring-secondary-500/5 focus:border-secondary-500/30 outline-none transition-all placeholder:text-text-tertiary/20 min-h-[500px] shadow-inner custom-scrollbar"
+                                    placeholder="Enter system prompt instructions..."
+                                />
+                                <div className="absolute top-4 right-4 flex gap-2">
+                                    <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 text-[9px] font-black text-text-tertiary uppercase tracking-widest backdrop-blur-md">SYSTEM_PROMPT.md</div>
+                                </div>
+                            </div>
                         )}
                     </Card>
 
-                    {/* 知識庫來源（永遠顯示） */}
-                    <Card>
-                        <div className="mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900">知識庫來源</h3>
-                            <p className="text-sm text-gray-500 mt-1">選擇此 Agent 可存取的檔案與知識範圍</p>
-                        </div>
+                    {/* Knowledge Integration Layer */}
+                    <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/[0.03] blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
 
-                        {/* AI 助手提示 */}
-                        <div className="mb-4 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-                            <p className="text-sm text-violet-700">
-                                💡 <strong>提示：</strong>使用右下角的 🤖 AI 助手，可根據 Agent 描述自動推薦相關知識來源
-                            </p>
-                        </div>
-
-                        {/* 已選檔案 */}
-                        <div className="space-y-2 mb-4">
-                            <label className="text-sm font-medium text-gray-700">已選檔案</label>
-                            {formData.knowledge_files && formData.knowledge_files.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {formData.knowledge_files.map((fileId, idx) => (
-                                        <Badge
-                                            key={idx}
-                                            className="bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                        >
-                                            📄 {fileNames[fileId] || `檔案 ID: ${fileId.slice(0, 8)}...`}
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({
-                                                    ...prev,
-                                                    knowledge_files: prev.knowledge_files?.filter((_, i) => i !== idx)
-                                                }))}
-                                                className="ml-2 hover:text-emerald-900 font-bold"
-                                            >
-                                                ×
-                                            </button>
-                                        </Badge>
-                                    ))}
+                        <div className="flex justify-between items-center mb-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow-cyan/5">
+                                    <Database size={20} />
                                 </div>
-                            ) : (
-                                <p className="text-sm text-gray-500 italic">尚未選擇任何檔案</p>
-                            )}
-                        </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">知識矩陣掛載 <span className="opacity-30">|</span> DATA KERNEL</h3>
+                                    <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">設定 Agent 的核心知識資源與動態匹配規則</p>
+                                </div>
+                            </div>
 
-                        {/* 手動選擇檔案按鈕 */}
-                        <div className="mb-4">
                             <Button
                                 type="button"
-                                variant="outline"
+                                variant="cta"
                                 size="sm"
                                 onClick={() => setShowFilePicker(true)}
+                                className="h-10 px-6 rounded-xl shadow-glow-cyan/10"
                             >
-                                📂 手動選擇檔案
+                                <Plus size={16} className="mr-2" />
+                                掛載知識資產
                             </Button>
                         </div>
 
-                        {/* 動態規則（摺疊） */}
-                        <details className="group">
-                            <summary className="cursor-pointer text-sm font-semibold text-gray-700 hover:text-primary-600 transition-colors mb-2">
-                                🔧 進階：動態規則（選用）
-                            </summary>
-                            <div className="mt-3 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <div className="text-xs text-gray-500 mb-2">
-                                    設定動態規則後，Agent 將能自動存取資料庫中符合條件的所有檔案（包含未來新增的檔案）。
+                        {/* Tip Box */}
+                        <div className="mb-10 p-6 bg-primary-500/[0.03] border border-primary-500/10 rounded-[24px] relative group/tip overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-primary-500/40" />
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-2 bg-primary-500/10 rounded-xl text-primary-400">
+                                    <Sparkles size={20} className="animate-pulse-slow" />
                                 </div>
-
-                                {/* 已設定的規則 */}
-                                {formData.knowledge_rules && formData.knowledge_rules.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                        {formData.knowledge_rules.map((rule, idx) => (
-                                            <Badge
-                                                key={idx}
-                                                className={`${rule.rule_type === 'DEPARTMENT'
-                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                    : 'bg-sky-50 text-sky-700 border-sky-200'
-                                                    }`}
-                                            >
-                                                {rule.rule_type === 'DEPARTMENT' ? '🏢' : '🏷️'} {rule.rule_value}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeRule(idx)}
-                                                    className="ml-2 hover:text-gray-900 font-bold"
-                                                >
-                                                    ×
-                                                </button>
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Tag 規則輸入 */}
-                                <div className="space-y-2 pb-2 border-b border-gray-200">
-                                    <label className="text-xs font-semibold text-gray-700">📌 依標籤綁定 (Metadata)</label>
-                                    <p className="text-[10px] text-gray-400">例如：鍵=Product, 值=Origins，將匯入所有產品原始資料。</p>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="標籤類別 (Key) - 例如：Product"
-                                            value={newTag.key}
-                                            onChange={(e) => setNewTag(prev => ({ ...prev, key: e.target.value }))}
-                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="標籤內容 (Value) - 例如：Origins"
-                                            value={newTag.value}
-                                            onChange={(e) => setNewTag(prev => ({ ...prev, value: e.target.value }))}
-                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs px-3"
-                                            onClick={addTagRule}
-                                            disabled={!newTag.key || !newTag.value}
-                                        >
-                                            新增
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Department 規則輸入 */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-gray-700">🏢 依部門直接綁定</label>
-                                    <p className="text-[10px] text-gray-400">選擇部門後，該部門所有的文件將自動授權給此 Agent 使用。</p>
-                                    <div className="flex gap-2">
-                                        <select
-                                            value={newDept}
-                                            onChange={(e) => setNewDept(e.target.value)}
-                                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded bg-white"
-                                        >
-                                            <option value="">-- 請選擇部門 --</option>
-                                            {departments.map(dept => (
-                                                <option key={dept.id} value={dept.name}>
-                                                    {dept.name} ({dept.code})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs px-3"
-                                            onClick={addDeptRule}
-                                            disabled={!newDept}
-                                        >
-                                            新增
-                                        </Button>
-                                    </div>
+                                <div>
+                                    <p className="text-sm font-black text-primary-400 uppercase tracking-widest mb-1">PRO_TIP :: 智能建構助推器</p>
+                                    <p className="text-xs font-bold text-text-secondary leading-relaxed opacity-80">
+                                        使用右下角的 <span className="text-primary-400 underline decoration-primary-500/30">AI 戰術架構師</span>，可根據 Agent 定義自動生成指令集並精準匹配相關知識檔案。
+                                    </p>
                                 </div>
                             </div>
-                        </details>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                            {/* Static Assets (2/3 width) */}
+                            <div className="lg:col-span-2 space-y-4">
+                                <div className="flex items-center justify-between px-1">
+                                    <label className="text-[10px] font-black text-text-primary uppercase tracking-widest flex items-center gap-2">
+                                        <div className="w-1 h-3 bg-primary-500 rounded-full" />
+                                        靜態掛載資產 <span className="text-[9px] text-text-tertiary opacity-40 italic ml-2">STATIC_ASSETS</span>
+                                    </label>
+                                    <span className="text-[9px] font-black text-text-tertiary tabular-nums tabular-nums uppercase opacity-40">Mounted: {formData.knowledge_files?.length || 0}</span>
+                                </div>
+                                <div className="bg-black/20 rounded-[32px] border border-white/5 p-6 min-h-[200px] flex flex-wrap gap-3 content-start shadow-inner">
+                                    {formData.knowledge_files && formData.knowledge_files.length > 0 ? (
+                                        formData.knowledge_files.map((fileId, idx) => (
+                                            <Badge
+                                                key={idx}
+                                                variant="outline"
+                                                className="bg-white/5 border-white/10 text-text-secondary pl-3 pr-2 py-1.5 gap-3 group/tag rounded-xl hover:border-primary-500/30 transition-all font-black"
+                                            >
+                                                <FileText size={12} className="opacity-40" />
+                                                {fileNames[fileId] || `ASSET::${fileId.slice(0, 8)}`}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        knowledge_files: prev.knowledge_files?.filter((_, i) => i !== idx)
+                                                    }))}
+                                                    className="opacity-30 hover:opacity-100 hover:text-semantic-danger transition-all p-0.5 rounded-md hover:bg-semantic-danger/10"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </Badge>
+                                        ))
+                                    ) : (
+                                        <div className="w-full flex flex-col items-center justify-center gap-4 opacity-40">
+                                            <div className="w-12 h-12 rounded-2xl border border-white/5 flex items-center justify-center">
+                                                <Database size={24} className="text-text-tertiary" />
+                                            </div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest italic">Matrix Empty: Awaiting Asset Link</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Dynamic Rules (1/3 width) */}
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-text-primary uppercase tracking-widest flex items-center gap-2 px-1">
+                                        <div className="w-1 h-3 bg-secondary-400 rounded-full" />
+                                        動態動能規則 <span className="text-[9px] text-text-tertiary opacity-40 italic ml-2">KERNEL_RULES</span>
+                                    </label>
+
+                                    <div className="space-y-4">
+                                        {/* Dept Rule */}
+                                        <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-3">
+                                            <span className="text-[9px] font-black text-text-tertiary uppercase tracking-widest opacity-60 flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-secondary-400" />
+                                                掛載部門全量 <span className="text-[8px] italic opacity-40 font-bold">DEPT_LINK</span>
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <Select
+                                                        value={newDept}
+                                                        onChange={(e) => setNewDept(e.target.value)}
+                                                        className="bg-black/40"
+                                                        selectSize="sm"
+                                                        options={[
+                                                            { value: '', label: '-- 選擇部門掛載 --' },
+                                                            ...departments.map(dept => ({ value: dept.name, label: `${dept.name} (${dept.code})` }))
+                                                        ]}
+                                                    />
+                                                </div>
+                                                <Button type="button" variant="outline" size="sm" onClick={addDeptRule} disabled={!newDept} className="h-10 px-4 rounded-xl border-white/10">
+                                                    <Plus size={14} />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Tag Rule */}
+                                        <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-3">
+                                            <span className="text-[9px] font-black text-text-tertiary uppercase tracking-widest opacity-60 flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-primary-500" />
+                                                元數據模式推薦 <span className="text-[8px] italic opacity-40 font-bold">TAG_RECON</span>
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={newTag.key}
+                                                    onChange={e => setNewTag(p => ({ ...p, key: e.target.value }))}
+                                                    placeholder="KEY: Domain"
+                                                    className="bg-black/40"
+                                                    inputSize="sm"
+                                                />
+                                                <Input
+                                                    value={newTag.value}
+                                                    onChange={e => setNewTag(p => ({ ...p, value: e.target.value }))}
+                                                    placeholder="VAL: Tech"
+                                                    className="bg-black/40"
+                                                    inputSize="sm"
+                                                />
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" onClick={addTagRule} disabled={!newTag.key || !newTag.value} className="w-full h-9 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest">
+                                                新增匹配鏈
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Active Rules List */}
+                                    {formData.knowledge_rules && formData.knowledge_rules.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {formData.knowledge_rules.map((rule, idx) => (
+                                                <Badge
+                                                    key={idx}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={`rounded-lg py-1 px-3 gap-2 font-bold uppercase tracking-tight ${rule.rule_type === 'DEPARTMENT'
+                                                        ? 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
+                                                        : 'bg-primary-500/10 text-primary-400 border-primary-500/20'
+                                                        }`}
+                                                >
+                                                    {rule.rule_value}
+                                                    <button onClick={() => removeRule(idx)} className="opacity-40 hover:opacity-100 hover:text-semantic-danger">
+                                                        <X size={12} />
+                                                    </button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </Card>
-
-                    {/* 外部工具與技能 (MCP) */}
-                    {/* 外部工具與技能 (MCP) - 暫時隱藏
-                    {/* <Card>
-                        <div className="mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900">外部工具與技能 (Skills / MCP)</h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                                設定此 Agent 可使用的外部工具 (Model Context Protocol)。
-                                <br />
-                                <span className="text-xs text-gray-400">目前支援 JSON 格式設定。未來將支援圖形化介面。</span>
-                            </p>
-                        </div>
-
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                MCP Configuration (JSON)
-                            </label>
-                            <textarea
-                                name="mcp_config"
-                                rows={10}
-                                value={typeof formData.mcp_config === 'string' ? formData.mcp_config : JSON.stringify(formData.mcp_config, null, 2)}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                                placeholder={`{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/Desktop"]
-    }
-  }
-}`}
-                            />
-                        </div>
-                    </Card> */}
                 </div>
 
-                <div className="flex justify-between items-center pt-6 pb-20 border-t border-gray-100">
-                    {isEditing ? (
-                        <Button
-                            type="button"
-                            variant="danger"
-                            onClick={handleDelete}
-                            disabled={loading}
-                        >
-                            {dict.common.delete}
-                        </Button>
-                    ) : <div></div>}
+                {/* Footer Command Bar */}
+                <div className="fixed bottom-0 left-0 right-0 p-8 border-t border-white/5 bg-background-primary/80 backdrop-blur-2xl z-40 flex justify-center shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                    <div className="max-w-6xl w-full flex justify-between items-center px-4">
+                        {isEditing ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDelete}
+                                disabled={loading}
+                                className="border-semantic-danger/30 text-semantic-danger hover:bg-semantic-danger/10 px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                            >
+                                <Trash2 size={16} className="mr-2" />
+                                {dict.common.delete}
+                            </Button>
+                        ) : <div />}
 
-                    <div className="flex gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.back()}
-                            disabled={loading}
-                        >
-                            {dict.common.cancel}
-                        </Button>
-                        <Button type="submit" disabled={loading} className="min-w-[120px]">
-                            {loading ? <Spinner size="sm" color="white" /> : (isEditing ? dict.common.save : dict.agents.create_new)}
-                        </Button>
+                        <div className="flex gap-4">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => router.back()}
+                                disabled={loading}
+                                className="text-text-tertiary hover:text-text-primary px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                            >
+                                <ChevronLeft size={16} className="mr-2" />
+                                {dict.common.cancel}
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="bg-primary-500 hover:bg-primary-600 text-black font-black px-12 h-12 rounded-2xl shadow-glow-cyan/20 min-w-[200px]"
+                            >
+                                {loading ? <Spinner size="sm" color="black" /> : (
+                                    <span className="flex items-center gap-2">
+                                        <Zap size={18} />
+                                        {isEditing ? '更新系統配置' : '同步部署 AGENT'}
+                                        <ArrowRight size={16} className="ml-2" />
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </form>
 
-            {/* 將 AI 架構師移到表單外部，避免 Enter 事件干擾主表單 */}
             <ArchitectChat
                 onApply={handleArchitectApply}
                 currentState={formData}
@@ -713,7 +737,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 fileNames={fileNames}
             />
 
-            {/* 檔案選擇器 Modal */}
             <FilePickerModal
                 isOpen={showFilePicker}
                 onClose={() => setShowFilePicker(false)}
@@ -722,6 +745,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     setFormData(prev => ({ ...prev, knowledge_files: fileIds }));
                 }}
             />
-        </>
+        </div>
     );
 }

@@ -1,15 +1,24 @@
 import type { Metadata } from 'next';
-import { Inter, Noto_Sans_TC } from 'next/font/google';
+import { Space_Grotesk, DM_Sans, Noto_Sans_TC } from 'next/font/google';
 import '@/styles/globals.css';
 import { getLocale } from '@/lib/i18n/server';
 
-// 字體設定
-const inter = Inter({
+// 戰情室設計系統字體設定
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-heading',
   display: 'swap',
 });
 
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+// 中文字體（保留）
 const notoSansTC = Noto_Sans_TC({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -24,7 +33,7 @@ export const viewport = {
 
 export const metadata: Metadata = {
   title: 'EAKAP - 企業 AI 知識庫平台',
-  description: 'Enterprise AI Knowledge Agent Platform',
+  description: 'Enterprise AI Knowledge Agent Platform - 企業戰情中樞',
 };
 
 interface RootLayoutProps {
@@ -34,13 +43,21 @@ interface RootLayoutProps {
 /**
  * 根佈局元件
  * 提供全域樣式與字體設定
+ * 
+ * 字體系統：
+ * - Space Grotesk: 標題字體 (--font-heading)
+ * - DM Sans: 內文字體 (--font-body)
+ * - Noto Sans TC: 中文字體
  */
 export default async function RootLayout({ children }: RootLayoutProps) {
   const locale = await getLocale();
 
   return (
-    <html lang={locale} className={`${inter.variable} ${notoSansTC.variable}`}>
-      <body className="font-sans antialiased">
+    <html
+      lang={locale}
+      className={`${spaceGrotesk.variable} ${dmSans.variable} ${notoSansTC.variable}`}
+    >
+      <body className="font-body antialiased">
         {children}
       </body>
     </html>

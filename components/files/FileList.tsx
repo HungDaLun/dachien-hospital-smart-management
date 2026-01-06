@@ -108,14 +108,14 @@ const ProcessingProgress = ({ createdAt, label }: { createdAt: string; label: st
     }, [createdAt]);
 
     return (
-        <div className="flex flex-col items-center justify-center w-24 gap-1">
-            <div className="flex justify-between w-full px-0.5">
-                <span className="text-[10px] font-bold text-indigo-600 animate-pulse">{label}</span>
-                <span className="text-[10px] font-mono text-indigo-500">{Math.round(progress)}%</span>
+        <div className="flex flex-col items-center justify-center w-28 gap-1.5">
+            <div className="flex justify-between w-full px-1">
+                <span className="text-[9px] font-black text-primary-400 animate-pulse uppercase tracking-widest">{label}</span>
+                <span className="text-[9px] font-mono text-primary-400">{Math.round(progress)}%</span>
             </div>
-            <div className="w-full h-1.5 bg-indigo-50 rounded-full overflow-hidden border border-indigo-100">
+            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
                 <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-500 ease-out shadow-glow-cyan"
                     style={{ width: `${progress}%` }}
                 />
             </div>
@@ -496,9 +496,9 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
 
     return (
-        <Card className="shadow-sm border-gray-200 overflow-hidden">
+        <Card variant="glass" className="border-none shadow-none overflow-hidden h-full flex flex-col">
             {/* Header Controls: Compact Mode */}
-            <div className="p-3 border-b border-gray-100 bg-white space-y-3">
+            <div className="p-4 border-b border-white/5 bg-background-secondary/30 backdrop-blur-md space-y-4">
                 <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3">
 
                     {/* Action Bar / Batch Actions */}
@@ -512,8 +512,8 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                     onChange={(e) => setSearchInput(e.target.value)}
                                     inputSize="sm"
                                     fullWidth
-                                    className="bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                                    leftElement={<Search size={16} className="text-gray-400" />}
+                                    className="bg-white/5 border-white/10 text-text-primary focus:bg-white/10 transition-colors"
+                                    leftElement={<Search size={16} className="text-text-tertiary" />}
                                 />
                             </div>
                             <Select
@@ -521,7 +521,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                 value={deptFilter}
                                 onChange={(e) => setDeptFilter(e.target.value)}
                                 selectSize="sm"
-                                className="w-28 bg-gray-50 border-gray-200"
+                                className="w-28"
                             />
                             <HierarchicalCategorySelect
                                 categories={categories}
@@ -535,15 +535,15 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 selectSize="sm"
-                                className="w-28 bg-gray-50 border-gray-200"
+                                className="w-28"
                             />
                         </div>
 
                         {/* Right Area: Batch Actions OR Header Actions (Upload) */}
                         <div className="flex items-center gap-2">
                             {selectedIds.size > 0 ? (
-                                <div className="flex items-center gap-2 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 animate-in fade-in slide-in-from-top-1">
-                                    <span className="text-xs font-bold text-indigo-700 mx-1">{selectedIds.size} selected</span>
+                                <div className="flex items-center gap-2 bg-primary-500/10 px-3 py-1.5 rounded-xl border border-primary-500/20 animate-in fade-in slide-in-from-top-1">
+                                    <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest mx-1">{selectedIds.size} SELECTED</span>
                                     <Button
                                         size="sm"
                                         variant="danger"
@@ -596,7 +596,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             </div>
 
             {/* Data Grid Table */}
-            <div className="min-h-[400px]">
+            <div className="flex-1 overflow-auto custom-scrollbar relative">
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <Spinner size="lg" />
@@ -604,36 +604,42 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                            <tr className="bg-white/[0.02] border-b border-white/5 text-xs font-black text-text-primary uppercase tracking-[0.2em]">
                                 <th className="px-4 py-4 w-10">
                                     <Checkbox
+                                        variant="white-circle"
                                         checked={selectedIds.size === files.length && files.length > 0}
                                         indeterminate={selectedIds.size > 0 && selectedIds.size < files.length}
                                         onChange={(e) => handleSelectAll(e.target.checked)}
                                     />
                                 </th>
                                 <th
-                                    className="p-4 cursor-pointer hover:text-indigo-600 transition-colors group w-[25%]"
+                                    className="p-4 cursor-pointer hover:text-primary-400 transition-colors group w-[25%]"
                                     onClick={() => setSortByExt(!sortByExt)}
                                 >
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center justify-center gap-1">
                                         檔案名稱 / 時效性
-                                        {sortByExt && <span className="text-xs text-indigo-500 font-mono">(按副檔名歸類)</span>}
+                                        {sortByExt && <span className="text-[10px] text-primary-400 font-mono mt-1">(按副檔名歸類)</span>}
                                         <span className="opacity-0 group-hover:opacity-100 text-[10px] ml-1">⇅</span>
                                     </div>
                                 </th>
-                                <th className="p-4 w-20">部門</th>
-                                <th className="p-4 w-20">型態</th>
-                                <th className="p-4 hidden md:table-cell w-[35%]">AI 智能摘要</th>
-                                <th className="p-4 hidden lg:table-cell w-[20%]">治理標籤/元數據</th>
+                                <th className="p-4 w-20 text-center">部門</th>
+                                <th className="p-4 w-20 text-center">型態</th>
+                                <th className="p-4 hidden md:table-cell w-[35%] text-center">AI 智能摘要</th>
+                                <th className="p-4 hidden lg:table-cell w-[20%] text-center">治理標籤/元數據</th>
                                 <th className="p-4 w-24 text-center">狀態</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                        <tbody className="divide-y divide-white/[0.02] bg-transparent">
                             {files.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-12 text-center text-gray-400">
-                                        No files found. Try adjusting filters.
+                                    <td colSpan={7} className="p-20 text-center">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="text-4xl opacity-20">📂</div>
+                                            <p className="text-sm font-black text-text-tertiary uppercase tracking-widest">
+                                                No intelligence assets found. Adjust parameters.
+                                            </p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
@@ -666,13 +672,14 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                         <tr
                                             key={file.id}
                                             className={`
-                                                group transition-colors duration-150 text-sm
-                                                ${isSelected ? 'bg-indigo-50/50' : 'hover:bg-gray-50'}
+                                                group transition-all duration-300 text-sm border-b border-white/[0.02]
+                                                ${isSelected ? 'bg-primary-500/10' : 'hover:bg-white/[0.02]'}
                                             `}
                                         >
                                             <td className="px-4 py-4 align-top">
                                                 <div className="mt-1">
                                                     <Checkbox
+                                                        variant="white-circle"
                                                         checked={isSelected}
                                                         onChange={(e) => handleSelectRow(file.id, e.target.checked, (e.nativeEvent as any).shiftKey)}
                                                         onClick={(e) => e.stopPropagation()}
@@ -681,7 +688,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                             </td>
                                             <td className="p-4 align-top">
                                                 <div className="flex items-start gap-2.5">
-                                                    <FileText size={18} className={`mt-0.5 opacity-70 group-hover:opacity-100 transition-opacity shrink-0 ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                                    <FileText size={18} className={`mt-0.5 opacity-70 group-hover:opacity-100 transition-opacity shrink-0 ${isSelected ? 'text-primary-400' : 'text-text-tertiary'}`} />
                                                     <div className="flex flex-col min-w-0">
                                                         <button
                                                             onClick={(e) => {
@@ -692,16 +699,16 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                                     setPreviewFile(file);
                                                                 }
                                                             }}
-                                                            className="file-preview-link text-left font-semibold break-words text-gray-900 hover:text-primary-600 hover:underline transition-all leading-tight"
+                                                            className="file-preview-link text-left font-bold break-words text-text-primary group-hover:text-primary-400 hover:underline transition-all leading-tight tracking-tight"
                                                         >
                                                             {file.filename}
                                                         </button>
-                                                        <span className="text-[11px] text-gray-400 mt-1">
+                                                        <span className="text-[11px] text-text-tertiary font-medium mt-1">
                                                             {formatFileSize(file.size_bytes)} • {formatDate(file.created_at)}
                                                             {file.decay_status && (
-                                                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${file.decay_status === 'expired' ? 'bg-red-100 text-red-600 border border-red-200' :
-                                                                    file.decay_status === 'decaying' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                                                                        'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                                                <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tight ${file.decay_status === 'expired' ? 'bg-semantic-danger/10 text-semantic-danger border border-semantic-danger/20' :
+                                                                    file.decay_status === 'decaying' ? 'bg-semantic-warning/10 text-semantic-warning border border-semantic-warning/20' :
+                                                                        'bg-semantic-success/10 text-semantic-success border border-semantic-success/20'
                                                                     }`}>
                                                                     {file.decay_status === 'expired' ? (dict.knowledge.status_expired || 'EXPIRED') :
                                                                         file.decay_status === 'decaying' ? (dict.knowledge.status_decaying || 'DECAYING') :
@@ -714,21 +721,21 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                             </td>
                                             <td className="p-4 align-top">
                                                 <div className="flex flex-col gap-1 items-start">
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-tight">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-white/5 text-text-secondary border border-white/10 uppercase tracking-widest">
                                                         {deptName}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="p-4 align-top">
                                                 <div className="flex flex-col gap-1 items-start">
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20 whitespace-nowrap uppercase tracking-widest">
                                                         {typeName}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="p-4 hidden md:table-cell align-top">
                                                 <div className="flex flex-col">
-                                                    <p className="text-gray-600 text-xs leading-relaxed whitespace-normal break-words">
+                                                    <p className="text-text-secondary text-[11px] leading-relaxed whitespace-normal break-words font-medium">
                                                         {summary}
                                                     </p>
                                                 </div>
@@ -739,19 +746,19 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                     {file.metadata_analysis?.governance && (
                                                         <div className="flex flex-wrap gap-1.5">
                                                             <div className="flex items-center gap-1.5 w-full flex-wrap">
-                                                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 uppercase tracking-tighter whitespace-nowrap" title="Domain">
+                                                                <span className="text-[10px] font-black bg-primary-500/10 text-primary-400 px-1.5 py-0.5 rounded border border-primary-500/20 uppercase tracking-widest whitespace-nowrap" title="Domain">
                                                                     {file.metadata_analysis.governance.domain || 'N/A'}
                                                                 </span>
-                                                                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 rounded border border-gray-100 whitespace-nowrap" title="Version">
+                                                                <span className="text-[10px] font-mono text-text-tertiary bg-white/[0.03] px-1.5 rounded border border-white/5 whitespace-nowrap hover:bg-white/10 transition-colors" title="Version">
                                                                     {file.metadata_analysis.governance.version || 'v1.0'}
                                                                 </span>
                                                                 {file.metadata_analysis.governance.owner && (
-                                                                    <span className="text-[10px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-100 whitespace-nowrap" title="Owner">
+                                                                    <span className="text-[10px] font-bold bg-secondary-500/10 text-secondary-300 px-1.5 py-0.5 rounded border border-secondary-500/20 whitespace-nowrap" title="Owner">
                                                                         @{file.metadata_analysis.governance.owner}
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[10px] text-gray-500 italic font-medium px-1 bg-gray-50/50 rounded py-0.5 border border-dashed border-gray-200 break-words w-full" title="Artifact Type">
+                                                            <span className="text-[10px] text-text-tertiary italic font-medium px-2 py-0.5 bg-white/[0.02] rounded border border-dashed border-white/10 break-words w-full" title="Artifact Type">
                                                                 {file.metadata_analysis.governance.artifact || '-'}
                                                             </span>
                                                         </div>
@@ -760,13 +767,13 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                     {/* 通用標籤區塊 (原本被隱藏的內容) */}
                                                     <div className="flex flex-wrap gap-1 mt-1">
                                                         {(file.file_tags || []).map((t: any) => (
-                                                            <span key={t.id} className="text-[9px] px-1.5 py-0.5 rounded-full border border-gray-100 bg-gray-50/50 text-gray-400 whitespace-nowrap hover:bg-white hover:text-indigo-500 transition-colors">
+                                                            <span key={t.id} className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/5 bg-white/[0.03] text-text-tertiary whitespace-nowrap hover:bg-white/10 hover:text-primary-400 transition-all uppercase tracking-widest">
                                                                 #{t.tag_value}
                                                             </span>
                                                         ))}
                                                         {/* 如果沒有治理標籤也沒有一般標籤 */}
                                                         {!file.metadata_analysis?.governance && (file.file_tags || []).length === 0 && (
-                                                            <span className="text-[10px] text-gray-300 italic">無元數據</span>
+                                                            <span className="text-[10px] text-text-tertiary italic uppercase tracking-widest font-bold px-2 py-0.5 bg-white/[0.02] rounded border border-dashed border-white/5">無元數據</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -790,10 +797,10 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                                 e.stopPropagation();
                                                                 setReviewFile(file);
                                                             }}
-                                                            className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-full hover:bg-amber-50 border border-amber-200 bg-white shadow-sm"
+                                                            className="text-semantic-warning hover:text-semantic-warning/80 transition-all p-1.5 rounded-xl hover:bg-semantic-warning/10 border border-semantic-warning/20 bg-background-tertiary shadow-glow-yellow/20"
                                                             title="審核元數據"
                                                         >
-                                                            <Search size={14} />
+                                                            <Search size={14} className="animate-pulse-slow" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -813,8 +820,8 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             </div>
 
             {/* Pagination */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                <span className="text-xs text-gray-500">
+            <div className="p-4 border-t border-white/5 bg-white/[0.02] flex justify-between items-center">
+                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">
                     Showing {files.length} of {total} items
                 </span>
                 <div className="flex gap-2">
@@ -826,7 +833,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                     >
                         Prev
                     </Button>
-                    <span className="text-sm font-medium text-gray-700 flex items-center px-2">Page {page}</span>
+                    <span className="text-xs font-black text-text-primary flex items-center px-4 uppercase tracking-[0.2em]">Page {page}</span>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -851,12 +858,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                         </Button>
                     }
                 >
-                    <div className="bg-indigo-50/50 p-6 rounded-lg border border-indigo-100">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Sparkles size={20} className="text-indigo-600" />
-                            <h4 className="font-bold text-gray-900">完整摘要內容</h4>
+                    <div className="bg-white/5 p-8 rounded-2xl border border-white/10 shadow-inner">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Sparkles size={20} className="text-primary-400" />
+                            <h4 className="text-lg font-black text-text-primary uppercase tracking-tight">完整摘要內容</h4>
                         </div>
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap font-medium">
                             {summaryModalText}
                         </p>
                     </div>

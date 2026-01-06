@@ -22,22 +22,22 @@ export default function LanguageSwitcher() {
     };
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center p-1 bg-white/[0.03] border border-white/5 rounded-xl backdrop-blur-sm">
             <button
                 onClick={() => changeLanguage('zh-TW')}
-                className={`px-2 py-1 text-xs rounded transition-colors ${currentLocale === 'zh-TW'
-                        ? 'bg-primary-100 text-primary-700 font-bold'
-                        : 'text-gray-500 hover:text-gray-900'
+                className={`px-3 py-1 text-[10px] rounded-lg font-black uppercase tracking-widest transition-all duration-300 ${currentLocale === 'zh-TW'
+                    ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-white/5'
                     }`}
             >
                 中
             </button>
-            <span className="text-gray-300">|</span>
+            <div className="w-px h-3 bg-white/10 mx-1" />
             <button
                 onClick={() => changeLanguage('en')}
-                className={`px-2 py-1 text-xs rounded transition-colors ${currentLocale === 'en'
-                        ? 'bg-primary-100 text-primary-700 font-bold'
-                        : 'text-gray-500 hover:text-gray-900'
+                className={`px-3 py-1 text-[10px] rounded-lg font-black uppercase tracking-widest transition-all duration-300 ${currentLocale === 'en'
+                    ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-white/5'
                     }`}
             >
                 EN

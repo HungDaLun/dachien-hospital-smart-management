@@ -8,6 +8,9 @@ import { redirect } from 'next/navigation';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import PageHeader from '@/components/layout/PageHeader';
+import { MessageSquare } from 'lucide-react';
+
 
 interface ChatPageProps {
     searchParams: Promise<{ agent?: string }>;
@@ -37,12 +40,19 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
     const selectedAgentId = params.agent || null;
 
     return (
-        <div className="max-w-7xl mx-auto h-[calc(100vh-120px)]">
-            <ChatInterface
-                agents={agents || []}
-                initialAgentId={selectedAgentId}
-                dict={dict}
+        <div className="w-full px-6 xl:px-10 h-[calc(100vh-120px)] flex flex-col bg-background-primary">
+            <PageHeader
+                title="智能對話"
+                icon={MessageSquare}
             />
+            <div className="flex-1 overflow-hidden">
+                <ChatInterface
+                    agents={agents || []}
+                    initialAgentId={selectedAgentId}
+                    dict={dict}
+                />
+            </div>
         </div>
+
     );
 }

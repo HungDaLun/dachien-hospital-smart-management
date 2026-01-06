@@ -1,11 +1,12 @@
 /**
  * Textarea 元件
  * 多行文字輸入元件
- * 遵循 EAKAP 設計系統規範
+ * 遵循 EAKAP 科技戰情室設計系統規範
  */
 'use client';
 
-import { forwardRef, TextareaHTMLAttributes } from 'react';
+import { forwardRef, TextareaHTMLAttributes, useId } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 /**
  * Textarea 屬性介面
@@ -47,64 +48,84 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         },
         ref
     ) => {
-        // 自動產生 ID（如果未提供）
-        const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
-
+        const generatedId = useId();
+        const textareaId = id || generatedId;
         const hasError = !!error;
 
         return (
-            <div className={`${fullWidth ? 'w-full' : ''}`}>
+            <div className={`space-y-2 ${fullWidth ? 'w-full' : ''}`}>
                 {/* 標籤 */}
                 {label && (
                     <label
                         htmlFor={textareaId}
-                        className="block text-sm font-medium text-gray-700 mb-1.5"
+                        className="block text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] ml-1 mb-1.5"
                     >
                         {label}
                     </label>
                 )}
 
-                {/* 文字區域 */}
-                <textarea
-                    ref={ref}
-                    id={textareaId}
-                    disabled={disabled}
-                    aria-invalid={hasError}
-                    aria-describedby={hasError ? `${textareaId}-error` : hint ? `${textareaId}-hint` : undefined}
-                    className={`
-            w-full
-            px-4 py-3
-            bg-white
-            border rounded-md
-            transition-all duration-150
-            resize-y
-            ${hasError
-                            ? 'border-error-500 focus:ring-2 focus:ring-error-500 focus:border-error-500'
-                            : 'border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-                        }
-            ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
-            placeholder:text-gray-400
-            ${className}
-          `}
-                    {...props}
-                />
+                {/* 容器與文字區域 */}
+                <div className="relative group">
+                    <textarea
+                        ref={ref}
+                        id={textareaId}
+                        disabled={disabled}
+                        aria-invalid={hasError}
+                        aria-describedby={hasError ? `${textareaId}-error` : hint ? `${textareaId}-hint` : undefined}
+                        className={`
+                            w-full
+                            px-5 py-4
+                            bg-black/20
+                            backdrop-blur-sm
+                            border
+                            rounded-2xl
+                            transition-all duration-300
+                            resize-y
+                            font-medium
+                            text-sm
+                            text-text-primary
+                            placeholder:text-text-tertiary/20
+                            outline-none
+                            ${hasError
+                                ? 'border-semantic-danger/50 focus:ring-4 focus:ring-semantic-danger/5 focus:border-semantic-danger shadow-glow-red/5'
+                                : 'border-white/10 focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500/30'
+                            }
+                            ${disabled
+                                ? 'bg-white/[0.02] text-text-tertiary cursor-not-allowed border-white/5 opacity-50'
+                                : 'hover:border-white/20'
+                            }
+                            custom-scrollbar
+                            shadow-inner
+                            ${className}
+                        `}
+                        {...props}
+                    />
+
+                    {/* 裝飾性內陰影/邊框 (僅在非禁用狀態) */}
+                    {!disabled && (
+                        <div className="absolute inset-0 rounded-2xl pointer-events-none ring-1 ring-inset ring-white/[0.02] group-hover:ring-white/[0.05] transition-all" />
+                    )}
+                </div>
 
                 {/* 錯誤訊息 */}
                 {error && (
-                    <p
+                    <div
                         id={`${textareaId}-error`}
-                        className="mt-1.5 text-sm text-error-500"
+                        className="flex items-center gap-2 mt-1.5 px-1 py-0.5 animate-in fade-in slide-in-from-top-1 duration-200"
                         role="alert"
                     >
-                        {error}
-                    </p>
+                        <AlertCircle size={14} className="text-semantic-danger shrink-0" />
+                        <span className="text-[11px] font-bold text-semantic-danger uppercase tracking-wider">
+                            {error}
+                        </span>
+                    </div>
                 )}
 
                 {/* 提示文字 */}
                 {hint && !error && (
                     <p
                         id={`${textareaId}-hint`}
-                        className="mt-1.5 text-sm text-gray-500"
+                        className="mt-1.5 px-1 text-[10px] font-bold text-text-tertiary italic opacity-60 uppercase tracking-widest"
                     >
                         {hint}
                     </p>

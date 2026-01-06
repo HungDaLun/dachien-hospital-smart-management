@@ -10,8 +10,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Button, Badge, Spinner } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import { Sparkles, Folder, Search, CheckCircle2, RefreshCw, Database, Brain, Network } from 'lucide-react';
 
 interface FileItem {
   id: string;
@@ -117,223 +118,249 @@ export default function KnowledgeSelector({
   );
 
   // DIKW 層級配色
-  const getDIKWColor = (level?: string) => {
+  const getDIKWBadge = (level?: string) => {
     switch (level) {
-      case 'data': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
-      case 'information': return 'bg-sky-50 text-sky-700 border-sky-200';
-      case 'knowledge': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'wisdom': return 'bg-violet-50 text-violet-700 border-violet-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'data': return <Badge variant="outline" size="sm" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">DATA</Badge>;
+      case 'information': return <Badge variant="outline" size="sm" className="bg-sky-500/10 text-sky-400 border-sky-500/20">INFO</Badge>;
+      case 'knowledge': return <Badge variant="outline" size="sm" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">KNOW</Badge>;
+      case 'wisdom': return <Badge variant="outline" size="sm" className="bg-violet-500/10 text-violet-400 border-violet-500/20">WIZ</Badge>;
+      default: return null;
     }
   };
 
   // 相關度分數視覺化
-  const RelevanceBar = ({ score }: { score: number }) => (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-gray-500 min-w-[60px]">相關度</span>
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+  const RelevanceIndicator = ({ score }: { score: number }) => (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
         <div
-          className={`h-full transition-all ${score > 0.8 ? 'bg-emerald-500' :
-            score > 0.6 ? 'bg-sky-500' :
-              'bg-amber-500'
+          className={`h-full transition-all duration-1000 shadow-glow-cyan/20 ${score > 0.8 ? 'bg-primary-500' :
+              score > 0.6 ? 'bg-secondary-400' :
+                'bg-semantic-warning'
             }`}
           style={{ width: `${score * 100}%` }}
         />
       </div>
-      <span className="font-medium text-gray-700 min-w-[40px]">{Math.round(score * 100)}%</span>
+      <span className="text-[10px] font-black tabular-nums text-text-tertiary uppercase tracking-widest">{Math.round(score * 100)}% Match</span>
     </div>
   );
 
   return (
-    <Card>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">知識庫來源</h3>
-          <div className="flex gap-2">
-            <Button
+    <Card variant="glass" className="overflow-hidden border-white/10 shadow-glow-cyan/5">
+      <div className="space-y-6">
+        {/* Header Control Unit */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-6">
+          <div>
+            <h3 className="text-lg font-black text-text-primary uppercase tracking-tight flex items-center gap-2">
+              <Database size={18} className="text-primary-500" />
+              知識驅動核心來源 <span className="text-[10px] text-text-tertiary opacity-40 ml-2 font-black italic">INTEL_SOURCE_KERNEL</span>
+            </h3>
+          </div>
+
+          <div className="flex bg-black/20 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
+            <button
               type="button"
-              variant={mode === 'recommended' ? 'primary' : 'outline'}
-              size="sm"
               onClick={() => setMode('recommended')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${mode === 'recommended'
+                  ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                  : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                }`}
             >
-              🤖 AI 推薦
-            </Button>
-            <Button
+              <Brain size={14} />
+              AI 智慧推薦
+            </button>
+            <button
               type="button"
-              variant={mode === 'manual' ? 'primary' : 'outline'}
-              size="sm"
               onClick={() => setMode('manual')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${mode === 'manual'
+                  ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                  : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                }`}
             >
-              📂 手動選擇
-            </Button>
+              <Folder size={14} />
+              檔案庫手動瀏覽
+            </button>
           </div>
         </div>
 
-        {/* AI 推薦模式 */}
+        {/* AI Recommendations Mode */}
         {mode === 'recommended' && (
-          <div className="space-y-3">
+          <div className="space-y-6">
             {recommendedFiles.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                <p className="text-gray-600 mb-3">
-                  AI 會根據你的 Agent 描述推薦最相關的知識來源
+              <div className="text-center py-16 bg-white/[0.01] rounded-[32px] border border-dashed border-white/10 group hover:border-primary-500/30 transition-all duration-500">
+                <div className="w-16 h-16 bg-primary-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:bg-primary-500/20 transition-all">
+                  <Sparkles size={32} className="text-primary-400 animate-pulse-slow" />
+                </div>
+                <p className="text-text-secondary font-medium mb-8 max-w-xs mx-auto italic opacity-60 leading-relaxed">
+                  AI 神經網路已就緒，請完成 Agent 定義後啟動跨庫掃描，精準匹配核心知識資產。
                 </p>
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="cta"
                   onClick={fetchRecommendations}
                   disabled={loading || !agentDescription.trim()}
+                  className="px-8 shadow-glow-cyan/20"
                 >
-                  {loading ? <Spinner size="sm" color="white" /> : '✨ 開始推薦'}
+                  {loading ? <Spinner size="sm" color="black" /> : (
+                    <span className="flex items-center gap-2">
+                      <Network size={16} />
+                      啟動智慧掃描推薦
+                    </span>
+                  )}
                 </Button>
               </div>
             ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">
-                    已推薦 {recommendedFiles.length} 個檔案，已選 {selectedFiles.length} 個
-                  </p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary-500 shadow-glow-cyan" />
+                    <p className="text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                      已校準 {recommendedFiles.length} 項關聯資產 <span className="opacity-30">|</span> 已掛載 {selectedFiles.length} 節點
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={fetchRecommendations}
                     disabled={loading}
+                    className="h-8 text-[10px] font-black opacity-60 hover:opacity-100"
                   >
-                    🔄 重新推薦
+                    <RefreshCw size={12} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    刷新推薦流
                   </Button>
                 </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {recommendedFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedFiles.includes(file.id)
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 bg-white'
-                        }`}
-                      onClick={() => toggleFile(file.id)}
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* 勾選框 */}
-                        <input
-                          type="checkbox"
-                          checked={selectedFiles.includes(file.id)}
-                          onChange={() => toggleFile(file.id)}
-                          className="mt-1 w-4 h-4 text-primary-600 rounded"
-                        />
+                <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {recommendedFiles.map((file) => {
+                    const isSelected = selectedFiles.includes(file.id);
+                    return (
+                      <div
+                        key={file.id}
+                        className={`group/item relative p-6 rounded-2xl border transition-all duration-500 cursor-pointer overflow-hidden ${isSelected
+                            ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
+                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
+                          }`}
+                        onClick={() => toggleFile(file.id)}
+                      >
+                        {isSelected && <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/10 blur-[40px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />}
 
-                        <div className="flex-1 min-w-0">
-                          {/* 檔名與標籤 */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-gray-900 truncate">
-                              {file.title || file.filename}
-                            </span>
-                            {file.dikw_level && (
-                              <Badge className={`text-xs ${getDIKWColor(file.dikw_level)}`}>
-                                {file.dikw_level.toUpperCase()}
-                              </Badge>
-                            )}
+                        <div className="flex items-start gap-5 relative z-10">
+                          <div className={`mt-1 flex items-center justify-center w-6 h-6 rounded-lg border transition-all duration-300 ${isSelected ? 'bg-primary-500 border-primary-500 text-black shadow-glow-cyan' : 'bg-black/40 border-white/10 text-transparent group-hover/item:border-primary-500/50'
+                            }`}>
+                            <CheckCircle2 size={14} strokeWidth={3} />
                           </div>
 
-                          {/* 推薦原因 */}
-                          {file.reason && (
-                            <p className="text-xs text-gray-600 mb-2">
-                              💡 {file.reason}
-                            </p>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className="font-black text-text-primary uppercase tracking-tight text-base group-hover/item:text-primary-400 transition-colors truncate">
+                                {file.title || file.filename}
+                              </span>
+                              {getDIKWBadge(file.dikw_level)}
+                            </div>
 
-                          {/* 相關度分數 */}
-                          {file.relevance_score && (
-                            <RelevanceBar score={file.relevance_score} />
-                          )}
+                            {file.reason && (
+                              <div className="flex items-start gap-2 mb-4 bg-primary-500/5 p-3 rounded-xl border border-primary-500/10">
+                                <Sparkles size={14} className="text-primary-400 mt-0.5 shrink-0" />
+                                <p className="text-xs font-bold text-text-secondary leading-relaxed">
+                                  {file.reason}
+                                </p>
+                              </div>
+                            )}
 
-                          {/* 摘要 */}
-                          {file.summary && (
-                            <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                              {file.summary}
-                            </p>
-                          )}
+                            {file.relevance_score && (
+                              <div className="mb-4">
+                                <RelevanceIndicator score={file.relevance_score} />
+                              </div>
+                            )}
+
+                            {file.summary && (
+                              <p className="text-[11px] font-medium text-text-tertiary leading-relaxed line-clamp-2 italic opacity-60">
+                                {file.summary}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
 
-        {/* 手動選擇模式 */}
+        {/* Manual Selection Mode */}
         {mode === 'manual' && (
-          <div className="space-y-3">
-            {/* 搜尋框 */}
-            <input
-              type="text"
-              placeholder="搜尋檔案名稱或標題..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-            />
+          <div className="space-y-6">
+            <div className="relative group/search">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within/search:text-primary-400 transition-colors" />
+              <Input
+                type="text"
+                placeholder="跨庫搜索知識節點名稱、元數據標記..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 bg-black/20"
+              />
+            </div>
 
-            {/* 檔案列表 */}
             {loading ? (
-              <div className="text-center py-8">
-                <Spinner />
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Spinner size="lg" />
+                <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest animate-pulse">Synchronizing Data Matrix...</span>
               </div>
             ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {filteredFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedFiles.includes(file.id)
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 bg-white'
-                      }`}
-                    onClick={() => toggleFile(file.id)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedFiles.includes(file.id)}
-                        onChange={() => toggleFile(file.id)}
-                        className="mt-1 w-4 h-4 text-primary-600 rounded"
-                      />
+              <div className="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {filteredFiles.map((file) => {
+                  const isSelected = selectedFiles.includes(file.id);
+                  return (
+                    <div
+                      key={file.id}
+                      className={`group/item p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${isSelected
+                          ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
+                          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
+                        }`}
+                      onClick={() => toggleFile(file.id)}
+                    >
+                      <div className={`flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-300 ${isSelected ? 'bg-primary-500 border-primary-500 text-black shadow-glow-cyan' : 'bg-black/40 border-white/10 text-transparent group-hover/item:border-primary-500/50'
+                        }`}>
+                        <CheckCircle2 size={12} strokeWidth={4} />
+                      </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-gray-900 truncate">
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <span className="font-black text-text-primary tracking-tight group-hover/item:text-primary-400 transition-colors truncate">
                             {file.title || file.filename}
                           </span>
-                          {file.dikw_level && (
-                            <Badge className={`text-xs ${getDIKWColor(file.dikw_level)}`}>
-                              {file.dikw_level.toUpperCase()}
-                            </Badge>
-                          )}
+                          {getDIKWBadge(file.dikw_level)}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4">
                           {file.department_name && (
-                            <span>🏢 {file.department_name}</span>
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest flex items-center gap-1.5 opacity-60">
+                              <div className="w-1 h-1 rounded-full bg-secondary-400" />
+                              {file.department_name}
+                            </span>
                           )}
                           {file.category_name && (
-                            <span>📁 {file.category_name}</span>
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest flex items-center gap-1.5 opacity-60">
+                              <div className="w-1 h-1 rounded-full bg-primary-500" />
+                              {file.category_name}
+                            </span>
+                          )}
+                          {file.summary && (
+                            <span className="text-[10px] text-text-tertiary truncate opacity-40 italic">
+                              - {file.summary}
+                            </span>
                           )}
                         </div>
-
-                        {file.summary && (
-                          <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                            {file.summary}
-                          </p>
-                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {filteredFiles.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    找不到符合的檔案
+                  <div className="text-center py-20 text-text-tertiary bg-white/[0.01] rounded-3xl border border-dashed border-white/5">
+                    <p className="text-sm font-black uppercase tracking-widest opacity-40">搜尋結果為空 <span className="opacity-30">|</span> INDEX EMPTY</p>
                   </div>
                 )}
               </div>
@@ -341,25 +368,35 @@ export default function KnowledgeSelector({
           </div>
         )}
 
-        {/* 已選檔案摘要 */}
+        {/* Selected Summary Footer */}
         {selectedFiles.length > 0 && (
-          <div className="pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-2">
-              已選擇 {selectedFiles.length} 個檔案
-            </p>
+          <div className="pt-6 border-t border-white/5 animate-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">
+                虛擬掛載點摘要 <span className="text-primary-400 ml-2 shadow-glow-cyan">{selectedFiles.length} MOUNTED</span>
+              </span>
+              <button
+                onClick={() => onChange([])}
+                className="text-[9px] font-black text-semantic-danger opacity-40 hover:opacity-100 uppercase tracking-widest transition-all"
+              >
+                Clear Matrix
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {selectedFiles.map((fileId) => {
                 const file = [...recommendedFiles, ...allFiles].find(f => f.id === fileId);
                 return file ? (
                   <Badge
                     key={fileId}
-                    className="bg-primary-100 text-primary-700 border border-primary-200"
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/5 border-white/10 text-text-secondary hover:border-primary-500/30 transition-all pr-1.5"
                   >
                     {file.title || file.filename}
                     <button
                       type="button"
                       onClick={() => toggleFile(fileId)}
-                      className="ml-2 hover:text-primary-900 font-bold"
+                      className="ml-2 opacity-40 hover:opacity-100 hover:text-semantic-danger transition-all"
                     >
                       ×
                     </button>

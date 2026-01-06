@@ -21,10 +21,10 @@ export default async function SystemConfigPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{dict.admin.system.title}</h1>
-        <p className="text-gray-600 mt-2">{dict.admin.system.subtitle}</p>
+    <div className="container mx-auto px-6 py-10 text-text-primary">
+      <div className="mb-10 border-b border-white/5 pb-8">
+        <h1 className="text-4xl font-black text-text-primary mb-2 uppercase tracking-tight">{dict.admin.system.title}</h1>
+        <p className="text-text-secondary font-medium tracking-wide">{dict.admin.system.subtitle}</p>
       </div>
 
       <SystemConfigClient dict={dict} />

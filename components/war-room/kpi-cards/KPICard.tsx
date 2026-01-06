@@ -1,67 +1,211 @@
-import React from 'react';
-import { WAR_ROOM_THEME } from '@/styles/war-room-theme';
+/**
+ * KPI Card 組件
+ * 企業戰情室設計系統 - 關鍵績效指標卡片
+ * 
+ * 特點：
+ * - react-countup 數字滾動動畫
+ * - Framer Motion 進場動畫
+ * - 掃描線 Cyberpunk 效果
+ * - 趨勢指示器
+ * - 狀態邊框
+ */
+'use client';
 
-interface KPICardProps {
+import React from 'react';
+import { motion } from 'framer-motion';
+import CountUp from 'react-countup';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { fadeInUp } from '@/lib/animation-variants';
+
+export interface KPICardProps {
+    /** 標題 */
     title: string;
-    value: string | number;
+    /** 主要數值（支援數字或字串格式，向後兼容） */
+    value: number | string;
+    /** 單位（如 %、件、萬） */
+    unit?: string;
+    /** 副標題/次要數值（向後兼容舊 API） */
     subValue?: string;
+    /** 變化百分比 */
+    change?: number;
+    /** 趨勢方向 */
     trend?: 'up' | 'down' | 'stable';
-    status?: 'success' | 'warning' | 'danger' | 'info';
+    /** 狀態 */
+    status?: 'success' | 'warning' | 'danger' | 'default' | 'info';
+    /** 圖示 */
     icon?: React.ReactNode;
+    /** 描述文字 */
+    description?: string;
+    /** 點擊事件 */
+    onClick?: () => void;
+    /** 是否使用數字動畫 */
+    animated?: boolean;
+    /** 數字小數位數 */
+    decimals?: number;
 }
 
-export default function KPICard({ title, value, subValue, trend, status = 'info', icon }: KPICardProps) {
-    const getStatusColor = (s: string) => {
-        switch (s) {
-            case 'success': return WAR_ROOM_THEME.semantic.success;
-            case 'warning': return WAR_ROOM_THEME.semantic.warning;
-            case 'danger': return WAR_ROOM_THEME.semantic.danger;
-            default: return WAR_ROOM_THEME.semantic.info;
+export default function KPICard({
+    title,
+    value,
+    unit = '',
+    subValue,
+    change,
+    trend = 'stable',
+    status = 'default',
+    icon,
+    description,
+    onClick,
+    animated = true,
+    decimals,
+}: KPICardProps) {
+    // 趨勢圖示
+    const getTrendIcon = () => {
+        switch (trend) {
+            case 'up':
+                return <TrendingUp className="w-4 h-4" />;
+            case 'down':
+                return <TrendingDown className="w-4 h-4" />;
+            default:
+                return <Minus className="w-4 h-4" />;
         }
     };
 
-    const statusColor = getStatusColor(status);
+    // 趨勢顏色
+    const getTrendColor = () => {
+        switch (trend) {
+            case 'up':
+                return 'text-semantic-success';
+            case 'down':
+                return 'text-semantic-danger';
+            default:
+                return 'text-text-tertiary';
+        }
+    };
+
+    // 決定卡片變體
+    const getCardVariant = () => {
+        switch (status) {
+            case 'danger':
+                return 'danger';
+            case 'success':
+                return 'success';
+            case 'warning':
+                return 'warning';
+            default:
+                return 'glass';
+        }
+    };
+
+    // 狀態 Badge 文字
+    const getStatusBadge = () => {
+        switch (status) {
+            case 'success':
+                return { text: '達成', variant: 'success' as const };
+            case 'warning':
+                return { text: '注意', variant: 'warning' as const };
+            case 'danger':
+                return { text: '警告', variant: 'danger' as const };
+            default:
+                return null;
+        }
+    };
+
+    const statusBadge = getStatusBadge();
+
+    // 判斷 value 是否為數字類型
+    const isNumericValue = typeof value === 'number';
+    const numericValue = isNumericValue ? value : parseFloat(value) || 0;
+    const decimalPlaces = decimals ?? (isNumericValue && value % 1 !== 0 ? 1 : 0);
 
     return (
-        <div
-            className="p-6 rounded-lg relative overflow-hidden transition-all hover:translate-y-[-2px]"
-            style={{
-                backgroundColor: WAR_ROOM_THEME.background.secondary,
-                border: WAR_ROOM_THEME.border.default,
-                boxShadow: WAR_ROOM_THEME.shadow.card
-            }}
+        <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
         >
-            {/* Status Bar Indicator */}
-            <div
-                className="absolute top-0 left-0 w-1 h-full"
-                style={{ backgroundColor: statusColor }}
-            />
-
-            <div className="flex justify-between items-start mb-4">
-                <h3 className="text-sm font-medium tracking-wide uppercase" style={{ color: WAR_ROOM_THEME.text.secondary }}>
-                    {title}
-                </h3>
-                {icon && <div className="text-gray-400 opacity-50">{icon}</div>}
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-3xl font-bold text-white">
-                    {value}
-                </span>
-                {subValue && (
-                    <span className="text-sm font-light" style={{ color: WAR_ROOM_THEME.text.tertiary }}>
-                        {subValue}
-                    </span>
-                )}
-            </div>
-
-            {trend && (
-                <div className="text-xs mt-2 flex items-center gap-1">
-                    <span style={{ color: trend === 'up' ? WAR_ROOM_THEME.semantic.success : WAR_ROOM_THEME.semantic.danger }}>
-                        {trend === 'up' ? '▲' : '▼'} 趨勢
-                    </span>
+            <Card
+                variant={getCardVariant()}
+                clickable={!!onClick}
+                onClick={onClick}
+                className="relative overflow-hidden group"
+            >
+                {/* 掃描線效果（Cyberpunk）*/}
+                <div className="scanline-effect">
+                    <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-primary-500 to-transparent" />
                 </div>
-            )}
-        </div>
+
+                {/* 頂部區域 */}
+                <div className="flex items-center justify-between pb-4 border-b border-border-default">
+                    <div className="flex items-center gap-3">
+                        {icon && (
+                            <div className="p-2 rounded-lg bg-primary-500/20 text-primary-500">
+                                {icon}
+                            </div>
+                        )}
+                        <h3 className="text-lg font-heading font-semibold text-text-primary">
+                            {title}
+                        </h3>
+                    </div>
+                    {statusBadge && (
+                        <Badge variant={statusBadge.variant}>
+                            {statusBadge.text}
+                        </Badge>
+                    )}
+                </div>
+
+                {/* 內容區域 */}
+                <div className="pt-4">
+                    {/* 主要數值 */}
+                    <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-4xl md:text-5xl font-mono font-bold text-text-primary tabular-nums">
+                            {isNumericValue && animated ? (
+                                <CountUp
+                                    end={numericValue}
+                                    duration={1.5}
+                                    separator=","
+                                    decimals={decimalPlaces}
+                                    preserveValue
+                                />
+                            ) : (
+                                isNumericValue ? numericValue.toLocaleString() : value
+                            )}
+                        </span>
+                        {unit && (
+                            <span className="text-xl text-text-secondary font-body">
+                                {unit}
+                            </span>
+                        )}
+                        {subValue && (
+                            <span className="text-sm text-text-tertiary font-body">
+                                {subValue}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* 變化趨勢 */}
+                    {change !== undefined && (
+                        <div className={`flex items-center gap-1 ${getTrendColor()}`}>
+                            {getTrendIcon()}
+                            <span className="text-sm font-medium">
+                                {change > 0 ? '+' : ''}{change.toFixed(1)}%
+                            </span>
+                            <span className="text-sm text-text-tertiary ml-1">vs 上週</span>
+                        </div>
+                    )}
+
+                    {/* 描述 */}
+                    {description && (
+                        <p className="text-sm text-text-secondary mt-3">{description}</p>
+                    )}
+                </div>
+            </Card>
+        </motion.div>
     );
 }
+
+// 導出類型供外部使用
+export type { KPICardProps as KPICardPropsType };

@@ -29,46 +29,46 @@ export default async function PendingReviewPage() {
     const { data: files } = await query;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div className="space-y-10 p-6 text-text-primary">
+            <div className="flex justify-between items-end border-b border-white/5 pb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">📑 Knowledge Review Queue</h1>
-                    <p className="text-gray-600">Review AI-processed documents before publishing.</p>
+                    <h1 className="text-3xl font-black text-text-primary mb-2 uppercase tracking-tight">📑 Knowledge Review Queue</h1>
+                    <p className="text-text-secondary font-medium">Review AI-processed documents before publishing to the knowledge base.</p>
                 </div>
                 <Link href="/dashboard/knowledge">
-                    <Button variant="outline">Back to Library</Button>
+                    <Button variant="outline" size="sm">Back to Library</Button>
                 </Link>
             </div>
 
             {!files || files.length === 0 ? (
-                <Card className="p-12 text-center text-gray-500">
-                    <div className="text-4xl mb-4">✅</div>
-                    <h3 className="text-lg font-medium">All caught up!</h3>
-                    <p>No documents pending review.</p>
+                <Card variant="glass" className="py-20 text-center text-text-tertiary border-dashed border-white/10">
+                    <div className="text-6xl mb-6 opacity-20">✅</div>
+                    <h3 className="text-xl font-bold text-text-primary mb-2 uppercase tracking-widest">All caught up!</h3>
+                    <p className="text-sm">No documents pending review at this time.</p>
                 </Card>
             ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                     {files.map((file) => (
-                        <Card key={file.id} className="hover:shadow-md transition-shadow">
+                        <Card key={file.id} variant="glass" padding className="group hover:border-primary-500/30 transition-all">
                             <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 bg-amber-50 rounded-lg flex items-center justify-center text-2xl">
+                                <div className="flex items-center gap-5">
+                                    <div className="h-14 w-14 bg-semantic-warning/10 rounded-xl flex items-center justify-center text-2xl border border-semantic-warning/20 shadow-inner group-hover:scale-110 transition-transform">
                                         📄
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">{file.filename}</h3>
-                                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                                            <span>by {file.user_profiles?.display_name || 'Unknown'}</span>
+                                        <h3 className="text-lg font-bold text-text-primary mb-1 group-hover:text-primary-400 transition-colors uppercase tracking-tight">{file.filename}</h3>
+                                        <div className="flex items-center gap-3 text-[10px] text-text-tertiary font-bold font-mono uppercase tracking-widest mt-1.5">
+                                            <span className="px-2 py-0.5 rounded bg-white/[0.03]">👤 {file.user_profiles?.display_name || 'Unknown'}</span>
                                             <span>•</span>
-                                            <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                            <span className="px-2 py-0.5 rounded bg-white/[0.03]">📅 {new Date(file.created_at).toLocaleDateString()}</span>
                                             <span>•</span>
-                                            <Badge variant="warning">Needs Review</Badge>
+                                            <Badge variant="warning" className="text-[9px] px-1.5 font-black">Needs Review</Badge>
                                         </div>
                                     </div>
                                 </div>
 
                                 <Link href={`/dashboard/knowledge/review/${file.id}`}>
-                                    <Button>Review Now →</Button>
+                                    <Button variant="cta" size="sm" className="shadow-lg hover:shadow-primary-500/10">Review Now →</Button>
                                 </Link>
                             </div>
                         </Card>

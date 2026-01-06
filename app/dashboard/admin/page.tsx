@@ -11,6 +11,9 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 import { getSystemStats } from '@/lib/actions/analytics';
+import PageHeader from '@/components/layout/PageHeader';
+import { Settings } from 'lucide-react';
+
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -66,41 +69,49 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6">
+    <div className="w-full p-4 md:p-8">
       {/* 頁面標題 */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{dict.navigation.system_admin}</h1>
-          <p className="text-gray-600">管理系統設定、使用者與部門</p>
-        </div>
-      </div>
+      <PageHeader
+        title="系統管理"
+        icon={Settings}
+      />
 
-      {/* 1. 快速管理入口 (原管理控制台) */}
-      <div className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          {dict.admin.management_console || "Quick Actions"}
+
+      {/* 1. 快速管理入口 */}
+      <div className="mb-12">
+        <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-[0.2em] mb-4">
+          {dict.admin.management_console || "QUICK MANAGEMENT CONSOLE"}
         </h2>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {quickActions.map((action) => (
-            <Link key={action.href} href={action.href}>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:bg-gray-50 transition-all text-gray-700">
-                <span className="text-lg">{action.icon}</span>
-                <span className="font-medium">{action.title}</span>
-              </button>
+            <Link key={action.href} href={action.href} className="group">
+              <div className="flex flex-col gap-3 p-5 rounded-2xl border border-white/5 bg-background-secondary/50 hover:bg-primary-500/5 hover:border-primary-500/30 transition-all h-full">
+                <span className="text-3xl transition-transform group-hover:scale-110 duration-300">{action.icon}</span>
+                <div>
+                  <div className="font-bold text-text-primary mb-1 group-hover:text-primary-400 transition-colors">{action.title}</div>
+                  <div className="text-[10px] text-text-tertiary uppercase tracking-wider">{action.subtitle}</div>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
       </div>
 
       {/* 2. 平台分析與洞察 (SSR) */}
-      <div className="mb-10">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <span>📊</span> {dict.admin.analytics.title || "Platform Analytics"}
-        </h2>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-2 w-2 rounded-full bg-primary-500 shadow-[0_0_10px_rgba(0,217,255,0.5)]" />
+          <h2 className="text-lg font-bold text-text-primary uppercase tracking-widest">
+            {dict.admin.analytics.title || "Platform Analytics & Insights"}
+          </h2>
+        </div>
+
         {stats ? (
-          <AdminDashboardStats dict={dict} stats={stats} />
+          <div className="animate-fade-in">
+            <AdminDashboardStats dict={dict} stats={stats} />
+          </div>
         ) : (
-          <div className="p-8 text-center text-red-500 bg-white rounded-lg border border-red-100">
+          <div className="p-10 text-center text-semantic-danger bg-semantic-danger/5 rounded-2xl border border-semantic-danger/20 backdrop-blur-sm">
             {statsResult.error || "Failed to load system analytics"}
           </div>
         )}

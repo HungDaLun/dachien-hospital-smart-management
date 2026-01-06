@@ -12,6 +12,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 引入毛玻璃效果系統（必須在 @tailwind 之後）*/
+@import './glass-effects.css';
+
 /* ===== 基礎樣式重置 ===== */
 * {
   box-sizing: border-box;
@@ -26,9 +29,11 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), var(--font-noto-sans-tc), system-ui, sans-serif;
-  color: var(--color-gray-800);
-  background-color: var(--color-gray-50);
+  font-family: var(--font-heading), var(--font-noto-sans-tc), system-ui, sans-serif;
+  color: #FFFFFF;
+  /* 預設文字白色 */
+  background-color: #0A0E27;
+  /* 預設背景深藍黑 */
   line-height: 1.6;
 }
 
@@ -106,10 +111,13 @@ body {
 
 /* 神經節點脈動發光 - DIKW 四層不同頻率 (優化版) */
 @keyframes neural-pulse-data {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 12px rgba(6, 182, 212, 0.3), 0 0 24px rgba(6, 182, 212, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 0 16px rgba(6, 182, 212, 0.4), 0 0 32px rgba(6, 182, 212, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: scale(1.01);
@@ -117,10 +125,13 @@ body {
 }
 
 @keyframes neural-pulse-info {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 12px rgba(14, 165, 233, 0.3), 0 0 24px rgba(14, 165, 233, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 0 16px rgba(14, 165, 233, 0.4), 0 0 32px rgba(14, 165, 233, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: scale(1.01);
@@ -128,10 +139,13 @@ body {
 }
 
 @keyframes neural-pulse-knowledge {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 12px rgba(16, 185, 129, 0.3), 0 0 24px rgba(16, 185, 129, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 0 16px rgba(16, 185, 129, 0.4), 0 0 32px rgba(16, 185, 129, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: scale(1.015);
@@ -139,10 +153,13 @@ body {
 }
 
 @keyframes neural-pulse-wisdom {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 12px rgba(139, 92, 246, 0.3), 0 0 24px rgba(139, 92, 246, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 0 18px rgba(139, 92, 246, 0.45), 0 0 36px rgba(139, 92, 246, 0.22), 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: scale(1.02);
@@ -151,9 +168,12 @@ body {
 
 /* 星空背景呼吸微光 */
 @keyframes galaxy-breathe {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.3;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -165,6 +185,7 @@ body {
     transform: scale(1);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(2.5);
     opacity: 0;
@@ -176,6 +197,7 @@ body {
   0% {
     stroke-dashoffset: 1000;
   }
+
   100% {
     stroke-dashoffset: 0;
   }
@@ -183,9 +205,12 @@ body {
 
 /* 懸停神經突觸高亮 */
 @keyframes synapse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 5px currentColor);
   }
+
   50% {
     filter: drop-shadow(0 0 15px currentColor) brightness(1.3);
   }
@@ -196,18 +221,17 @@ body {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 .animate-shimmer-text {
-  background: linear-gradient(
-    90deg, 
-    #9ca3af 20%, 
-    #374151 50%, 
-    #9ca3af 80%
-  );
+  background: linear-gradient(90deg,
+      #9ca3af 20%,
+      #374151 50%,
+      #9ca3af 80%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

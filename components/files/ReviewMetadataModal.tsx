@@ -1,7 +1,7 @@
 'use client';
 
-import { Modal, Button, Input } from '@/components/ui';
-import { Sparkles } from 'lucide-react';
+import { Modal, Button, Input, Badge } from '@/components/ui';
+import { Sparkles, X, RotateCcw, Activity, Tag, FileEdit, Database } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { getCategories } from '@/lib/actions/taxonomy';
@@ -136,181 +136,194 @@ export default function ReviewMetadataModal({
             isOpen={isOpen}
             onClose={onClose}
             title={dict.knowledge.review.title}
+            size="xl"
             footer={
-                <>
-                    <Button variant="ghost" onClick={onClose}>
+                <div className="flex gap-3 w-full sm:justify-end">
+                    <Button variant="outline" onClick={onClose} className="border-white/10 hover:bg-white/5 flex-1 sm:flex-none">
                         {dict.common.cancel}
                     </Button>
                     <Button
-                        variant="primary"
+                        variant="cta"
                         onClick={handleSubmit}
                         loading={isSubmitting}
                         disabled={isSubmitting}
+                        className="flex-1 sm:flex-none"
                     >
                         {dict.knowledge.review.confirm_apply}
                     </Button>
-                </>
+                </div>
             }
         >
-            <div className="space-y-6">
-                {/* AI Suggestion Content (Summary remains read-only for context) */}
-                <div className="bg-indigo-50/50 p-5 rounded-lg border border-indigo-100/50 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-indigo-100 rounded-md">
-                            <Sparkles size={16} className="text-indigo-600" />
+            <div className="space-y-8">
+                {/* AI Suggestion Content */}
+                <div className="relative group/summary">
+                    <div className="absolute -inset-2 bg-gradient-to-r from-primary-500/10 to-purple-500/10 rounded-[24px] blur-xl opacity-0 group-hover/summary:opacity-100 transition-duration-500" />
+                    <div className="relative bg-gradient-to-br from-primary-500/[0.08] to-purple-500/[0.08] p-6 rounded-3xl border border-primary-500/20 backdrop-blur-sm shadow-glow-cyan/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary-500/20 text-primary-400">
+                                    <Sparkles size={18} className="animate-pulse-slow" />
+                                </div>
+                                <h4 className="text-[10px] font-black text-primary-400 uppercase tracking-[0.2em]">智能萃取摘要 <span className="opacity-30">|</span> AI SYNTHESIS</h4>
+                            </div>
+                            <Badge variant="secondary" size="sm" pulse>ANALYZED</Badge>
                         </div>
-                        <h4 className="font-bold text-gray-900 tracking-tight">{dict.knowledge.review.ai_summary}</h4>
+                        <p className="text-base text-text-primary leading-relaxed font-bold italic">
+                            "{metadata.summary || dict.knowledge.review.no_summary}"
+                        </p>
                     </div>
-                    <p className="text-sm text-gray-700 leading-relaxed bg-white/60 p-3 rounded-md border border-indigo-50">
-                        {metadata.summary || dict.knowledge.review.no_summary}
-                    </p>
                 </div>
 
-                {/* Feedback Stats (New) */}
+                {/* Feedback Stats */}
                 {metadata.feedback_count !== undefined && metadata.feedback_count > 0 && (
-                    <div className="flex gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase text-gray-400 font-bold">Feedback Score</span>
-                            <span className="text-sm font-bold text-gray-800">
-                                {Math.round((metadata.feedback_score || 0.5) * 100)}/100
-                            </span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase text-gray-400 font-bold">Review Count</span>
-                            <span className="text-sm font-bold text-gray-800">{metadata.feedback_count}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase text-gray-400 font-bold">Positive Ratio</span>
-                            <span className="text-sm font-bold text-green-600">
-                                {Math.round((metadata.positive_ratio || 0) * 100)}%
-                            </span>
-                        </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        {[
+                            { label: 'Intelligence Score', value: `${Math.round((metadata.feedback_score || 0.5) * 100)}%`, icon: Activity, color: 'text-primary-400' },
+                            { label: 'Review Samples', value: metadata.feedback_count, icon: Database, color: 'text-purple-400' },
+                            { label: 'Truth Alignment', value: `${Math.round((metadata.positive_ratio || 0) * 100)}%`, icon: Sparkles, color: 'text-semantic-success' }
+                        ].map((stat, i) => (
+                            <div key={i} className="bg-white/[0.02] p-4 rounded-2xl border border-white/5 flex flex-col gap-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <stat.icon size={12} className={stat.color} />
+                                    <span className="text-[9px] font-black text-text-tertiary uppercase tracking-wider">{stat.label}</span>
+                                </div>
+                                <span className="text-xl font-black text-text-primary tabular-nums">{stat.value}</span>
+                            </div>
+                        ))}
                     </div>
                 )}
 
-                {/* Governance Editing Section */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-1">
-                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.domain}</label>
-                        <Input
-                            value={govDomain}
-                            onChange={(e) => setGovDomain(e.target.value)}
-                            inputSize="sm"
-                            placeholder="e.g. audience, technology"
-                            className="bg-white border-indigo-100 focus:border-indigo-300"
-                        />
-                    </div>
-                    <div className="col-span-1">
-                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.version}</label>
-                        <Input
-                            value={govVersion}
-                            onChange={(e) => setGovVersion(e.target.value)}
-                            inputSize="sm"
-                            placeholder="v1.0"
-                            className="bg-white border-indigo-100 focus:border-indigo-300"
-                        />
-                    </div>
-                    <div className="col-span-1">
-                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.owner}</label>
-                        <Input
-                            value={govOwner}
-                            onChange={(e) => setGovOwner(e.target.value)}
-                            inputSize="sm"
-                            placeholder="Dept or Team"
-                            className="bg-white border-indigo-100 focus:border-indigo-300"
-                        />
-                    </div>
-                    <div className="col-span-1">
-                        <label className="block text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{dict.knowledge.review.artifact}</label>
-                        <Input
-                            value={govArtifact}
-                            onChange={(e) => setGovArtifact(e.target.value)}
-                            inputSize="sm"
-                            placeholder="e.g. persona, sop"
-                            className="bg-white border-indigo-100 focus:border-indigo-300"
-                        />
-                    </div>
-                </div>
-
-                {/* Filename Edit */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {dict.knowledge.review.standardized_filename}
-                    </label>
-                    <div className="flex gap-2 items-center">
-                        <Input
-                            value={filename}
-                            onChange={(e) => setFilename(e.target.value)}
-                            className="font-mono text-sm"
-                        />
-                        {metadata.suggested_filename && filename !== metadata.suggested_filename && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setFilename(metadata.suggested_filename!)}
-                                title={dict.knowledge.review.reset_to_suggestion}
-                            >
-                                ↺
-                            </Button>
+                {/* Main Configuration Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Standardized Filename */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <FileEdit size={14} className="text-primary-400" />
+                            <label className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">
+                                {dict.knowledge.review.standardized_filename}
+                            </label>
+                        </div>
+                        <div className="relative group/fileinput">
+                            <Input
+                                value={filename}
+                                onChange={(e) => setFilename(e.target.value)}
+                                className="font-mono text-sm pr-12"
+                                placeholder="ASSET_NAME_V1_0"
+                            />
+                            {metadata.suggested_filename && filename !== metadata.suggested_filename && (
+                                <button
+                                    onClick={() => setFilename(metadata.suggested_filename!)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-primary-400 transition-colors"
+                                    title={dict.knowledge.review.reset_to_suggestion}
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                            )}
+                        </div>
+                        {originalFilename !== filename && (
+                            <div className="flex items-center gap-2 px-1">
+                                <span className="text-[9px] font-black text-text-tertiary uppercase">Original Path:</span>
+                                <span className="text-[9px] font-mono text-text-tertiary line-through opacity-50 truncate">{originalFilename}</span>
+                            </div>
                         )}
                     </div>
-                    {originalFilename !== filename && (
-                        <p className="text-xs text-gray-500 mt-1">
-                            {dict.knowledge.review.original}: <span className="line-through">{originalFilename}</span>
-                        </p>
-                    )}
-                </div>
 
-                {/* Category Select - 階層式選單 */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {dict.knowledge.review.document_category}
-                    </label>
-                    <HierarchicalCategorySelect
-                        categories={categories}
-                        value={categoryId}
-                        onChange={setCategoryId}
-                        selectSize="md"
-                        className="w-full"
-                    />
-                    {metadata.category_suggestion && !categoryId && (
-                        <p className="text-xs text-gray-500 mt-1">
-                            {dict.knowledge.review.suggested}: {metadata.category_suggestion}
-                        </p>
-                    )}
-                </div>
-
-                {/* Tags Edit */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {dict.knowledge.review.governance_tags}
-                    </label>
-                    <div className="border border-gray-300 rounded-md p-2 bg-white">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {tags.map((tag, i) => (
-                                <span key={i} className="inline-flex items-center px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium">
-                                    {tag}
-                                    <button
-                                        onClick={() => handleRemoveTag(i)}
-                                        className="ml-1 text-blue-400 hover:text-blue-600 focus:outline-none"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
+                    {/* Category Selection */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Database size={14} className="text-purple-400" />
+                            <label className="text-[10px] font-black text-text-tertiary uppercase tracking-widest">
+                                {dict.knowledge.review.document_category}
+                            </label>
                         </div>
-                        <input
-                            type="text"
-                            placeholder={dict.knowledge.review.add_tag_placeholder}
-                            className="w-full text-sm outline-none bg-transparent"
-                            onKeyDown={handleAddTag}
+                        <HierarchicalCategorySelect
+                            categories={categories}
+                            value={categoryId}
+                            onChange={setCategoryId}
+                            selectSize="md"
+                            className="w-full"
                         />
+                        {metadata.category_suggestion && !categoryId && (
+                            <div className="flex items-center gap-2 px-1">
+                                <span className="text-[9px] font-black text-text-tertiary uppercase">Suggested Atlas:</span>
+                                <span className="text-[10px] font-bold text-primary-400 uppercase">{metadata.category_suggestion}</span>
+                            </div>
+                        )}
                     </div>
-                    {metadata.topics && metadata.topics.length > 0 && (
-                        <div className="mt-2 text-xs text-gray-500">
-                            {dict.knowledge.review.detected_topics}: {metadata.topics.join(', ')}
+                </div>
+
+                {/* Governance Metadata Subgrid */}
+                <div className="bg-white/[0.02] p-8 rounded-[32px] border border-white/5 space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-1.5 h-4 bg-primary-500 rounded-full" />
+                        <h5 className="text-xs font-black text-text-primary uppercase tracking-widest">治理協議配置 <span className="text-[9px] text-text-tertiary opacity-40 italic ml-2">GOVERNANCE PROTOCOLS</span></h5>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {[
+                            { label: dict.knowledge.review.domain, value: govDomain, setter: setGovDomain, placeholder: 'Audience/Tech' },
+                            { label: dict.knowledge.review.version, value: govVersion, setter: setGovVersion, placeholder: 'v1.0' },
+                            { label: dict.knowledge.review.owner, value: govOwner, setter: setGovOwner, placeholder: 'Dept/Team' },
+                            { label: dict.knowledge.review.artifact, value: govArtifact, setter: setGovArtifact, placeholder: 'Persona/SOP' }
+                        ].map((field, i) => (
+                            <div key={i} className="space-y-1.5">
+                                <label className="text-[9px] font-black text-text-tertiary uppercase tracking-[0.15em] opacity-60 ml-0.5">{field.label}</label>
+                                <Input
+                                    value={field.value}
+                                    onChange={(e) => field.setter(e.target.value)}
+                                    inputSize="sm"
+                                    placeholder={field.placeholder}
+                                    className="bg-black/20"
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <hr className="border-white/5" />
+
+                    {/* Tags Matrix */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Tag size={13} className="text-text-tertiary" />
+                                <label className="text-[9px] font-black text-text-tertiary uppercase tracking-widest">
+                                    {dict.knowledge.review.governance_tags}
+                                </label>
+                            </div>
+                            {metadata.topics && metadata.topics.length > 0 && (
+                                <span className="text-[9px] font-bold text-text-tertiary italic opacity-40">AI Detected: {metadata.topics.join(', ')}</span>
+                            )}
                         </div>
-                    )}
+                        <div className="min-h-[100px] p-4 bg-black/20 rounded-2xl border border-white/5 group focus-within:border-primary-500/30 transition-all">
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {tags.map((tag, i) => (
+                                    <Badge
+                                        key={i}
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white/5 border-white/10 text-text-secondary pr-1.5 group/tag hover:border-primary-500/30 transition-all"
+                                    >
+                                        #{tag}
+                                        <button
+                                            onClick={() => handleRemoveTag(i)}
+                                            className="ml-1 opacity-40 hover:opacity-100 hover:text-semantic-danger transition-all"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </Badge>
+                                ))}
+                                {tags.length === 0 && (
+                                    <span className="text-[10px] text-text-tertiary italic uppercase tracking-widest p-1 opacity-30">Pending tag synchronization...</span>
+                                )}
+                            </div>
+                            <input
+                                type="text"
+                                placeholder={dict.knowledge.review.add_tag_placeholder}
+                                className="w-full text-xs font-medium outline-none bg-transparent text-text-primary placeholder:text-text-tertiary/30"
+                                onKeyDown={handleAddTag}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </Modal>
