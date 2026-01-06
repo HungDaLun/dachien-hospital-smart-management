@@ -2,6 +2,8 @@ import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import Link from 'next/link';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { Hexagon } from 'lucide-react';
+
 
 /**
  * 首頁元件
@@ -24,12 +26,15 @@ export default async function HomePage() {
       </div>
 
       <div className="text-center relative z-10">
-        <div className="w-24 h-24 bg-primary-500/10 border border-primary-500/20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-glow-cyan animate-pulse-slow">
-          🧠
+        <div className="w-24 h-24 bg-primary-500/10 border border-primary-500/20 rounded-3xl flex items-center justify-center text-primary-400 mx-auto mb-8 shadow-glow-cyan animate-pulse-slow">
+          <Hexagon className="w-12 h-12" />
         </div>
-        <h1 className="text-6xl font-black bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent mb-4 uppercase tracking-tighter">
-          EAKAP
+        <h1 className="text-7xl font-black mb-2 uppercase tracking-tighter">
+          <span className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent block font-heading">NEXUS</span>
+          <span className="text-4xl block mt-2 text-white/90 tracking-widest font-bold">智樞</span>
         </h1>
+        <div className="text-primary-400/80 tracking-[0.3em] font-mono text-sm mb-2 font-medium">ENTERPRISE DECISION COMMAND</div>
+        <div className="text-primary-300/60 tracking-[0.2em] text-xs mb-8 font-bold">企業戰情智能決策系統</div>
         <p className="text-text-secondary text-lg mb-12 font-medium tracking-wide">
           {dict.common.subtitle}
         </p>

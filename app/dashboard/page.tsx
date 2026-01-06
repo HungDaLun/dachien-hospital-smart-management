@@ -11,6 +11,7 @@ import KPICard from '@/components/war-room/kpi-cards/KPICard';
 import PageHeader from '@/components/layout/PageHeader';
 import InsightRefreshButton from '@/components/war-room/InsightRefreshButton';
 import { ChevronRight, Cpu, Activity, ShieldAlert, Globe, Clock } from 'lucide-react';
+import CorporateConsultantButton from '@/components/war-room/CorporateConsultantButton';
 
 
 import dynamic from 'next/dynamic';
@@ -66,18 +67,19 @@ export default async function DashboardPage() {
           icon={Cpu}
           actions={
             <div className="flex flex-wrap gap-4">
-              <div className="px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
                 SYSTEM LIVE
               </div>
-              <div className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold flex items-center gap-2">
+              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
                 <Globe size={14} />
                 GLOBAL SYNCED
               </div>
-              <div className="px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold flex items-center gap-2">
+              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
                 <Clock size={14} />
                 每日 05:00 更新
               </div>
+              <CorporateConsultantButton />
             </div>
           }
         />
@@ -91,18 +93,21 @@ export default async function DashboardPage() {
             subValue="完成度"
             status={strategy.status === 'critical' ? 'danger' : (strategy.status === 'at_risk' ? 'warning' : 'success')}
             trend="up"
+            infoKey="strategyExecution"
           />
           <KPICard
             title="營運健康度"
             value={`${(ops.overall_health * 100).toFixed(0)}`}
             subValue="/ 100"
             status={ops.status === 'needs_attention' ? 'danger' : 'success'}
+            infoKey="operationalHealth"
           />
           <KPICard
             title="財務跑道"
             value={`${finance.runway_months.toFixed(1)}`}
             subValue="月"
             status={finance.runway_months < 6 ? 'danger' : 'success'}
+            infoKey="financialRunway"
           />
           <Link href="/dashboard/intelligence" className="block hover:opacity-90 transition-opacity">
             <KPICard
@@ -111,6 +116,7 @@ export default async function DashboardPage() {
               subValue={`${risks.critical_count} 重大`}
               status={risks.critical_count > 0 ? 'danger' : (risks.high_count > 0 ? 'warning' : 'success')}
               trend={risks.high_count > 0 ? 'down' : 'up'}
+              infoKey="activeRisks"
             />
           </Link>
         </div>

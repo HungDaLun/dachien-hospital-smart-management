@@ -295,91 +295,9 @@ const ChartCard: React.FC<{
     );
 };
 
-// 生成模擬數據的輔助函式
-const generateMockData = (count: number, min: number, max: number) => {
-    return Array.from({ length: count }, (_, i) => ({
-        name: `T${i + 1}`,
-        value: Math.floor(Math.random() * (max - min) + min)
-    }));
-};
-
-const generateMockBarData = (names: string[]) => {
-    return names.map(name => ({
-        name,
-        value: Math.floor(Math.random() * 80 + 20)
-    }));
-};
-
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
-    // 模擬數據 - 實際應從 WarRoomDataProvider 擴充
-    const cashFlowData = generateMockData(6, -50, 100);
-    const profitData = generateMockData(4, 15, 40);
-    const budgetData = generateMockBarData(['研發', '行銷', '營運', '人資', '財務']);
-    const costData = [
-        { name: '人事成本', value: 45 },
-        { name: '營運成本', value: 25 },
-        { name: '行銷成本', value: 15 },
-        { name: '其他', value: 15 }
-    ];
-    const revenueData = [
-        { name: '主產品', value: 60 },
-        { name: 'SaaS服務', value: 25 },
-        { name: '顧問服務', value: 15 }
-    ];
-    const projectData = generateMockBarData(['專案A', '專案B', '專案C', '專案D']);
-    const taskData = generateMockData(8, 2, 10);
-    const resourceData = generateMockBarData(['開發', '設計', '行銷', 'PM']);
-    const slaData = generateMockData(5, 85, 100);
-    const fileTypeData = [
-        { name: 'PDF', value: 35 },
-        { name: 'Markdown', value: 30 },
-        { name: 'Excel', value: 20 },
-        { name: '其他', value: 15 }
-    ];
-    const hotKnowledgeData = generateMockBarData(['員工手冊', 'API文件', 'SOP指南', '培訓教材', '產品規格']);
-    const coverageData = [
-        { name: '營運', value: 85 },
-        { name: '技術', value: 70 },
-        { name: '行銷', value: 60 },
-        { name: '人資', value: 45 },
-        { name: '財務', value: 55 }
-    ];
-    const teamActivityData = generateMockBarData(['團隊A', '團隊B', '團隊C', '團隊D']);
-    const skillData = [
-        { name: '前端', value: 25 },
-        { name: '後端', value: 30 },
-        { name: '設計', value: 15 },
-        { name: 'AI/ML', value: 10 },
-        { name: '管理', value: 20 }
-    ];
-    const performanceData = generateMockData(6, 60, 95);
-    const turnoverData = [
-        { name: '低風險', value: 70 },
-        { name: '中風險', value: 20 },
-        { name: '高風險', value: 10 }
-    ];
-    const trainingData = generateMockBarData(['新人培訓', '技術升級', '領導力', '合規']);
-    const riskTimeData = generateMockData(5, 1, 48);
-    const complianceData = [
-        { name: '資安', value: 95 },
-        { name: 'GDPR', value: 88 },
-        { name: '財報', value: 100 },
-        { name: '勞基法', value: 92 }
-    ];
-    const agentData = generateMockBarData(['客服Agent', '知識Agent', '分析Agent']);
-    const qualityData = generateMockData(6, 3, 5);
-    const citationData = generateMockData(6, 40, 90);
-    const depthData = [
-        { name: '1-3輪', value: 40 },
-        { name: '4-6輪', value: 35 },
-        { name: '7-10輪', value: 15 },
-        { name: '10+輪', value: 10 }
-    ];
-
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6 mt-8 w-full">
-
-            {/* === 財務健康類 === */}
             <ChartCard title="戰略執行趨勢" infoKey="strategyTrend">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.strategyTrend}>
@@ -389,47 +307,47 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
                                 <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#ffffff40" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Area type="monotone" dataKey="value" stroke="#3B82F6" fillOpacity={1} fill="url(#colorStrategy)" strokeWidth={3} />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </ChartCard>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" vertical={false} />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Area type="monotone" dataKey="value" stroke="#3B82F6" fillOpacity={1} fill="url(#colorStrategy)" strokeWidth={3} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
+                    </AreaChart >
+                </ResponsiveContainer >
+            </ChartCard >
 
             <ChartCard title="現金流趨勢" infoKey="cashFlow">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cashFlowData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.cashFlow}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="毛利率變化" infoKey="profitMargin">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={profitData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} unit="%" />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B' }} />
+                    <LineChart data={data.profitMargin}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} unit="%" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B' }} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="預算執行率" infoKey="budgetExecution">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={budgetData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
-                        <XAxis type="number" stroke="#ffffff40" fontSize={10} domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" stroke="#ffffff80" fontSize={10} width={50} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                    <BarChart data={data.budgetExecution} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" horizontal={false} />
+                        <XAxis type="number" stroke="#ffffff" fontSize={10} domain={[0, 100]} />
+                        <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} width={50} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]} label={{ position: 'insideRight', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -437,10 +355,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="成本結構分析" infoKey="costStructure">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={costData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {costData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                        <Pie data={data.costStructure} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
+                            {data.costStructure?.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -448,10 +366,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="營收來源分佈" infoKey="revenueSource">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={revenueData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {revenueData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />)}
+                        <Pie data={data.revenueSource} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
+                            {data.revenueSource?.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -460,59 +378,59 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="部門營運效能對比" infoKey="deptPerformance">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.deptPerformance} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
-                        <XAxis type="number" stroke="#ffffff40" fontSize={10} hide />
-                        <YAxis dataKey="name" type="category" stroke="#ffffff80" fontSize={10} width={60} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#6366F1" radius={[0, 4, 4, 0]} barSize={16} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" horizontal={false} />
+                        <XAxis type="number" stroke="#ffffff" fontSize={10} hide />
+                        <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} width={60} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#6366F1" radius={[0, 4, 4, 0]} barSize={16} label={{ position: 'insideRight', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="專案完成率" infoKey="projectCompletion">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={projectData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#EC4899" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.projectCompletion}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#EC4899" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="任務週轉率" infoKey="taskTurnover">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={taskData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} unit="天" />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="value" stroke="#06B6D4" strokeWidth={2} />
+                    <LineChart data={data.taskTurnover}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} unit="天" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="monotone" dataKey="value" stroke="#06B6D4" strokeWidth={2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="資源利用率" infoKey="resourceUtilization">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={resourceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} unit="%" />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#84CC16" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.resourceUtilization}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} unit="%" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#84CC16" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="SLA 達成率" infoKey="slaAchievement">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={slaData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} domain={[80, 100]} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Area type="monotone" dataKey="value" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.2} />
+                    <AreaChart data={data.slaAchievement}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} domain={[80, 100]} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Area type="monotone" dataKey="value" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </AreaChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -521,10 +439,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="知識資產分布層級" infoKey="knowledgeDistribution">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={data.resourceAllocation} innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value">
+                        <Pie data={data.resourceAllocation} innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
                             {data.resourceAllocation.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -532,10 +450,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="企業大腦成長曲線" infoKey="knowledgeGrowth">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.knowledgeGrowth}>
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} tickLine={false} />
-                        <YAxis stroke="#ffffff40" fontSize={10} tickLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="stepAfter" dataKey="value" stroke="#10B981" strokeWidth={2} dot={false} />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} />
+                        <YAxis stroke="#ffffff" fontSize={10} tickLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="stepAfter" dataKey="value" stroke="#10B981" strokeWidth={2} dot={false} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -543,32 +461,32 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="檔案類型分佈" infoKey="fileTypeDistribution">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={fileTypeData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {fileTypeData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}
+                        <Pie data={data.fileTypeDistribution} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
+                            {data.fileTypeDistribution?.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="熱門知識排行" infoKey="hotKnowledge">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={hotKnowledgeData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
-                        <XAxis type="number" stroke="#ffffff40" fontSize={10} hide />
-                        <YAxis dataKey="name" type="category" stroke="#ffffff80" fontSize={9} width={70} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#EAB308" radius={[0, 4, 4, 0]} />
+                    <BarChart data={data.hotKnowledge} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" horizontal={false} />
+                        <XAxis type="number" stroke="#ffffff" fontSize={10} hide />
+                        <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={9} width={70} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#EAB308" radius={[0, 4, 4, 0]} label={{ position: 'insideRight', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="知識覆蓋率" infoKey="knowledgeCoverage">
                 <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={coverageData}>
-                        <PolarGrid stroke="#ffffff10" />
-                        <PolarAngleAxis dataKey="name" stroke="#ffffff60" fontSize={10} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#ffffff20" />
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data.knowledgeCoverage}>
+                        <PolarGrid stroke="#ffffff30" />
+                        <PolarAngleAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#ffffff30" />
                         <Radar name="覆蓋率" dataKey="value" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.5} />
                     </RadarChart>
                 </ResponsiveContainer>
@@ -577,10 +495,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="知識時效性監控" infoKey="knowledgeDecay">
                 <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart>
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis dataKey="value" stroke="#ffffff40" fontSize={10} unit="%" />
+                        <XAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} />
+                        <YAxis dataKey="value" stroke="#ffffff" fontSize={10} unit="%" />
                         <ZAxis range={[50, 400]} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                         <Scatter name="Quality" data={data.knowledgeDecay} fill="#3B82F6" />
                     </ScatterChart>
                 </ResponsiveContainer>
@@ -589,12 +507,12 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             {/* === 人力資源類 === */}
             <ChartCard title="團隊活躍度" infoKey="teamActivity">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={teamActivityData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.teamActivity}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -602,22 +520,22 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="技能分佈圖" infoKey="skillDistribution">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={skillData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {skillData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 5) % COLORS.length]} />)}
+                        <Pie data={data.skillDistribution} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
+                            {data.skillDistribution?.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 5) % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="績效趨勢" infoKey="performanceTrend">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} domain={[50, 100]} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="value" stroke="#EC4899" strokeWidth={2} />
+                    <LineChart data={data.performanceTrend}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} domain={[50, 100]} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="monotone" dataKey="value" stroke="#EC4899" strokeWidth={2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -625,24 +543,24 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="離職風險指數" infoKey="turnoverRisk">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={turnoverData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                        <Pie data={data.turnoverRisk} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
                             <Cell fill="#10B981" />
                             <Cell fill="#F59E0B" />
                             <Cell fill="#EF4444" />
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="培訓完成率" infoKey="trainingCompletion">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trainingData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={9} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#06B6D4" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.trainingCompletion}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={9} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#06B6D4" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -651,9 +569,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="風險多維度評估" infoKey="riskRadar">
                 <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data.riskDistribution}>
-                        <PolarGrid stroke="#ffffff10" />
-                        <PolarAngleAxis dataKey="name" stroke="#ffffff60" fontSize={10} />
-                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} stroke="#ffffff20" />
+                        <PolarGrid stroke="#ffffff30" />
+                        <PolarAngleAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} stroke="#ffffff30" />
                         <Radar name="Risk" dataKey="value" stroke="#EF4444" fill="#EF4444" fillOpacity={0.5} />
                     </RadarChart>
                 </ResponsiveContainer>
@@ -662,9 +580,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="情報輿情正負向趨勢" infoKey="intelligenceSentiment">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.externalIntelligenceTrend}>
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} hide />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} hide />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                         <Bar dataKey="pos" stackId="a" fill="#10B981" />
                         <Bar dataKey="neg" stackId="a" fill="#F43F5E" />
                     </BarChart>
@@ -673,24 +591,24 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
 
             <ChartCard title="風險處理時效" infoKey="riskResponseTime">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={riskTimeData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} unit="hr" />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} />
+                    <LineChart data={data.riskResponseTime}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} unit="hr" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="合規狀態監控" infoKey="complianceStatus">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={complianceData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
-                        <XAxis type="number" stroke="#ffffff40" fontSize={10} domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" stroke="#ffffff80" fontSize={10} width={50} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#10B981" radius={[0, 4, 4, 0]} />
+                    <BarChart data={data.complianceStatus} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" horizontal={false} />
+                        <XAxis type="number" stroke="#ffffff" fontSize={10} domain={[0, 100]} />
+                        <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} width={50} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#10B981" radius={[0, 4, 4, 0]} label={{ position: 'insideRight', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -699,9 +617,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="系統活動時段分析" infoKey="activityHeatmap">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.activityHeatmap}>
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={8} tickLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#F59E0B" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={8} tickLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#F59E0B" label={{ position: 'top', fill: '#fff', fontSize: 8 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -709,47 +627,47 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="AI Agent 互動頻次" infoKey="aiEngagement">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data.aiEngagement}>
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" barSize={20} fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                        <Line type="monotone" dataKey="value" stroke="#EC4899" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" barSize={20} fill="#8B5CF6" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
+                        <Line type="monotone" dataKey="value" stroke="#EC4899" label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </ComposedChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="Agent 效能評估" infoKey="agentEfficiency">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={agentData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={9} />
-                        <YAxis stroke="#ffffff40" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Bar dataKey="value" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                    <BarChart data={data.agentEfficiency}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={9} />
+                        <YAxis stroke="#ffffff" fontSize={10} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Bar dataKey="value" fill="#6366F1" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="回應滿意度" infoKey="responseQuality">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={qualityData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} domain={[0, 5]} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
+                    <AreaChart data={data.responseQuality}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} domain={[0, 5]} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </AreaChart>
                 </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="知識引用率" infoKey="knowledgeCitation">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={citationData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                        <XAxis dataKey="name" stroke="#ffffff40" fontSize={10} />
-                        <YAxis stroke="#ffffff40" fontSize={10} unit="%" />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} />
+                    <LineChart data={data.knowledgeCitation}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff30" />
+                        <XAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <YAxis stroke="#ffffff" fontSize={10} unit="%" />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                        <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} label={{ position: 'top', fill: '#fff', fontSize: 9 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -757,10 +675,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="對話深度分佈" infoKey="conversationDepth">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                        <Pie data={depthData} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {depthData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />)}
+                        <Pie data={data.conversationDepth} innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" label={{ fill: '#fff', fontSize: 10 }}>
+                            {data.conversationDepth?.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff30', borderRadius: '12px', color: '#fff' }} itemStyle={{ color: '#fff' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartCard>
@@ -769,15 +687,15 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             <ChartCard title="跨部門知識連結指數" infoKey="collaborationIndex">
                 <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data.collaborationIndex}>
-                        <PolarGrid stroke="#ffffff10" />
-                        <PolarAngleAxis dataKey="name" stroke="#ffffff60" fontSize={10} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#ffffff20" />
+                        <PolarGrid stroke="#ffffff30" />
+                        <PolarAngleAxis dataKey="name" stroke="#ffffff" fontSize={10} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#ffffff30" />
                         <Radar name="Connectivity" dataKey="value" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.6} />
                     </RadarChart>
                 </ResponsiveContainer>
             </ChartCard>
 
-        </div>
+        </div >
     );
 };
 

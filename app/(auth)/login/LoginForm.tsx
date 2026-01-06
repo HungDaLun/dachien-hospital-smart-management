@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { Hexagon } from 'lucide-react';
 
 interface LoginFormProps {
     dict: Dictionary;
@@ -29,7 +30,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // 驗證：確保 email 和 password 都有值
         if (!email || !password) {
             setError('請輸入電子郵件和密碼');
@@ -89,8 +90,17 @@ function LoginFormContent({ dict }: LoginFormProps) {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">EAKAP</h1>
-                    <p className="text-gray-600">{dict.common.subtitle}</p>
+                    <div className="flex justify-center mb-4">
+                        <div className="w-16 h-16 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center justify-center text-primary-600">
+                            <Hexagon className="w-10 h-10" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <h1 className="text-4xl font-black text-gray-900 mb-1 tracking-tight font-heading">NEXUS</h1>
+                        <span className="text-sm font-bold text-gray-500 tracking-widest mb-2">智樞</span>
+                        <div className="text-xs font-mono text-primary-600 font-medium tracking-widest mb-1">ENTERPRISE DECISION COMMAND</div>
+                        <div className="text-[10px] font-bold text-gray-400 tracking-wider">企業戰情智能決策系統</div>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-soft p-8">

@@ -32,8 +32,8 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'EAKAP - 企業 AI 知識庫平台',
-  description: 'Enterprise AI Knowledge Agent Platform - 企業戰情中樞',
+  title: 'NEXUS 智樞 - 企業戰情智能決策系統',
+  description: 'NEXUS Enterprise Decision Command - 企業戰情智能決策系統',
 };
 
 interface RootLayoutProps {

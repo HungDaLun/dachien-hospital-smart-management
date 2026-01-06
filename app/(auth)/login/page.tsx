@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(locale);
 
   return {
-    title: `${dict.auth.login_title} - EAKAP`,
+    title: `${dict.auth.login_title} - NEXUS`,
   };
 }
 
@@ -18,7 +18,7 @@ export default async function LoginPage() {
   // 這樣可以確保使用者訪問登入頁面時，不會因為有 session 而被重定向
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  
+
   // 如果有 session，清除它，強制使用者重新登入
   if (session) {
     await supabase.auth.signOut();

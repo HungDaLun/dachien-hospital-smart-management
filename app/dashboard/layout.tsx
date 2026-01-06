@@ -10,6 +10,7 @@ import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
+import { Hexagon } from 'lucide-react';
 
 export default async function DashboardLayout({
   children,
@@ -68,14 +69,24 @@ export default async function DashboardLayout({
           <div className="w-full flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-6">
-              <Link href="/dashboard" className="flex items-center gap-2 group">
-                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-xl group-hover:bg-primary-500/20 transition-all">
-                  🧠
+              <Link href="/dashboard" className="flex items-center gap-3 group">
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400 group-hover:bg-primary-500/20 group-hover:text-primary-300 transition-all shadow-lg shadow-primary-500/10">
+                  <Hexagon className="w-6 h-6" />
                 </div>
-                <span className="text-xl font-black tracking-tighter text-white uppercase">EAKAP</span>
+                <div className="flex flex-col -space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-black tracking-widest text-white uppercase font-heading">NEXUS</span>
+                    <span className="text-base font-bold text-white/90">智樞</span>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                    <span className="text-[0.6rem] tracking-[0.2em] text-primary-400/80 font-mono font-medium whitespace-nowrap">ENTERPRISE DECISION COMMAND</span>
+                    <span className="hidden md:inline text-[0.6rem] text-primary-500/40">|</span>
+                    <span className="text-[0.6rem] tracking-[0.1em] text-primary-400/60 font-bold whitespace-nowrap">企業戰情智能決策系統</span>
+                  </div>
+                </div>
               </Link>
 
-              <div className="scale-90 origin-left">
+              <div className="scale-90 origin-left ml-2">
                 <LanguageSwitcher />
               </div>
             </div>
