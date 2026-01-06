@@ -1,188 +1,146 @@
-/**
- * 儀表板首頁
- * 顯示平台概覽與快速操作
- * 遵循 EAKAP 設計系統規範 v1.5
- */
+import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { getLocale } from '@/lib/i18n/server';
-import { getDictionary } from '@/lib/i18n/dictionaries';
-import { getCachedUserProfile } from '@/lib/cache/user-profile';
-import { Card, Button } from '@/components/ui';
+import { StrategyExecutionCalculator } from '@/lib/war-room/kpi/strategy-execution';
+import { OperationalHealthCalculator } from '@/lib/war-room/kpi/operational-health';
+import { FinancialStatusAnalyzer } from '@/lib/war-room/kpi/financial-status';
+import { RiskAlertSystem } from '@/lib/war-room/kpi/risk-alerts';
+import KPICard from '@/components/war-room/kpi-cards/KPICard';
+import { WAR_ROOM_THEME } from '@/styles/war-room-theme';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // 檢查使用者是否已登入
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    redirect('/login');
+  if (!user) {
+    return <div className="p-10 text-center">拒絕訪問。請先登入。</div>;
   }
 
-  // 使用快取的查詢（如果 layout 已經查詢過，會重用結果）
-  const profile = await getCachedUserProfile(user.id);
+  // Instantiate Calculators
+  const strategyCalc = new StrategyExecutionCalculator();
+  const opsCalc = new OperationalHealthCalculator();
+  const financeCalc = new FinancialStatusAnalyzer();
+  const riskCalc = new RiskAlertSystem();
 
-  const locale = await getLocale();
-  const dict = await getDictionary(locale);
+  // Fetch Data Parallelly
+  const [strategy, ops, finance, risks] = await Promise.all([
+    strategyCalc.calculateExecutionRate(user.id),
+    opsCalc.calculateHealthScore(user.id),
+    financeCalc.analyzeFinancials(user.id),
+    riskCalc.detectRisks(user.id)
+  ]);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6">
-      {/* 歡迎區塊 - 增加漸變視覺 */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-accent-violet bg-clip-text text-transparent mb-3 animate-fade-in-up">
-          {dict.dashboard_home.welcome}{profile?.display_name || user.email}！
-        </h1>
-        <p className="text-gray-600 text-lg">
-          {dict.dashboard_home.role}
-          <span className="font-semibold text-primary-600 ml-1">
-            {profile?.role || 'USER'}
-          </span>
-        </p>
-      </div>
+    <div
+      className="min-h-full p-8"
+      style={{
+        backgroundColor: WAR_ROOM_THEME.background.primary,
+        color: WAR_ROOM_THEME.text.primary,
+        minHeight: 'calc(100vh - 64px)' // Adjust for header height
+      }}
+    >
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">戰情指揮中心總覽</h1>
+          <p style={{ color: WAR_ROOM_THEME.text.secondary }}>
+            來自 {ops.department_scores?.length || 0} 個活躍部門的即時情報。
+          </p>
+        </div>
 
-      {/* 快速操作卡片 - 使用新設計系統 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* 知識庫卡片 */}
-        <Card
-          interactive
-          className="group relative overflow-hidden"
+        {/* KPI Grid - Layer 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <KPICard
+            title="戰略執行率"
+            value={`${strategy.execution_rate.toFixed(0)}%`}
+            subValue="完成度"
+            status={strategy.status === 'critical' ? 'danger' : (strategy.status === 'at_risk' ? 'warning' : 'success')}
+            trend="up"
+          />
+          <KPICard
+            title="營運健康度"
+            value={`${(ops.overall_health * 100).toFixed(0)}`}
+            subValue="/ 100"
+            status={ops.status === 'needs_attention' ? 'danger' : 'success'}
+          />
+          <KPICard
+            title="財務跑道"
+            value={`${finance.runway_months.toFixed(1)}`}
+            subValue="月"
+            status={finance.runway_months < 6 ? 'danger' : 'success'}
+          />
+          <Link href="/dashboard/intelligence" className="block hover:opacity-90 transition-opacity">
+            <KPICard
+              title="活躍風險"
+              value={risks.total_risks}
+              subValue={`${risks.critical_count} 重大`}
+              status={risks.critical_count > 0 ? 'danger' : (risks.high_count > 0 ? 'warning' : 'success')}
+              trend={risks.high_count > 0 ? 'down' : 'up'}
+            />
+          </Link>
+        </div>
+
+        {/* AI Insight Section */}
+        <div
+          className="p-6 rounded-lg border flex items-start gap-4"
+          style={{
+            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+            borderColor: WAR_ROOM_THEME.accent.secondary
+          }}
         >
-          {/* 裝飾性漸變背景 */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-accent-cyan/10 to-transparent rounded-full blur-2xl -mr-16 -mt-16 transition-opacity group-hover:opacity-100 opacity-0" />
-
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-cyan to-accent-sky flex items-center justify-center text-2xl shadow-lg">
-                📚
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 group-hover:text-accent-cyan transition-colors">
-                {dict.navigation.knowledge}
-              </h2>
-            </div>
-
-            <p className="text-gray-600 text-sm mb-6 min-h-[2.5rem]">
-              {dict.dashboard_home.knowledge_card_desc}
+          <div className="text-2xl">🤖</div>
+          <div>
+            <h3 className="font-bold mb-1" style={{ color: WAR_ROOM_THEME.accent.secondary }}>AI 戰略洞察</h3>
+            <p className="text-sm leading-relaxed" style={{ color: WAR_ROOM_THEME.text.secondary }}>
+              {finance.ai_insight || "系統正在分析企業數據模式。目前未檢測到重大異常。"}
             </p>
-
-            <Link href="/dashboard/knowledge">
-              <Button variant="cta" fullWidth>
-                {dict.dashboard_home.knowledge_card_btn} →
-              </Button>
-            </Link>
-          </div>
-        </Card>
-
-        {/* AI Agent 卡片 */}
-        <Card
-          interactive
-          className="group relative overflow-hidden"
-        >
-          {/* 裝飾性漸變背景 */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-accent-violet/10 to-transparent rounded-full blur-2xl -mr-16 -mt-16 transition-opacity group-hover:opacity-100 opacity-0" />
-
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-violet flex items-center justify-center text-2xl shadow-lg">
-                🤖
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 group-hover:text-accent-violet transition-colors">
-                {dict.navigation.agents}
-              </h2>
-            </div>
-
-            <p className="text-gray-600 text-sm mb-6 min-h-[2.5rem]">
-              {dict.dashboard_home.agent_card_desc}
-            </p>
-
-            <Link href="/dashboard/agents">
-              <Button variant="cta" fullWidth>
-                {dict.dashboard_home.agent_card_btn} →
-              </Button>
-            </Link>
-          </div>
-        </Card>
-
-        {/* 對話卡片 */}
-        <Card
-          interactive
-          className="group relative overflow-hidden"
-        >
-          {/* 裝飾性漸變背景 */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-accent-emerald/10 to-transparent rounded-full blur-2xl -mr-16 -mt-16 transition-opacity group-hover:opacity-100 opacity-0" />
-
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-emerald to-accent-sky flex items-center justify-center text-2xl shadow-lg">
-                💬
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 group-hover:text-accent-emerald transition-colors">
-                {dict.navigation.chat}
-              </h2>
-            </div>
-
-            <p className="text-gray-600 text-sm mb-6 min-h-[2.5rem]">
-              {dict.dashboard_home.chat_card_desc}
-            </p>
-
-            <Link href="/dashboard/chat">
-              <Button variant="cta" fullWidth>
-                {dict.dashboard_home.chat_card_btn} →
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </div>
-
-      {/* 系統狀態 - Neumorphism 統計卡片 */}
-      <Card className="relative overflow-hidden">
-        {/* 裝飾性背景 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white" />
-
-        <div className="relative">
-          <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <span className="text-2xl">⚡</span>
-            {dict.dashboard_home.system_status}
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 資料庫狀態 */}
-            <div className="bg-white rounded-lg p-4 shadow-neu-light border border-gray-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-success-50 flex items-center justify-center">
-                    <span className="text-success-600 text-xl">✓</span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">{dict.dashboard_home.db_connection}</p>
-                    <p className="text-lg font-bold text-success-600">
-                      {dict.dashboard_home.status_normal}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Gemini API 狀態 */}
-            <div className="bg-white rounded-lg p-4 shadow-neu-light border border-gray-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-success-50 flex items-center justify-center">
-                    <span className="text-success-600 text-xl">✓</span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">{dict.dashboard_home.gemini_api}</p>
-                    <p className="text-lg font-bold text-success-600">
-                      {dict.dashboard_home.status_normal}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-      </Card>
+
+        {/* Detailed Sections Placeholders */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          <div className="p-6 rounded-lg min-h-[300px]" style={{ backgroundColor: WAR_ROOM_THEME.background.secondary }}>
+            <h3 className="font-bold mb-4">部門績效</h3>
+            <div className="space-y-4">
+              {ops.department_scores.map((dept: any) => (
+                <Link
+                  key={dept.department_id}
+                  href={`/dashboard/department/${dept.department_id}`}
+                  className="flex justify-between items-center p-3 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                >
+                  <span>{dept.department_name}</span>
+                  <div className="h-2 w-24 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500"
+                      style={{ width: `${dept.score * 100}%` }}
+                    />
+                  </div>
+                </Link>
+              ))}
+              {ops.department_scores.length === 0 && <p className="text-gray-500 text-sm">無部門數據可用。</p>}
+            </div>
+          </div>
+
+          <Link href="/dashboard/intelligence" className="block">
+            <div className="p-6 rounded-lg min-h-[300px] hover:border-gray-600 transition-colors border border-transparent" style={{ backgroundColor: WAR_ROOM_THEME.background.secondary }}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold">緊急風險</h3>
+                <span className="text-xs text-blue-400">查看全部 →</span>
+              </div>
+              <div className="space-y-4">
+                {risks.risks.map((risk: any, i: number) => (
+                  <div key={i} className="border-l-2 pl-4 py-1" style={{ borderColor: risk.level === 'critical' ? 'red' : 'orange' }}>
+                    <div className="font-medium">{risk.title}</div>
+                    <div className="text-xs text-gray-400">{risk.description}</div>
+                  </div>
+                ))}
+                {risks.risks.length === 0 && <p className="text-gray-500 text-sm">未檢測到活躍風險。</p>}
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

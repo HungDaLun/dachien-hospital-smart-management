@@ -1,7 +1,7 @@
 # EAKAP 進階知識架構系統設計
-**版本：** v3.0  
-**建立日期：** 2026-01-01  
-**最後更新：** 2026-01-05  
+**版本：** v3.1
+**建立日期：** 2026-01-01
+**最後更新：** 2026-01-06
 **設計目標：** 建立一套極度專業、具技術與內容門檻的知識架構系統，讓 AI Agent 能精準解讀與運用企業知識
 
 ---
@@ -855,6 +855,1541 @@ CREATE TRIGGER trigger_knowledge_update
 
 ---
 
+## 🎖️ Phase 6: 企業戰情中樞 (Executive Command Center)
+
+### 核心價值定位：從「被動儀表板」進化為「主動智慧中樞」
+
+**核心理念**：拒絕「圖表墓地」 (Dashboard Graveyard)。
+傳統戰情室往往堆砌大量數據與圖表，導致資訊過載且被忽略。
+新型態的戰情中樞必須具備 **Agentic Workflow** 的特質，強調 **「AI 主動發現」** 與 **「對話式探查」**。
+
+#### 系統定位對比
+
+| 維度 | 傳統儀表板 (Passive) | 企業戰情中樞 (Agentic) |
+|-----|-------------------|----------------------|
+| **核心價值** | 呈現數據 (Data Presentation) | **主動洞察 (Active Insight)** |
+| **觸發模式** | 坐等老闆查看 | **AI 主動推播異常與機會** |
+| **互動深度** | 只能看，不能問 | **圖表即入口，點擊即對話** |
+| **資料來源** | 必須是完美結構化數據 | **容納雜亂文件 (CSV/PDF)，AI 自動調和** |
+| **決策邏輯** | 人找問題 -> 人找答案 | **AI 找問題 -> 人與 AI 共創答案** |
+
+---
+
+### 6.1 系統架構設計
+
+#### 6.1.1 三層智慧架構
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│             🎖️ 企業戰情中樞 (Executive Command Center)          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓  │
+│  ┃  Layer 1: 主動態勢感知 (Active Situational Awareness)    ┃  │
+│  ┃  不只是 KPI 卡片，而是「異常」與「機會」的推播流             ┃  │
+│  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  │
+│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐  │
+│  │ 🎯 戰略   │ 📊 營運   │ 💰 財務   │ ⚠️ 風險   │ 🌐 情資   │  │
+│  │ "落後5%!" │ "異常活躍" │ "毛利下滑" │ "合規警告" │ "對手降價" │  │
+│  └──────────┴──────────┴──────────┴──────────┴──────────┘  │
+│                                                               │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓  │
+│  ┃  Layer 2: 對話式部門情報 (Conversational Intelligence)   ┃  │
+│  ┃  自動同步文件摘要 + 點擊即啟動深度對話                      ┃  │
+│  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  │
+│  ┌────────────────┬────────────────┬────────────────┐      │
+│  │ 💼 業務部       │ 🏭 生產部       │ 💻 研發部       │      │
+│  │ [AI 摘要串流]   │ [AI 摘要串流]   │ [AI 摘要串流]   │      │
+│  │ • Q1報表(已讀)  │ • 產線事故報告   │ • 技術評估文件   │      │
+│  │ [💬 詢問細節]   │ [💬 詢問細節]   │ [💬 詢問細節]   │      │
+│  └────────────────┴────────────────┴────────────────┘      │
+│                                                               │
+│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓  │
+│  ┃  Layer 3: 戰略預判與連結 (Strategic Foresight)           ┃  │
+│  ┃  跨部門知識連結 + 模擬推演 + 決策建議                      ┃  │
+│  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ 🤖 AI 戰略預判 (Proactive Alerts)                      │  │
+│  │ ─────────────────────────────────────────────────     │  │
+│  │ 🔴 [異常] 財務部「成本上升」 與 採購部「供應商漲價」高度相關   │
+│  │     → 建議立即啟動供應鏈議價會議                          │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 6.1.2 關鍵核心：數據調和與情報層 (Data Harmonization & Intelligence Layer)
+
+**核心問題**：
+1.  **資料格式混亂**：財務部上傳的 CSV 格式每月都變，直接畫圖會崩潰。
+2.  **缺乏觀點**：只存數據沒用，重點是「這代表什麼？」。
+
+**解決方案**：在文件與戰情室之間，建立**「智慧中介層」**。
+
+1.  **Metric Store (指標儲存庫)** - 處理「硬數據」
+    *   **AI ETL**：當檔案 (CSV/Excel/PDF) 上傳，AI 自動辨識並擷取關鍵指標 (Key Metrics)。
+    *   **標準化**：將 `Total Sales`, `Revenue`, `營業額` 統一映射為 `metric:revenue`。
+    *   **衝突解決**：採 `Latest File Wins` 或 `Confidence Check` 機制，確保戰情室數據源單一且乾淨。
+
+2.  **Insight Store (洞察儲存庫)** - 處理「軟情報」
+    *   **摘要同步**：當文件被 AI 解讀分類後，其「摘要 (Summary)」與「關鍵發現 (Findings)」自動同步至戰情室。
+    *   **主動推送**：若摘要中包含「風險」、「延遲」、「虧損」等關鍵字，提升優先級，主動推播給主管。
+
+---
+
+### 6.2 第一層：全局態勢感知 (5 大 KPI 模組)
+
+#### 6.2.1 戰略執行度 (Strategy Execution)
+
+**數據來源**：
+- 從知識檔案中提取的 OKR 目標（使用 NLP 識別目標語句）
+- 專案管理系統 API（若整合）
+- 部門上傳的進度報告文件
+
+**AI 計算邏輯**：
+```typescript
+// lib/war-room/kpi/strategy-execution.ts
+
+export class StrategyExecutionCalculator {
+    async calculateExecutionRate(userId: string): Promise<StrategyKPI> {
+        // 1. 從知識庫提取本年度目標文件
+        const goalDocs = await this.extractGoalDocuments(userId);
+
+        // 2. AI 解析目標與完成狀態
+        const objectives = await this.parseObjectivesWithAI(goalDocs);
+
+        // 3. 計算完成率
+        const completedCount = objectives.filter(o => o.status === 'completed').length;
+        const executionRate = (completedCount / objectives.length) * 100;
+
+        // 4. AI 生成洞察
+        const insight = await this.generateInsight(objectives, executionRate);
+
+        return {
+            execution_rate: executionRate,
+            total_objectives: objectives.length,
+            completed: completedCount,
+            on_track: objectives.filter(o => o.status === 'on_track').length,
+            at_risk: objectives.filter(o => o.status === 'at_risk').length,
+            ai_insight: insight,
+            trend: this.calculateTrend(executionRate)
+        };
+    }
+}
+```
+
+**視覺呈現**：
+- **環形進度圖** (Radial Progress)：中央顯示總體達成率 82%
+- **季度里程碑時間軸**：Q1 ✅ → Q2 🔄 → Q3 ⏸️ → Q4 📅
+- **AI 洞察氣泡**：「Q1 超前 5%，建議提早啟動 Q2 關鍵專案」
+
+---
+
+#### 6.2.2 營運健康度 (Operational Health)
+
+**數據來源**：
+- 各部門文件上傳頻率與活躍度
+- Agent 使用率與對話品質
+- 知識庫更新頻率
+- 跨部門知識引用次數（從語義圖譜取得）
+
+**健康度評分公式**：
+```typescript
+// lib/war-room/kpi/operational-health.ts
+
+export class OperationalHealthCalculator {
+    async calculateHealthScore(userId: string): Promise<OperationalKPI> {
+        const departments = await this.getUserDepartments(userId);
+
+        let totalScore = 0;
+        const deptScores: DepartmentScore[] = [];
+
+        for (const dept of departments) {
+            // 1. 文件活躍度 (40%)
+            const docActivity = await this.calculateDocActivity(dept.id);
+
+            // 2. Agent 使用率 (30%)
+            const agentUsage = await this.calculateAgentUsage(dept.id);
+
+            // 3. 知識流動性 (20%)：跨部門引用次數
+            const knowledgeFlow = await this.calculateKnowledgeFlow(dept.id);
+
+            // 4. 知識品質 (10%)
+            const qualityScore = await this.calculateAverageQuality(dept.id);
+
+            const deptScore =
+                docActivity * 0.4 +
+                agentUsage * 0.3 +
+                knowledgeFlow * 0.2 +
+                qualityScore * 0.1;
+
+            deptScores.push({
+                department_id: dept.id,
+                department_name: dept.name,
+                score: deptScore,
+                metrics: { docActivity, agentUsage, knowledgeFlow, qualityScore }
+            });
+
+            totalScore += deptScore;
+        }
+
+        const overallHealth = totalScore / departments.length;
+
+        return {
+            overall_health: overallHealth,
+            status: this.getHealthStatus(overallHealth),
+            department_scores: deptScores,
+            knowledge_flow_heatmap: await this.generateFlowHeatmap(departments),
+            ai_alerts: await this.detectAnomalies(deptScores)
+        };
+    }
+
+    private getHealthStatus(score: number): string {
+        if (score >= 0.8) return 'excellent';
+        if (score >= 0.6) return 'good';
+        if (score >= 0.4) return 'fair';
+        return 'needs_attention';
+    }
+}
+```
+
+**視覺呈現**：
+- **雷達圖**：各部門活躍度比較
+- **知識流動熱力圖**：部門間知識引用關係（力導向圖）
+- **異常偵測**：「財務部本週上傳量 ↓30%，可能需關注」
+
+---
+
+#### 6.2.3 財務狀態 (Financial Status)
+
+**數據來源**：
+- 財務報表文件（AI 自動解析）
+- 會計系統 API（若整合）
+- 預算 vs 實際支出對比
+
+**AI 財務分析**：
+```typescript
+// lib/war-room/kpi/financial-status.ts
+
+export class FinancialStatusAnalyzer {
+    async analyzeFinancials(userId: string): Promise<FinancialKPI> {
+        // 1. 提取最新財務文件
+        const financialDocs = await this.extractFinancialDocuments(userId);
+
+        // 2. AI 解析關鍵數據
+        const parsedData = await this.parseFinancialsWithAI(financialDocs);
+
+        // 3. 計算關鍵指標
+        const revenue = parsedData.revenue;
+        const expenses = parsedData.expenses;
+        const budgetVsActual = this.calculateBudgetVariance(parsedData);
+        const burnRate = this.calculateBurnRate(parsedData);
+        const runway = this.calculateRunway(parsedData);
+
+        // 4. 預測未來趨勢
+        const forecast = await this.generateForecast(parsedData);
+
+        // 5. AI 風險偵測
+        const risks = await this.detectFinancialRisks(parsedData);
+
+        return {
+            revenue,
+            expenses,
+            profit_margin: (revenue - expenses) / revenue,
+            budget_variance: budgetVsActual,
+            burn_rate: burnRate,
+            runway_months: runway,
+            forecast_next_quarter: forecast,
+            risks,
+            ai_insight: await this.generateFinancialInsight(parsedData, risks)
+        };
+    }
+}
+```
+
+**視覺呈現**：
+- **折線圖 + 預測區間**：營收趨勢（實際 vs 預算 vs AI 預測）
+- **燃燒率儀表板**：資金可用月數（Runway）
+- **成本結構樹狀圖**：各部門支出佔比
+
+---
+
+#### 6.2.4 風險預警 (Risk Alerts)
+
+**風險來源**：
+```typescript
+// lib/war-room/kpi/risk-alerts.ts
+
+export class RiskAlertSystem {
+    async detectRisks(userId: string): Promise<RiskKPI> {
+        const risks: Risk[] = [];
+
+        // 1. 知識時效性風險
+        const knowledgeRisks = await this.detectKnowledgeDecay(userId);
+        risks.push(...knowledgeRisks);
+
+        // 2. 外部新聞情資風險（供應鏈、競爭對手、法規）
+        const externalRisks = await this.detectExternalRisks(userId);
+        risks.push(...externalRisks);
+
+        // 3. 合規文件到期風險
+        const complianceRisks = await this.detectComplianceExpiry(userId);
+        risks.push(...complianceRisks);
+
+        // 4. 內部知識衝突
+        const conflictRisks = await this.detectKnowledgeConflicts(userId);
+        risks.push(...conflictRisks);
+
+        // 5. 部門異常活動
+        const operationalRisks = await this.detectOperationalAnomalies(userId);
+        risks.push(...operationalRisks);
+
+        // 排序：按影響度 × 緊急度
+        risks.sort((a, b) => (b.impact * b.urgency) - (a.impact * a.urgency));
+
+        return {
+            total_risks: risks.length,
+            critical: risks.filter(r => r.level === 'critical').length,
+            high: risks.filter(r => r.level === 'high').length,
+            medium: risks.filter(r => r.level === 'medium').length,
+            risks: risks.slice(0, 10), // 顯示前 10 個最重要
+            risk_matrix: this.generateRiskMatrix(risks),
+            timeline: this.generateRiskTimeline(risks)
+        };
+    }
+}
+```
+
+**視覺呈現**：
+- **風險矩陣**：影響度 (Y 軸) vs 可能性 (X 軸)
+- **時間軸預警**：未來 7/30/90 天風險事件
+- **風險卡片**：
+  ```
+  🔴 高風險 | 15 天後
+  ISO 認證即將到期，需立即申請續期
+  [查看文件] [啟動流程] [委派負責人]
+  ```
+
+---
+
+#### 6.2.5 外部情資中心 (External Intelligence)
+
+**核心功能**：使用者自訂監控主題，AI 自動抓取與分析相關新聞
+
+**資料模型**：
+```typescript
+// lib/war-room/intelligence/watch-topic.ts
+
+export interface WatchTopic {
+    id: string;
+    user_id: string;
+    name: string;                    // 如「半導體供應鏈動態」
+    keywords: string[];              // ['台積電', '晶片短缺', 'ASML']
+    news_sources: string[];          // ['Bloomberg', 'Reuters', 'TechCrunch']
+    competitors: string[];           // 競爭對手名單
+    suppliers: string[];             // 供應商名單
+    customers: string[];             // 關鍵客戶名單
+    risk_threshold: 'low' | 'medium' | 'high'; // 只推送達標的新聞
+    notification_enabled: boolean;
+    created_at: string;
+}
+
+export interface IntelligenceNews {
+    id: string;
+    topic_id: string;
+    title: string;
+    source: string;
+    url: string;
+    published_at: string;
+
+    // AI 分析結果
+    relevance_score: number;         // 0-1，與業務的相關度
+    risk_level: 'low' | 'medium' | 'high' | 'critical';
+    impact_areas: string[];          // ['supply_chain', 'pricing', 'competition']
+    sentiment: 'positive' | 'neutral' | 'negative';
+    ai_summary: string;              // 100 字摘要
+    key_points: string[];            // 3-5 個重點
+    affected_entities: {             // 影響的實體
+        competitors?: string[];
+        suppliers?: string[];
+        customers?: string[];
+    };
+
+    // 使用者互動
+    is_read: boolean;
+    is_bookmarked: boolean;
+    user_notes?: string;
+}
+```
+
+**AI 新聞分析流程**：
+```typescript
+// lib/war-room/intelligence/news-analyzer.ts
+
+export class NewsIntelligenceAnalyzer {
+    /**
+     * 定時任務：每小時抓取與分析新聞
+     */
+    async fetchAndAnalyzeNews() {
+        const topics = await this.getAllActiveTopics();
+
+        for (const topic of topics) {
+            // 1. 從 NewsAPI / Google News 抓取
+            const rawNews = await this.fetchNewsFromAPIs(topic);
+
+            // 2. AI 過濾相關性
+            const relevantNews = await this.filterByRelevance(rawNews, topic);
+
+            // 3. AI 深度分析
+            for (const news of relevantNews) {
+                const analysis = await this.analyzeWithAI(news, topic);
+
+                // 4. 儲存到資料庫
+                await this.saveIntelligence({
+                    ...news,
+                    ...analysis,
+                    topic_id: topic.id
+                });
+
+                // 5. 高風險新聞立即推送
+                if (analysis.risk_level === 'critical' || analysis.risk_level === 'high') {
+                    await this.sendInstantNotification(topic.user_id, news, analysis);
+                }
+            }
+        }
+    }
+
+    /**
+     * AI 分析單一新聞
+     */
+    private async analyzeWithAI(
+        news: RawNews,
+        topic: WatchTopic
+    ): Promise<NewsAnalysis> {
+        const prompt = `
+你是企業情報分析專家。請分析以下新聞對企業的影響：
+
+【新聞內容】
+標題：${news.title}
+來源：${news.source}
+內容：${news.content}
+
+【企業背景】
+監控主題：${topic.name}
+關注關鍵字：${topic.keywords.join(', ')}
+競爭對手：${topic.competitors.join(', ')}
+供應商：${topic.suppliers.join(', ')}
+關鍵客戶：${topic.customers.join(', ')}
+
+請以 JSON 格式回覆：
+{
+  "relevance_score": 0-1 之間的數字,
+  "risk_level": "low" | "medium" | "high" | "critical",
+  "impact_areas": ["supply_chain", "pricing", "competition", "regulation", "technology"],
+  "sentiment": "positive" | "neutral" | "negative",
+  "ai_summary": "100字內的摘要",
+  "key_points": ["重點1", "重點2", "重點3"],
+  "affected_entities": {
+    "competitors": ["受影響的競爭對手"],
+    "suppliers": ["受影響的供應商"],
+    "customers": ["受影響的客戶"]
+  },
+  "recommended_actions": ["建議的應對措施"]
+}
+        `;
+
+        const response = await this.geminiAPI.generateContent(prompt);
+        return JSON.parse(response);
+    }
+}
+```
+
+**視覺呈現**：
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🌐 外部情資中心 (5 則重要更新)                           │
+│ [⚙️ 管理監控主題]                                        │
+├─────────────────────────────────────────────────────────┤
+│ 🔴 緊急 | 30 分鐘前 | 供應鏈風險                         │
+│ 供應商 XYZ 宣布停產關鍵組件 ABC-123                      │
+│ ────────────────────────────────────────────────────    │
+│ 📍 影響領域：供應鏈、生產計畫                            │
+│ 💡 AI 建議：                                             │
+│    1. 立即聯繫供應商 B 詢問替代方案                      │
+│    2. 評估庫存可支撐天數（預估 45 天）                   │
+│    3. 通知生產部調整 Q2 排程                             │
+│ [🔗 查看新聞] [💬 詢問 AI] [✅ 標記已處理]               │
+├─────────────────────────────────────────────────────────┤
+│ 🟡 重要 | 2 小時前 | 競爭動態                            │
+│ 競爭對手推出低價方案，價格比我們低 20%                   │
+│ ────────────────────────────────────────────────────    │
+│ 📍 影響領域：定價策略、市場佔有率                        │
+│ 💡 AI 建議：                                             │
+│    1. 分析對方成本結構（可能犧牲利潤搶市場）             │
+│    2. 評估是否跟進降價 vs 強化差異化                     │
+│ [🔗 查看新聞] [💬 詢問 AI] [📊 競品分析]                │
+└─────────────────────────────────────────────────────────┘
+```
+
+**使用者設定介面**：
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚙️ 管理情資監控主題                                      │
+├─────────────────────────────────────────────────────────┤
+│ [+ 新增監控主題]                                         │
+│                                                          │
+│ 📌 半導體供應鏈動態                    [✏️ 編輯] [🗑️ 刪除]│
+│    關鍵字：台積電, 晶片短缺, ASML                        │
+│    供應商：XYZ Corp, ABC Ltd                             │
+│    風險閾值：🟡 中等以上                                 │
+│    本週新聞：12 則（3 則高風險）                         │
+│                                                          │
+│ 📌 AI 技術趨勢                         [✏️ 編輯] [🗑️ 刪除]│
+│    關鍵字：GPT, Claude, LLM, AI Agent                   │
+│    競爭對手：OpenAI, Google, Microsoft                  │
+│    風險閾值：🟢 全部顯示                                 │
+│    本週新聞：8 則（0 則高風險）                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.3 第二層：部門戰情模組
+
+#### 部門卡片資料模型
+
+```typescript
+// lib/war-room/department/department-card.ts
+
+export interface DepartmentCard {
+    department_id: string;
+    department_name: string;
+    department_icon: string;
+
+    // 即時統計
+    stats: {
+        total_files: number;
+        files_updated_today: number;
+        files_updated_this_week: number;
+        active_agents: number;
+        total_conversations_this_week: number;
+        knowledge_health_score: number; // 0-100
+    };
+
+    // AI 自動生成的部門日報與情報流
+    daily_brief: {
+        generated_at: string;
+        // 來自 Insight Store 的同步摘要
+        synced_insights: Array<{
+            source_file: string;    // 例如 "2024_Q1_Revenue.csv"
+            summary: string;        // "營收成長 15%，但毛利下降 2%"
+            detected_at: string;
+            significance: 'high' | 'medium' | 'low';
+        }>;
+        top_3_updates: string[];        // 最重要的 3 個更新
+        key_metrics: Array<{
+            label: string;
+            value: string;
+            trend: 'up' | 'down' | 'stable';
+            change_percentage?: number;
+            source_id?: string;     // 連結回 Metric Store
+        }>;
+        urgent_items: string[];         // 需立即關注
+        ai_summary: string;             // 100 字部門現況總結
+    };
+
+    // 互動功能
+    actions: {
+        start_conversation: boolean;
+        view_full_report: boolean;
+        download_pdf: boolean;
+        view_knowledge_graph: boolean;
+    };
+}
+```
+
+#### AI 部門日報生成器
+
+```typescript
+// lib/war-room/department/daily-brief-generator.ts
+
+export class DepartmentDailyBriefGenerator {
+    /**
+     * 為單一部門生成 AI 日報
+     */
+    async generateDailyBrief(departmentId: string): Promise<DailyBrief> {
+        // 1. 取得部門近 7 天的所有文件更新
+        const recentFiles = await this.getRecentFiles(departmentId, 7);
+
+        // 2. 取得部門 Agent 的對話記錄
+        const conversations = await this.getRecentConversations(departmentId, 7);
+
+        // 3. 計算關鍵指標變化
+        const metrics = await this.calculateMetrics(departmentId);
+
+        // 4. AI 分析：提取重點
+        const analysis = await this.analyzeWithAI(recentFiles, conversations, metrics);
+
+        return {
+            generated_at: new Date().toISOString(),
+            top_3_updates: analysis.top_updates,
+            key_metrics: metrics,
+            urgent_items: analysis.urgent_items,
+            ai_summary: analysis.summary
+        };
+    }
+
+    /**
+     * AI 分析部門動態
+     */
+    private async analyzeWithAI(
+        files: File[],
+        conversations: Conversation[],
+        metrics: Metric[]
+    ): Promise<AIAnalysis> {
+        const prompt = `
+你是企業管理顧問。請分析以下部門的本週動態並生成簡報：
+
+【本週新增/更新文件】
+${files.map(f => `- ${f.filename} (${f.category})`).join('\n')}
+
+【本週 Agent 對話重點】
+${conversations.map(c => `- ${c.summary}`).join('\n')}
+
+【關鍵指標變化】
+${metrics.map(m => `- ${m.label}: ${m.value} (${m.trend} ${m.change_percentage}%)`).join('\n')}
+
+請以 JSON 格式回覆：
+{
+  "top_updates": ["最重要的更新1", "更新2", "更新3"],
+  "urgent_items": ["需立即關注的事項"],
+  "summary": "100字內的部門現況總結，專業且精煉",
+  "insights": ["洞察1", "洞察2"]
+}
+        `;
+
+        const response = await this.geminiAPI.generateContent(prompt);
+        return JSON.parse(response);
+    }
+}
+```
+
+#### 對話式深入探查 (Conversational Drill-Down)
+
+當使用者點擊「💬 對話」按鈕：
+
+```typescript
+// lib/war-room/department/conversation-modal.ts
+
+export class DepartmentConversationModal {
+    /**
+     * 啟動部門對話（自動載入該部門所有知識）
+     */
+    async startConversation(departmentId: string): Promise<ConversationSession> {
+        // 1. 取得部門所有文件
+        const departmentFiles = await this.getDepartmentFiles(departmentId);
+
+        // 2. 建立臨時 Agent（預載入部門知識）
+        const tempAgent = await this.createDepartmentAgent(departmentId, departmentFiles);
+
+        // 3. AI 生成建議問題
+        const suggestedQuestions = await this.generateSuggestedQuestions(
+            departmentId,
+            departmentFiles
+        );
+
+        return {
+            session_id: generateSessionId(),
+            agent_id: tempAgent.id,
+            department_id: departmentId,
+            suggested_questions: suggestedQuestions,
+            context_loaded: true
+        };
+    }
+
+    /**
+     * AI 生成建議問題
+     */
+    private async generateSuggestedQuestions(
+        departmentId: string,
+        files: File[]
+    ): Promise<string[]> {
+        const recentUpdates = files.slice(0, 5);
+
+        const prompt = `
+根據以下部門最近的文件更新，生成 5 個高階主管可能想問的問題：
+
+【最近更新】
+${recentUpdates.map(f => `- ${f.filename}`).join('\n')}
+
+要求：
+1. 問題要聚焦於決策支援（不是細節查詢）
+2. 涵蓋趨勢分析、風險識別、機會發現
+3. 每個問題不超過 20 字
+
+範例：
+- 本月業績下滑的主要原因是什麼？
+- 哪些產品線表現最好？
+- 競品分析中最大的威脅是什麼？
+        `;
+
+        const response = await this.geminiAPI.generateContent(prompt);
+        return this.parseQuestions(response);
+    }
+}
+```
+
+**對話介面設計**：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 💬 與業務部對話                              [✕ 關閉]     │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│ 🤖 已載入業務部的 23 份文件，您可以直接詢問任何問題     │
+│                                                          │
+│ 💡 建議問題：                                            │
+│ ┌──────────────────────────────────────────────────┐   │
+│ │ • 本月業績達成率為何？主要貢獻來自哪些產品？      │   │
+│ │ • 本週簽約的大客戶 ABC，合約內容重點是什麼？     │   │
+│ │ • 競品分析報告中，對手的最大優勢是什麼？         │   │
+│ │ • 客戶反饋中最常提到的痛點是什麼？               │   │
+│ │ • 預測 Q2 能否達成目標？                          │   │
+│ └──────────────────────────────────────────────────┘   │
+│                                                          │
+│ ┌────────────────────────────────────────────────────┐ │
+│ │ 👤 您的問題：                                       │ │
+│ │ [                                                  ]│ │
+│ │                                            [📤 送出]│ │
+│ └────────────────────────────────────────────────────┘ │
+│                                                          │
+│ 🔍 引用來源會自動標註在回答中                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.4 第三層：AI 智能洞察
+
+#### 跨部門知識連結 (Cross-Department Insights)
+
+```typescript
+// lib/war-room/insights/cross-department-linker.ts
+
+export class CrossDepartmentInsightEngine {
+    /**
+     * 發現跨部門的知識連結與機會
+     */
+    async discoverCrossDepartmentInsights(userId: string): Promise<Insight[]> {
+        const insights: Insight[] = [];
+
+        // 1. 取得所有部門最近的文件
+        const departments = await this.getUserDepartments(userId);
+        const recentFilesByDept = new Map<string, File[]>();
+
+        for (const dept of departments) {
+            recentFilesByDept.set(
+                dept.id,
+                await this.getRecentFiles(dept.id, 7)
+            );
+        }
+
+        // 2. 兩兩比較部門，尋找語義關聯
+        for (let i = 0; i < departments.length; i++) {
+            for (let j = i + 1; j < departments.length; j++) {
+                const deptA = departments[i];
+                const deptB = departments[j];
+
+                const filesA = recentFilesByDept.get(deptA.id) || [];
+                const filesB = recentFilesByDept.get(deptB.id) || [];
+
+                // 3. AI 分析關聯性
+                const connections = await this.findConnections(
+                    deptA, filesA,
+                    deptB, filesB
+                );
+
+                insights.push(...connections);
+            }
+        }
+
+        // 4. 按重要性排序
+        insights.sort((a, b) => b.importance_score - a.importance_score);
+
+        return insights.slice(0, 5); // 顯示前 5 個最重要
+    }
+
+    /**
+     * AI 分析兩部門間的知識連結
+     */
+    private async findConnections(
+        deptA: Department, filesA: File[],
+        deptB: Department, filesB: File[]
+    ): Promise<Insight[]> {
+        const prompt = `
+你是企業戰略顧問。請分析以下兩個部門的最新動態，找出潛在的協作機會或風險：
+
+【${deptA.name}】
+${filesA.map(f => `- ${f.filename}: ${f.ai_summary}`).join('\n')}
+
+【${deptB.name}】
+${filesB.map(f => `- ${f.filename}: ${f.ai_summary}`).join('\n')}
+
+請找出：
+1. 兩部門資訊的關聯性（如研發新技術可應用於業務推廣）
+2. 潛在的協作機會
+3. 資訊不一致或衝突
+
+以 JSON 格式回覆（如無發現則回傳空陣列）：
+[
+  {
+    "type": "opportunity" | "risk" | "conflict",
+    "title": "簡短標題（不超過 30 字）",
+    "description": "詳細說明",
+    "departments": ["${deptA.id}", "${deptB.id}"],
+    "related_files": ["file_id_1", "file_id_2"],
+    "importance_score": 0-1,
+    "recommended_action": "建議行動"
+  }
+]
+        `;
+
+        const response = await this.geminiAPI.generateContent(prompt);
+        return JSON.parse(response);
+    }
+}
+```
+
+#### 戰略建議引擎 (Strategy Recommendation Engine)
+
+```typescript
+// lib/war-room/insights/strategy-recommender.ts
+
+export class StrategyRecommendationEngine {
+    /**
+     * 生成本週戰略建議
+     */
+    async generateWeeklyRecommendations(userId: string): Promise<Recommendation[]> {
+        const recommendations: Recommendation[] = [];
+
+        // 1. 從各模組收集洞察
+        const riskInsights = await this.getRiskInsights(userId);
+        const opportunityInsights = await this.getOpportunityInsights(userId);
+        const crossDeptInsights = await this.getCrossDeptInsights(userId);
+        const externalInsights = await this.getExternalInsights(userId);
+
+        // 2. AI 綜合分析，生成戰略建議
+        const strategicRecommendations = await this.synthesizeRecommendations([
+            ...riskInsights,
+            ...opportunityInsights,
+            ...crossDeptInsights,
+            ...externalInsights
+        ]);
+
+        return strategicRecommendations;
+    }
+
+    private async synthesizeRecommendations(
+        insights: Insight[]
+    ): Promise<Recommendation[]> {
+        const prompt = `
+你是企業戰略顧問。基於以下洞察，生成 3-5 個戰略建議：
+
+【洞察彙總】
+${insights.map(i => `[${i.type}] ${i.title}: ${i.description}`).join('\n\n')}
+
+要求：
+1. 建議要可執行（不是空泛的「加強XXX」）
+2. 標註優先級（高/中/低）
+3. 說明預期效益
+4. 列出依據的檔案來源
+
+以 JSON 格式回覆：
+[
+  {
+    "priority": "high" | "medium" | "low",
+    "category": "risk_mitigation" | "opportunity" | "efficiency" | "innovation",
+    "title": "建議標題",
+    "problem": "解決什麼問題或抓住什麼機會",
+    "recommendation": "具體建議行動",
+    "expected_benefit": "預期效益",
+    "evidence_files": ["file_id_1", "file_id_2"],
+    "next_steps": ["步驟1", "步驟2"]
+  }
+]
+        `;
+
+        const response = await this.geminiAPI.generateContent(prompt);
+        return JSON.parse(response);
+    }
+}
+```
+
+**視覺呈現**：
+```
+┌──────────────────────────────────────────────────────┐
+│ 🤖 本週 AI 戰略建議 (3 項)                            │
+├──────────────────────────────────────────────────────┤
+│ 🔴 [高優先級] 供應鏈風險緩解                          │
+│ ──────────────────────────────────────────────────   │
+│ 📌 問題：供應商 A 價格上漲 15%，影響 Q2 成本          │
+│ 💡 建議：                                             │
+│    1. 聯繫供應商 B 與 C 詢價（預估可降低 8% 成本）    │
+│    2. 評估提前採購 3 個月庫存以鎖定價格               │
+│    3. 研發部評估替代材料可行性                        │
+│ 📊 預期效益：節省 $50K 成本，降低供應風險             │
+│ 📁 依據：採購部_供應商報價單.pdf、財務部_成本分析.xlsx│
+│                                                       │
+│ [✅ 標記執行中] [📅 設定提醒] [💬 討論] [⏭️ 延後]     │
+├──────────────────────────────────────────────────────┤
+│ 🟡 [中優先級] 產品創新機會                            │
+│ ──────────────────────────────────────────────────   │
+│ 📌 機會：客戶詢問「AI 整合」關鍵字增長 60% (本週)     │
+│ 💡 建議：                                             │
+│    1. 研發部評估在現有產品加入 AI 功能的技術可行性    │
+│    2. 業務部調查客戶具體需求與付費意願               │
+│    3. 產品部規劃 Roadmap，Q3 推出 MVP                │
+│ 📊 預期效益：開拓新市場，預估增加 15% 營收            │
+│ 📁 依據：業務部_客戶需求分析.pdf、研發部_技術評估.md │
+│                                                       │
+│ [✅ 標記執行中] [📅 設定提醒] [💬 討論] [⏭️ 延後]     │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.5 權限分級設計
+
+```typescript
+// lib/war-room/permissions/access-control.ts
+
+export enum WarRoomAccessLevel {
+    DENIED = 'denied',           // 無權限
+    DEPARTMENT = 'department',   // 部門主管：只能看本部門
+    EXECUTIVE = 'executive',     // C-Level：可看所有部門
+    OWNER = 'owner'              // 企業主：完整控制
+}
+
+export class WarRoomAccessControl {
+    async checkAccess(userId: string): Promise<WarRoomAccessLevel> {
+        const user = await this.getUserProfile(userId);
+
+        // 企業主
+        if (user.role === 'owner') {
+            return WarRoomAccessLevel.OWNER;
+        }
+
+        // C-Level 高階主管
+        if (['ceo', 'cfo', 'cto', 'coo'].includes(user.role)) {
+            return WarRoomAccessLevel.EXECUTIVE;
+        }
+
+        // 部門主管
+        if (user.is_department_head) {
+            return WarRoomAccessLevel.DEPARTMENT;
+        }
+
+        // 一般員工無權限
+        return WarRoomAccessLevel.DENIED;
+    }
+
+    async filterVisibleDepartments(
+        userId: string,
+        allDepartments: Department[]
+    ): Promise<Department[]> {
+        const accessLevel = await this.checkAccess(userId);
+
+        if (accessLevel === WarRoomAccessLevel.OWNER ||
+            accessLevel === WarRoomAccessLevel.EXECUTIVE) {
+            return allDepartments; // 可見所有部門
+        }
+
+        if (accessLevel === WarRoomAccessLevel.DEPARTMENT) {
+            const user = await this.getUserProfile(userId);
+            const userDept = allDepartments.find(d => d.id === user.department_id);
+
+            if (!userDept) return [];
+
+            // 可見本部門 + 相關部門（摘要模式）
+            return allDepartments.filter(d =>
+                d.id === userDept.id ||
+                userDept.related_departments.includes(d.id)
+            );
+        }
+
+        return []; // 無權限
+    }
+}
+
+/**
+ * 6.1.5 數據調和與情報層實作 (Metric & Insight Store)
+ */
+
+// lib/war-room/intelligence/metric-store.ts
+
+export interface MetricDefinition {
+    id: string;               // e.g., 'finance_revenue'
+    name: string;             // '月營收'
+    unit: string;             // 'USD', 'NTD', 'Count'
+    granularity: 'daily' | 'monthly' | 'quarterly';
+    keywords: string[];       // ['Revenue', 'Sales', '營業額']
+    conflict_policy: 'latest_wins' | 'human_review';
+}
+
+export interface MetricValue {
+    id: string;
+    metric_id: string;
+    timestamp: string;        // 數據所屬時間
+    value: number;
+    dimensions: Record<string, string>; // { department: 'sales', region: 'asia' }
+    source_file_id: string;
+    confidence: number;
+    is_active: boolean;
+}
+
+export interface InsightSnippet {
+    id: string;
+    source_file_id: string;
+    department_id: string;
+    content: string;         // AI 生成的短評
+    tags: string[];          // ['risk', 'opportunity', 'financial']
+    significance: number;    // 0-1
+    created_at: string;
+}
+
+```
+
+### 6.1.6 AI ETL 數據調和引擎 (AI-Driven ETL Engine)
+
+這是不讓戰情室崩潰的核心邏輯。
+
+```typescript
+// lib/war-room/etl/ai-metric-etl.ts
+
+export class AIMetricETLEngine {
+    /**
+     * 核心流程：從異質文件萃取標準指標
+     * @param fileId 上傳的文件 ID
+     */
+    async processFileForMetrics(fileId: string): Promise<ETLResult> {
+        // 1. 意圖識別：這份文件包含關鍵指標嗎？
+        const fileContent = await this.getFileContent(fileId);
+        const intent = await this.identifyMetricIntent(fileContent);
+        
+        if (!intent.hasMetrics) {
+            return { status: 'skipped', reason: 'no_metrics_found' };
+        }
+
+        // 2. 獲取指標定義 (Schema)
+        const definitions = await this.getMetricDefinitions(intent.detectedMetricTypes);
+
+        // 3. AI 映射與萃取 (The "Magic" Step)
+        // 讓 LLM 將 "csv_col_A", "pdf_table_row_2" 轉換為標準 metric_id
+        const extractedMetrics = await this.extractAndMap(fileContent, definitions);
+
+        // 4. 清洗與衝突檢測
+        const cleansedMetrics = await this.cleanseAndResolveConflicts(extractedMetrics);
+
+        // 5. 載入至 Metric Store
+        await this.loadToStore(cleansedMetrics);
+
+        return { status: 'success', count: cleansedMetrics.length };
+    }
+
+    /**
+     * Step 4: 清洗與衝突檢測邏輯
+     */
+    private async cleanseAndResolveConflicts(
+        metrics: RawMetricValue[]
+    ): Promise<MetricValue[]> {
+        const results: MetricValue[] = [];
+
+        for (const m of metrics) {
+            // A. 檢查是否存在舊數據 (例如: 1月營收)
+            const existing = await this.metricStore.find({
+                metric_id: m.metric_id,
+                timestamp: m.timestamp,
+                dimensions: m.dimensions
+            });
+
+            if (existing) {
+                // B. 衝突解決策略：Latest Wins
+                await this.metricStore.softDelete(existing.id);
+                console.log(`[ETL] Overwriting metric ${m.metric_id} from ${existing.source_file_id}`);
+            }
+
+            // C. 異常值偵測 (Anomaly Detection)
+            const isAnomaly = await this.detectAnomaly(m);
+            if (isAnomaly) {
+                // 標記為待審核，不直接生效
+                m.is_active = false; 
+                await this.createAlert('metric_anomaly', m);
+            }
+
+            results.push(m);
+        }
+
+        return results;
+    }
+}
+```
+
+---
+
+### 6.6 資料庫結構
+
+```sql
+-- 戰情室配置表
+CREATE TABLE IF NOT EXISTS war_room_config (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE UNIQUE,
+
+    -- 外部情資監控主題
+    watch_topics JSONB DEFAULT '[]',
+
+    -- 儀表板佈局偏好
+    layout_config JSONB DEFAULT '{
+        "kpi_order": ["strategy", "operations", "financial", "risk", "intelligence"],
+        "department_display_mode": "grid",
+        "show_ai_insights": true
+    }',
+
+    -- 通知偏好
+    notification_preferences JSONB DEFAULT '{
+        "email_daily_summary": true,
+        "push_critical_risks": true,
+        "push_high_opportunities": false
+    }',
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 指標定義表 (Metric Store Definitions)
+CREATE TABLE IF NOT EXISTS metric_definitions (
+    id VARCHAR(50) PRIMARY KEY, -- e.g. 'finance_revenue'
+    name VARCHAR(100) NOT NULL,
+    unit VARCHAR(20),
+    granularity VARCHAR(20),
+    keywords JSONB DEFAULT '[]',
+    conflict_policy VARCHAR(20) DEFAULT 'latest_wins'
+);
+
+-- 指標數值表 (Metric Store Values)
+CREATE TABLE IF NOT EXISTS metric_values (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    metric_id VARCHAR(50) REFERENCES metric_definitions(id),
+    value DECIMAL(20, 4) NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL, -- 數據時間點
+    dimensions JSONB DEFAULT '{}',  -- 維度
+    
+    source_file_id UUID REFERENCES files(id),
+    confidence DECIMAL(3, 2),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_metrics_query (metric_id, timestamp, is_active)
+);
+
+-- 洞察片段表 (Insight Store)
+CREATE TABLE IF NOT EXISTS insight_snippets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_file_id UUID REFERENCES files(id),
+    department_id UUID REFERENCES departments(id),
+    
+    content TEXT NOT NULL,
+    tags JSONB DEFAULT '[]',
+    significance DECIMAL(3, 2) DEFAULT 0.5, -- 重要性
+    
+    is_pushed BOOLEAN DEFAULT FALSE, -- 是否已推播
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_insights_dept (department_id, created_at DESC)
+);
+
+-- 外部新聞情資表
+CREATE TABLE IF NOT EXISTS external_intelligence (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    topic_id VARCHAR(255) NOT NULL,
+
+    -- 新聞基本資訊
+    title TEXT NOT NULL,
+    source VARCHAR(255) NOT NULL,
+    url TEXT,
+    content TEXT,
+    published_at TIMESTAMPTZ NOT NULL,
+    fetched_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- AI 分析結果
+    relevance_score DECIMAL(3,2) DEFAULT 0,
+    risk_level VARCHAR(10),
+    impact_areas JSONB DEFAULT '[]',
+    sentiment VARCHAR(10),
+    ai_summary TEXT,
+    key_points JSONB DEFAULT '[]',
+    affected_entities JSONB DEFAULT '{}',
+    recommended_actions JSONB DEFAULT '[]',
+
+    -- 使用者互動
+    is_read BOOLEAN DEFAULT FALSE,
+    is_bookmarked BOOLEAN DEFAULT FALSE,
+    user_notes TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+
+    reviewed_by UUID REFERENCES user_profiles(id),
+    reviewed_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    INDEX idx_intelligence_user_topic (user_id, topic_id),
+    INDEX idx_intelligence_risk (risk_level) WHERE status = 'pending',
+    INDEX idx_intelligence_published (published_at DESC)
+);
+
+-- 部門日報表
+CREATE TABLE IF NOT EXISTS department_daily_briefs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
+    brief_date DATE NOT NULL,
+
+    -- AI 生成內容
+    top_updates JSONB DEFAULT '[]',
+    key_metrics JSONB DEFAULT '[]',
+    urgent_items JSONB DEFAULT '[]',
+    ai_summary TEXT,
+    insights JSONB DEFAULT '[]',
+
+    -- 統計數據
+    stats JSONB DEFAULT '{
+        "total_files": 0,
+        "files_updated_today": 0,
+        "active_agents": 0,
+        "conversations_count": 0,
+        "knowledge_health_score": 0
+    }',
+
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(department_id, brief_date)
+);
+
+-- 戰略建議表
+CREATE TABLE IF NOT EXISTS strategic_recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    week_start_date DATE NOT NULL,
+
+    priority VARCHAR(10) NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    title TEXT NOT NULL,
+    problem TEXT,
+    recommendation TEXT NOT NULL,
+    expected_benefit TEXT,
+    evidence_files UUID[] DEFAULT '{}',
+    next_steps JSONB DEFAULT '[]',
+
+    -- 使用者互動
+    status VARCHAR(20) DEFAULT 'pending',
+    assigned_to UUID REFERENCES user_profiles(id),
+    due_date DATE,
+    completed_at TIMESTAMPTZ,
+    user_notes TEXT,
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    INDEX idx_recommendations_user_week (user_id, week_start_date),
+    INDEX idx_recommendations_status (status)
+);
+
+-- 跨部門洞察表
+CREATE TABLE IF NOT EXISTS cross_department_insights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+
+    type VARCHAR(20) NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    departments UUID[] DEFAULT '{}',
+    related_files UUID[] DEFAULT '{}',
+    importance_score DECIMAL(3,2) DEFAULT 0,
+    recommended_action TEXT,
+
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+
+    INDEX idx_insights_user (user_id),
+    INDEX idx_insights_importance (importance_score DESC)
+);
+```
+
+---
+
+### 6.7 API 端點規劃
+
+| 端點 | 方法 | 用途 |
+|-----|-----|-----|
+| `/api/war-room/overview` | GET | 取得戰情室總覽（5 大 KPI） |
+| `/api/war-room/kpi/strategy` | GET | 戰略執行度詳細數據 |
+| `/api/war-room/kpi/operations` | GET | 營運健康度詳細數據 |
+| `/api/war-room/kpi/financial` | GET | 財務狀態詳細數據 |
+| `/api/war-room/kpi/risks` | GET | 風險預警詳細數據 |
+| `/api/war-room/intelligence` | GET | 外部情資列表 |
+| `/api/war-room/intelligence/topics` | GET/POST | 管理監控主題 |
+| `/api/war-room/intelligence/:id/analyze` | POST | 重新分析單一新聞 |
+| `/api/war-room/departments` | GET | 取得部門戰情卡片列表 |
+| `/api/war-room/departments/:id/brief` | GET | 取得部門日報 |
+| `/api/war-room/departments/:id/chat` | POST | 啟動部門對話 |
+| `/api/war-room/insights/cross-department` | GET | 跨部門洞察 |
+| `/api/war-room/recommendations` | GET | 本週戰略建議 |
+| `/api/war-room/recommendations/:id/update` | PATCH | 更新建議狀態 |
+| `/api/war-room/export-pdf` | POST | 匯出戰情室 PDF 報告 |
+
+---
+
+### 6.8 排程任務
+
+| 任務名稱 | 執行頻率 | 用途 | 實作 |
+|---------|---------|-----|-----|
+| `fetch_external_news` | 每小時 | 抓取並分析外部新聞 | Cron Job |
+| `generate_department_briefs` | 每日 06:00 | 生成所有部門日報 | Cron Job |
+| `calculate_kpi_metrics` | 每 15 分鐘 | 更新 5 大 KPI 指標 | Cron Job |
+| `discover_cross_dept_insights` | 每日 07:00 | 發現跨部門洞察 | Cron Job |
+| `generate_weekly_recommendations` | 每週一 08:00 | 生成本週戰略建議 | Cron Job |
+| `send_daily_summary_email` | 每日 08:30 | 發送戰情室日報郵件 | Cron Job |
+
+---
+
+### 6.9 視覺設計規範
+
+#### 色彩系統
+
+```typescript
+// styles/war-room-theme.ts
+
+export const WAR_ROOM_THEME = {
+    // 背景
+    background: {
+        primary: '#0A0E27',      // 深藍黑（主背景）
+        secondary: '#12182E',    // 次要背景（卡片）
+        tertiary: '#1A2238'      // 第三層背景（浮層）
+    },
+
+    // 主色調
+    accent: {
+        primary: '#00D9FF',      // 電光藍（重要數據）
+        secondary: '#A78BFA'     // 紫光（AI 相關）
+    },
+
+    // 語義色彩
+    semantic: {
+        success: '#00FF88',      // 翠綠（正向指標）
+        warning: '#FFB800',      // 琥珀黃（中風險）
+        danger: '#FF3366',       // 霓虹紅（高風險）
+        info: '#00D9FF'          // 電光藍（資訊）
+    },
+
+    // 文字
+    text: {
+        primary: '#FFFFFF',
+        secondary: '#B4BCD0',
+        tertiary: '#6B7280'
+    },
+
+    // 邊框與分隔
+    border: {
+        default: 'rgba(255, 255, 255, 0.1)',
+        hover: 'rgba(0, 217, 255, 0.3)'
+    }
+};
+```
+
+#### 動畫效果
+
+```typescript
+// components/war-room/animations.ts
+
+// 1. 數字動畫（CountUp）
+export const animateNumber = (
+    element: HTMLElement,
+    from: number,
+    to: number,
+    duration: number = 1000
+) => {
+    // 使用 CountUp.js 或 Framer Motion
+};
+
+// 2. 脈衝光暈（新消息提示）
+export const pulseGlow = keyframes`
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 51, 102, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 51, 102, 0.8); }
+`;
+
+// 3. 卡片進場動畫
+export const cardEnter = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+```
+
+#### 圖表庫選擇
+
+| 圖表類型 | 推薦庫 | 用途 |
+|---------|-------|-----|
+| 折線圖、柱狀圖 | **Recharts** | KPI 趨勢、預測區間 |
+| 環形進度圖 | **Recharts** | 戰略執行度 |
+| 雷達圖 | **Recharts** | 營運健康度 |
+| 力導向圖 | **D3.js** | 知識流動熱力圖 |
+| 熱力圖 | **D3.js** | 風險矩陣 |
+
+---
+
+### 6.10 實施路線圖
+
+#### Phase 6.1: 基礎建設（2 週）
+
+| 優先序 | 功能 | 描述 | 預估工時 |
+|-------|-----|------|---------|
+| P0 | 資料庫結構建立 | 建立所有戰情室相關表 | 2 天 |
+| P0 | 權限系統 | 實作三層權限控制 | 2 天 |
+| P0 | 頁面路由與佈局 | 建立戰情室主頁架構 | 2 天 |
+| P1 | 視覺主題系統 | 實作戰情室專屬配色 | 1 天 |
+
+#### Phase 6.2: 第一層 KPI 模組（3 週）
+
+| 優先序 | 功能 | 描述 | 預估工時 |
+|-------|-----|------|---------|
+| P0 | 戰略執行度計算器 | AI 解析目標文件 | 3 天 |
+| P0 | 營運健康度計算器 | 部門活躍度分析 | 3 天 |
+| P0 | 財務狀態分析器 | AI 解析財務文件 | 3 天 |
+| P0 | 風險預警系統 | 整合多源風險偵測 | 4 天 |
+| P1 | KPI 圖表視覺化 | Recharts 圖表實作 | 3 天 |
+
+#### Phase 6.3: 外部情資系統（3 週）
+
+| 優先序 | 功能 | 描述 | 預估工時 |
+|-------|-----|------|---------|
+| P0 | NewsAPI 整合 | 新聞抓取 API | 2 天 |
+| P0 | AI 新聞分析引擎 | Gemini 分析新聞 | 3 天 |
+| P0 | 監控主題管理 UI | CRUD 介面 | 3 天 |
+| P1 | 排程抓取任務 | Cron Job 設定 | 1 天 |
+| P1 | 即時推送通知 | 高風險新聞推送 | 2 天 |
+
+#### Phase 6.4: 部門戰情模組（3 週）
+
+| 優先序 | 功能 | 描述 | 預估工時 |
+|-------|-----|------|---------|
+| P0 | 部門日報生成器 | AI 自動生成摘要 | 4 天 |
+| P0 | 部門卡片 UI | 動態卡片設計 | 3 天 |
+| P0 | 對話式探查 | 啟動部門對話 | 3 天 |
+| P1 | 建議問題生成 | AI 生成問題 | 2 天 |
+| P1 | 完整報告匯出 | PDF 生成 | 2 天 |
+
+#### Phase 6.5: AI 洞察引擎（3 週）
+
+| 優先序 | 功能 | 描述 | 預估工時 |
+|-------|-----|------|---------|
+| P0 | 跨部門知識連結 | AI 發現協作機會 | 4 天 |
+| P0 | 戰略建議引擎 | AI 生成建議 | 4 天 |
+| P1 | 建議互動 UI | 標記、委派、追蹤 | 3 天 |
+| P1 | 週報郵件系統 | 自動發送摘要 | 2 天 |
+
+---
+
+### 6.11 進階功能構想（未來擴充）
+
+#### 1. 一鍵生成董事會簡報
+
+```typescript
+// lib/war-room/export/presentation-generator.ts
+
+export class PresentationGenerator {
+    async generateBoardMeeting(userId: string): Promise<string> {
+        // 1. 收集本週所有數據
+        const kpis = await this.getAllKPIs(userId);
+        const insights = await this.getAllInsights(userId);
+        const recommendations = await this.getRecommendations(userId);
+
+        // 2. 使用 pptxgen 或類似庫生成 PPT
+        const ppt = new PptxGenJS();
+
+        // 封面
+        ppt.addSlide().addText('企業戰情週報', { ... });
+
+        // 5 大 KPI
+        ppt.addSlide().addChart(kpis.strategy);
+        // ... 其他投影片
+
+        // 3. 匯出檔案
+        return await ppt.writeFile('戰情週報.pptx');
+    }
+}
+```
+
+#### 2. 語音播報模式
+
+```typescript
+// lib/war-room/voice/narration.ts
+
+export class VoiceNarration {
+    async startNarration(userId: string): Promise<void> {
+        const brief = await this.generateVoiceScript(userId);
+
+        // 使用 Web Speech API 或 Google TTS
+        const speech = new SpeechSynthesisUtterance(brief);
+        speech.lang = 'zh-TW';
+        window.speechSynthesis.speak(speech);
+    }
+}
+```
+
+#### 3. 時光機功能
+
+```typescript
+// lib/war-room/history/time-machine.ts
+
+export class WarRoomTimeMachine {
+    async getHistoricalSnapshot(
+        userId: string,
+        targetDate: Date
+    ): Promise<WarRoomSnapshot> {
+        // 重建指定日期的戰情室狀態
+        // 需要保存歷史快照到資料庫
+    }
+}
+```
+
+#### 4. 競爭對手雷達
+
+整合公開資訊：
+- 競爭對手財報（公開資料）
+- 新聞報導
+- 產品發布
+- 人才動向（LinkedIn）
+
+#### 5. 情境模擬
+
+```typescript
+// lib/war-room/simulation/scenario-simulator.ts
+
+export class ScenarioSimulator {
+    async simulate(scenario: string): Promise<SimulationResult> {
+        // AI 模擬「如果 X 發生，會影響什麼」
+        // 例如：「供應商 A 斷貨會影響哪些產品線？」
+    }
+}
+```
+
+---
 
 ## 📈 預期效益
 
@@ -893,6 +2428,9 @@ CREATE TRIGGER trigger_knowledge_update
 | `knowledge_unit_files` | 單元-文件關聯 | 新增表 |
 | `knowledge_notifications` | 通知 | 新增表 |
 | `agent_knowledge_sources` | Agent-知識關聯 | 新增表 |
+| `metric_definitions` | 指標定義 | **新增表 (Phase 6)** |
+| `metric_values` | 指標數值 (Metric Store) | **新增表 (Phase 6)** |
+| `insight_snippets` | 洞察片段 (Insight Store) | **新增表 (Phase 6)** |
 
 ### API 端點規劃
 
@@ -907,6 +2445,9 @@ CREATE TRIGGER trigger_knowledge_update
 | `/api/knowledge/search/semantic` | POST | 高效能語義搜尋 |
 | `/api/notifications` | GET | 取得使用者通知 |
 | `/api/notifications/:id/resolve` | POST | 解決通知 |
+| `/api/war-room/metrics/etl/run` | POST | 手動觸發 ETL |
+| `/api/war-room/metrics/query` | POST | 查詢指標數據 (Metric Store) |
+| `/api/war-room/insights/stream` | GET | 取得即時情報串流 |
 
 ### 排程任務
 
@@ -921,6 +2462,16 @@ CREATE TRIGGER trigger_knowledge_update
 
 **報告結束**
 
-**文件版本**: v3.0  
-**更新日期**: 2026-01-05  
+**文件版本**: v3.1
+**更新日期**: 2026-01-06
 **作者**: EAKAP 系統架構團隊
+
+**v3.1 更新摘要**：
+- 新增 Phase 6: 企業戰情中樞 (Executive Command Center) 完整技術規劃
+- 定義三層架構：全局態勢感知、部門戰情模組、AI 智能洞察
+- 規劃 5 大 KPI 模組：戰略執行度、營運健康度、財務狀態、風險預警、外部情資
+- 設計外部新聞情資系統（AI 自動分析）
+- 實作部門 AI 日報生成器與對話式探查
+- 建立跨部門知識連結與戰略建議引擎
+- 完整資料庫結構、API 端點、排程任務規劃
+- 視覺設計規範與實施路線圖
