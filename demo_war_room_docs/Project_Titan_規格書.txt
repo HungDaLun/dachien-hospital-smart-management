@@ -1,0 +1,30 @@
+Project Titan - 次世代語意搜尋引擎規格書
+========================================
+版本: 0.8
+狀態: 開發中
+
+[核心功能]
+1. 向量檢索 (Vector Search):
+   - 支援維度: 1536
+   - 索引類型: HNSW
+   - 延遲目標: < 50ms @ 1M vectors
+
+2. 混合搜尋 (Hybrid Search):
+   - 結合關鍵字 (BM25) 與向量相似度
+   - 權重可動態調整 (Alpha parameter)
+
+3. 多語言支援:
+   - 繁體中文 (zh-TW)
+   - 英文 (en-US)
+   - 日文 (ja-JP)
+
+[API 介面定義]
+POST /api/v1/search
+{
+  "query": "string",
+  "filters": "object",
+  "top_k": "integer"
+}
+
+[已知問題]
+- 目前在處理混合語言查詢時 (e.g., "AI 的 implementation") 召回率略低，需優化 Tokenizer。

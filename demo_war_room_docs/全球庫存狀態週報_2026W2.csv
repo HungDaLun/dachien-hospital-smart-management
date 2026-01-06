@@ -1,0 +1,5 @@
+SKU,品名,倉庫位置,庫存數量,安全庫存量,供應商,預計到貨日
+HW-2026-001,AI Edge Server A100,TW-Taipei-WH1,15,20,NVIDIA Corp,2026-01-10
+HW-2026-002,IoT Sensor Type-K,TW-Kaohsiung-WH2,500,200,Bosch,-
+HW-2026-003,Network Switch 100G,SG-Changi-WH1,8,5,Cisco,-
+CS-2025-X01,Liquid Cooling Kit,TW-Taipei-WH1,0,10,CoolMaster,2026-01-15 (Delay)

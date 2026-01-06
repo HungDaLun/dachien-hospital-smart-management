@@ -3,19 +3,69 @@
 import React, { useState } from 'react';
 import { WatchTopic } from '@/lib/war-room/types';
 import { WAR_ROOM_THEME } from '@/styles/war-room-theme';
+import { createClient } from '@/lib/supabase/client';
 
-export default function WatchTopicManager() {
-    const [topics, setTopics] = useState<WatchTopic[]>([
-        // Mock topics for initial state
-        { id: '1', name: '半導體供應鏈', keywords: ['台積電', '晶片短缺'], competitors: [], suppliers: ['ASML'], risk_threshold: 'medium' }
-    ]);
+interface WatchTopicManagerProps {
+    initialTopics?: WatchTopic[];
+    userId: string;
+}
+
+export default function WatchTopicManager({ initialTopics = [], userId }: WatchTopicManagerProps) {
+    const [topics, setTopics] = useState<WatchTopic[]>(initialTopics);
     const [isAdding, setIsAdding] = useState(false);
 
-    const handleAddTopic = () => {
-        // Dummy implementation to satisfy linter
-        console.log("Adding topic...");
-        setTopics(prev => [...prev]); // Trigger re-render with same state
+    // Form State
+    const [newTopicName, setNewTopicName] = useState('');
+    const [newTopicKeywords, setNewTopicKeywords] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleAddTopic = async () => {
+        if (!newTopicName.trim()) return;
+
+        setIsSaving(true);
+        const supabase = createClient();
+
+        const newTopic: WatchTopic = {
+            id: crypto.randomUUID(),
+            name: newTopicName,
+            keywords: newTopicKeywords.split(',').map(k => k.trim()).filter(k => k),
+            competitors: [],
+            suppliers: [],
+            risk_threshold: 'medium'
+        };
+
+        const updatedTopics = [...topics, newTopic];
+
+        // Optimistic Update
+        setTopics(updatedTopics);
+
+        // Persist to Supabase
+        // First check if config exists
+        const { data: config } = await supabase
+            .from('war_room_config')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (config) {
+            await supabase
+                .from('war_room_config')
+                .update({ watch_topics: updatedTopics })
+                .eq('user_id', userId);
+        } else {
+            // Create config if not exists
+            await supabase
+                .from('war_room_config')
+                .insert({
+                    user_id: userId,
+                    watch_topics: updatedTopics
+                });
+        }
+
+        setIsSaving(false);
         setIsAdding(false);
+        setNewTopicName('');
+        setNewTopicKeywords('');
     };
 
     const getRiskLabel = (threshold: string) => {
@@ -48,7 +98,7 @@ export default function WatchTopicManager() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {topics.map(topic => (
+                {topics.length > 0 ? topics.map(topic => (
                     <div
                         key={topic.id}
                         className="p-4 rounded border relative group"
@@ -63,30 +113,69 @@ export default function WatchTopicManager() {
                                     color: topic.risk_threshold === 'medium' ? WAR_ROOM_THEME.semantic.warning : WAR_ROOM_THEME.semantic.success
                                 }}
                             >
-                                {getRiskLabel(topic.risk_threshold)}
+                                {getRiskLabel(topic.risk_threshold || 'low')}
                             </span>
                         </div>
 
                         <div className="space-y-2 text-sm text-gray-400">
-                            <div>關鍵字：<span className="text-white">{topic.keywords.join(', ')}</span></div>
-                            {topic.suppliers.length > 0 && <div>供應商：<span className="text-white">{topic.suppliers.join(', ')}</span></div>}
+                            <div>關鍵字：<span className="text-white">{topic.keywords?.join(', ')}</span></div>
                         </div>
 
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button className="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">編輯</button>
                         </div>
                     </div>
-                ))}
+                )) : (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                        目前沒有設定監控主題。
+                    </div>
+                )}
             </div>
 
             {isAdding && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-gray-900 p-8 rounded-lg w-[500px] border border-gray-700">
                         <h3 className="text-xl font-bold mb-4">新增監控主題</h3>
-                        <p className="text-gray-400 mb-6">輸入要透過 AI Agent 監控的主題、競爭對手或供應商。</p>
+                        <p className="text-gray-400 mb-6">輸入要透過 AI Agent 監控的主題。</p>
+
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">主題名稱</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/50 border border-gray-700 rounded p-2 text-white"
+                                    placeholder="例如：半導體供應鏈"
+                                    value={newTopicName}
+                                    onChange={(e) => setNewTopicName(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">關鍵字 (以逗號分隔)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/50 border border-gray-700 rounded p-2 text-white"
+                                    placeholder="例如：晶片短缺, ASML, 台積電"
+                                    value={newTopicKeywords}
+                                    onChange={(e) => setNewTopicKeywords(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-2">
-                            <button onClick={() => setIsAdding(false)} className="px-4 py-2 text-gray-400 hover:text-white">取消</button>
-                            <button onClick={handleAddTopic} className="px-4 py-2 bg-blue-600 rounded">儲存主題</button>
+                            <button
+                                onClick={() => setIsAdding(false)}
+                                className="px-4 py-2 text-gray-400 hover:text-white"
+                                disabled={isSaving}
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleAddTopic}
+                                className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50"
+                                disabled={isSaving}
+                            >
+                                {isSaving ? '儲存中...' : '儲存主題'}
+                            </button>
                         </div>
                     </div>
                 </div>
