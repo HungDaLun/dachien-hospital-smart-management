@@ -54,12 +54,12 @@ export default async function KnowledgePage() {
         .order('name');
 
     return (
-        <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-background-primary px-6 xl:px-10 py-6">
+        <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-background-primary p-6 xl:p-10">
             <PageHeader
                 title="知識管理"
                 icon={Library}
             />
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative mt-4">
                 <ControlCenter
                     canUpload={canUpload || false}
                     dict={dict}

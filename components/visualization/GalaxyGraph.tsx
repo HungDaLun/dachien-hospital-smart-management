@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import ReactFlow, {
     Controls,
     MiniMap,
@@ -206,29 +206,79 @@ function GalaxyGraphContent({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Highlighting State
-
+    // 追蹤上次處理的 focusNodeId，避免重複處理造成無限循環
+    const prevFocusNodeIdRef = useRef<string | null>(null);
 
     const { getEdges, getNodes, setCenter } = useReactFlow();
 
+    // --- Neighbor Highlighting Logic (定義在 useEffect 之前) ---
+    const handleHitNode = useCallback((nodeId: string) => {
+        const _edges = getEdges();
+
+        // Find neighbors
+        const neighborIds = new Set<string>();
+        neighborIds.add(nodeId); // Include self
+
+        _edges.forEach(edge => {
+            if (edge.source === nodeId) neighborIds.add(edge.target);
+            if (edge.target === nodeId) neighborIds.add(edge.source);
+        });
+
+        // Update Nodes State
+        setNodes(nds => nds.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                dimmed: !neighborIds.has(node.id),
+                highlighted: neighborIds.has(node.id)
+            }
+        })));
+
+        // Update Edges State
+        setEdges(eds => eds.map(edge => {
+            const isConnected = edge.source === nodeId || edge.target === nodeId;
+            return {
+                ...edge,
+                style: {
+                    ...edge.style,
+                    stroke: isConnected ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.05)',
+                    strokeWidth: isConnected ? 1.5 : 0.5
+                },
+                zIndex: isConnected ? 10 : 0
+            };
+        }));
+    }, [getEdges, setNodes, setEdges]);
+
     // Effect: Fly to focused node
+    // 注意：不將 nodes 加入依賴，改用 getNodes() 來獲取最新狀態
+    // 這樣可以避免 handleHitNode 更新 nodes 後又觸發此 effect 造成無限循環
     useEffect(() => {
-        if (focusNodeId && nodes.length > 0) {
-            handleHitNode(focusNodeId);
+        // 只在 focusNodeId 真正改變時才處理
+        if (focusNodeId && focusNodeId !== prevFocusNodeIdRef.current) {
+            const currentNodes = getNodes();
+            if (currentNodes.length > 0) {
+                prevFocusNodeIdRef.current = focusNodeId;
+                handleHitNode(focusNodeId);
 
-            const target = nodes.find(n => n.id === focusNodeId);
-            if (target) {
-                // If focus is triggered externally, we assume sidebar opens
-                const zoomLevel = 1.2;
-                // Sidebar is on the RIGHT. We want the node to appear on the LEFT.
-                // Camera Center = Node Position + Offset (to the right)
-                const offsetX = 250;
-                setCenter(target.position.x + offsetX, target.position.y, { zoom: zoomLevel, duration: 1200 });
+                const target = currentNodes.find(n => n.id === focusNodeId);
+                if (target) {
+                    // If focus is triggered externally, we assume sidebar opens
+                    const zoomLevel = 1.2;
+                    // Sidebar is on the RIGHT. We want the node to appear on the LEFT.
+                    // Camera Center = Node Position + Offset (to the right)
+                    const offsetX = 250;
+                    setCenter(target.position.x + offsetX, target.position.y, { zoom: zoomLevel, duration: 1200 });
 
-                setSelectedNode(target);
-                setIsSidebarOpen(true);
+                    setSelectedNode(target);
+                    setIsSidebarOpen(true);
+                }
             }
         }
-    }, [focusNodeId, nodes, setCenter]);
+        // 當 focusNodeId 被清除時，重設追蹤值
+        if (!focusNodeId) {
+            prevFocusNodeIdRef.current = null;
+        }
+    }, [focusNodeId, getNodes, setCenter, handleHitNode]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -297,46 +347,7 @@ function GalaxyGraphContent({
         [setEdges],
     );
 
-    // --- Neighbor Highlighting Logic ---
-    const handleHitNode = useCallback((nodeId: string) => {
-        const _edges = getEdges();
 
-
-        // Find neighbors
-        const neighborIds = new Set<string>();
-        neighborIds.add(nodeId); // Include self
-
-        _edges.forEach(edge => {
-            if (edge.source === nodeId) neighborIds.add(edge.target);
-            if (edge.target === nodeId) neighborIds.add(edge.source);
-        });
-
-        // Update Nodes State
-        setNodes(nds => nds.map(node => ({
-            ...node,
-            data: {
-                ...node.data,
-                dimmed: !neighborIds.has(node.id),
-                highlighted: neighborIds.has(node.id)
-            }
-        })));
-
-        // Update Edges State
-        setEdges(eds => eds.map(edge => {
-            const isConnected = edge.source === nodeId || edge.target === nodeId;
-            return {
-                ...edge,
-                style: {
-                    ...edge.style,
-                    stroke: isConnected ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.05)',
-                    strokeWidth: isConnected ? 1.5 : 0.5
-                },
-                zIndex: isConnected ? 10 : 0
-            };
-        }));
-
-
-    }, [getEdges, getNodes, setNodes, setEdges]);
 
     const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
         handleHitNode(node.id); // Trigger highlight

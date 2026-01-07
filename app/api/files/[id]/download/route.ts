@@ -36,8 +36,16 @@ export async function GET(
             throw new NotFoundError('檔案');
         }
 
+        const searchParams = _request.nextUrl.searchParams;
+        const isInline = searchParams.get('inline') === 'true';
+
         // 產生 Signed URL (有效期限 15 分鐘)
-        const signedUrl = await getSignedUrlForS3(file.s3_storage_path, 900);
+        // 若請求 inline=true，則設定 ResponseContentDisposition 為 inline (用於瀏覽器直接開啟)
+        const signedUrl = await getSignedUrlForS3(
+            file.s3_storage_path,
+            900,
+            isInline ? { responseContentDisposition: 'inline' } : undefined
+        );
 
         // 記錄下載操作
         await logAudit({

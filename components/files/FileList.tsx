@@ -123,6 +123,8 @@ const ProcessingProgress = ({ createdAt, label }: { createdAt: string; label: st
     );
 };
 
+const PAGE_SIZE = 50;
+
 /**
  * 檔案清單元件
  */
@@ -155,8 +157,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
     // 分頁
     const [page, setPage] = useState(1);
-    const pageSize = 50;
-    const [totalPages, setTotalPages] = useState(initialTotal ? Math.ceil(initialTotal / pageSize) : 1);
+    const [totalPages, setTotalPages] = useState(initialTotal ? Math.ceil(initialTotal / PAGE_SIZE) : 1);
     const [total, setTotal] = useState(initialTotal || 0);
 
     // Last selected ID for shift-click range selection
@@ -189,7 +190,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: pageSize.toString(),
+                limit: PAGE_SIZE.toString(),
             });
 
             if (search) params.append('search', search);
@@ -204,7 +205,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.error?.message || dict.common.error);
+                throw new Error(result.error?.message || (dict?.common?.error || 'Error'));
             }
 
             setFiles(result.data);
@@ -214,7 +215,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             setLastSelectedId(null);
         } catch (err) {
             if (!silent) {
-                toast.error(err instanceof Error ? err.message : dict.common.error);
+                toast.error(err instanceof Error ? err.message : (dict?.common?.error || 'Error'));
             } else {
                 console.error('[Background Poll Failed]', err);
             }
@@ -223,7 +224,8 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                 setLoading(false);
             }
         }
-    }, [page, search, statusFilter, deptFilter, typeFilter, dict.common.error, pageSize]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, search, statusFilter, deptFilter, typeFilter]); // Removed dict and PAGE_SIZE from deps
 
     // Initial load & Refresh
     // Initial load & Filter Changes
@@ -451,6 +453,26 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                 window.open(result.data.url, '_blank');
             } else {
                 toast.error(result.error?.message || 'Download failed');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error(dict.common.error);
+        }
+    };
+
+    /**
+     * 處理檔案開啟 (在新分頁瀏覽，不強制下載)
+     */
+    const handleOpenFile = async (file: FileData) => {
+        try {
+            // 加入 inline=true 參數以強制瀏覽器嘗試開啟而非下載
+            const response = await fetch(`/api/files/${file.id}/download?inline=true`);
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                window.open(result.data.url, '_blank');
+            } else {
+                toast.error(result.error?.message || 'Failed to open file');
             }
         } catch (e) {
             console.error(e);
@@ -696,7 +718,18 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                                 if (onFileSelect) {
                                                                     onFileSelect(file.id);
                                                                 } else {
-                                                                    setPreviewFile(file);
+                                                                    // Only preview text-based files in the modal
+                                                                    const isText = file.mime_type.startsWith('text/') ||
+                                                                        file.mime_type === 'application/json' ||
+                                                                        file.filename.endsWith('.md') ||
+                                                                        file.filename.endsWith('.txt') ||
+                                                                        file.filename.endsWith('.csv');
+
+                                                                    if (isText) {
+                                                                        setPreviewFile(file);
+                                                                    } else {
+                                                                        handleOpenFile(file);
+                                                                    }
                                                                 }
                                                             }}
                                                             className="file-preview-link text-left font-bold break-words text-text-primary group-hover:text-primary-400 hover:underline transition-all leading-tight tracking-tight"

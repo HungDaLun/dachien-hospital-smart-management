@@ -5,7 +5,7 @@
 'use client';
 
 import { Modal, Button, Spinner } from '@/components/ui';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileData } from './FileCard';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
@@ -21,13 +21,11 @@ export default function FilePreviewModal({ isOpen, onClose, file, dict }: FilePr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (isOpen && file) {
-            fetchContent();
-        }
-    }, [isOpen, file]);
 
-    const fetchContent = async () => {
+
+    const fetchContent = useCallback(async () => {
+        if (!file) return;
+
         setLoading(true);
         setError(null);
         try {
@@ -55,7 +53,15 @@ export default function FilePreviewModal({ isOpen, onClose, file, dict }: FilePr
         } finally {
             setLoading(false);
         }
-    };
+    }, [file]);
+
+    useEffect(() => {
+        if (isOpen && file?.id) {
+            fetchContent();
+        }
+        // 使用 file.id 作為依賴，避免因 file 物件參考變動導致無窮迴圈
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, file?.id]);
 
     return (
         <Modal

@@ -171,7 +171,7 @@ export default async function DashboardPage() {
                   className="group p-5 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-blue-500/[0.05] hover:border-blue-500/30 transition-all"
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <span className="font-bold text-text-secondary group-hover:text-primary-400 transition-colors uppercase tracking-widest text-[10px]">{dept.department_name}</span>
+                    <span className="font-bold text-text-secondary group-hover:text-primary-400 transition-colors uppercase tracking-widest text-sm">{dept.department_name}</span>
                     <span className="font-mono text-xs text-blue-400 font-bold">{Math.round(dept.score * 100)}%</span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">

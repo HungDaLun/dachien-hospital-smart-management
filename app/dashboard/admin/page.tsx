@@ -69,7 +69,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="w-full p-4 md:p-8">
+    <div className="w-full p-6 xl:p-10 space-y-10">
       {/* 頁面標題 */}
       <PageHeader
         title="系統管理"

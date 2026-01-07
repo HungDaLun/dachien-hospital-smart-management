@@ -58,7 +58,7 @@ export default function RegisterPage() {
           // 如果清除失敗，不影響註冊流程
           console.warn('清除 session 失敗:', signOutError);
         }
-        
+
         setSuccess(true);
         setLoading(false);
         // 註冊成功，顯示成功訊息，讓使用者手動前往登入頁
@@ -112,69 +112,69 @@ export default function RegisterPage() {
 
           {!success && (
             <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 顯示名稱輸入（選填） */}
-            <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
-                顯示名稱（選填）
-              </label>
-              <input
-                id="displayName"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="您的名稱"
-                disabled={loading || success}
-              />
-            </div>
+              {/* 顯示名稱輸入（選填） */}
+              <div>
+                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+                  顯示名稱（選填）
+                </label>
+                <input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-400"
+                  placeholder="您的名稱"
+                  disabled={loading || success}
+                />
+              </div>
 
-            {/* Email 輸入 */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                電子郵件 <span className="text-error-500">*</span>
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="your@email.com"
-                disabled={loading || success}
-              />
-            </div>
+              {/* Email 輸入 */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  電子郵件 <span className="text-error-500">*</span>
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-400"
+                  placeholder="your@email.com"
+                  disabled={loading || success}
+                />
+              </div>
 
-            {/* 密碼輸入 */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                密碼 <span className="text-error-500">*</span>
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="至少 6 個字元"
-                disabled={loading || success}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                密碼長度至少需要 6 個字元
-              </p>
-            </div>
+              {/* 密碼輸入 */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  密碼 <span className="text-error-500">*</span>
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-400"
+                  placeholder="至少 6 個字元"
+                  disabled={loading || success}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  密碼長度至少需要 6 個字元
+                </p>
+              </div>
 
-            {/* 註冊按鈕 */}
-            <button
-              type="submit"
-              disabled={loading || success}
-              className="w-full py-3 px-4 bg-primary-500 text-white rounded-md font-medium hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? '註冊中...' : success ? '註冊成功！' : '註冊'}
-            </button>
-          </form>
+              {/* 註冊按鈕 */}
+              <button
+                type="submit"
+                disabled={loading || success}
+                className="w-full py-3 px-4 bg-primary-500 text-white rounded-md font-medium hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? '註冊中...' : success ? '註冊成功！' : '註冊'}
+              </button>
+            </form>
           )}
 
           {/* 其他選項 */}

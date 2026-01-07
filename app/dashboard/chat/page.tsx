@@ -40,7 +40,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
     const selectedAgentId = params.agent || null;
 
     return (
-        <div className="w-full px-6 xl:px-10 h-[calc(100vh-120px)] flex flex-col bg-background-primary">
+        <div className="w-full p-6 xl:p-10 h-[calc(100vh-120px)] flex flex-col bg-background-primary">
             <PageHeader
                 title="智能對話"
                 icon={MessageSquare}

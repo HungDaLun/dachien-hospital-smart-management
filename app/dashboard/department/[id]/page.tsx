@@ -60,7 +60,7 @@ export default async function DepartmentWarRoomPage({ params }: { params: { id: 
                 <div className="mb-8 overflow-hidden">
                     <Link
                         href="/dashboard"
-                        className="inline-flex items-center text-[10px] font-black text-text-tertiary hover:text-primary-400 transition-all uppercase tracking-[0.2em] group"
+                        className="inline-flex items-center text-sm font-black text-text-tertiary hover:text-primary-400 transition-all uppercase tracking-[0.2em] group"
                     >
                         <span className="mr-2 group-hover:-translate-x-1 transition-transform">←</span> 返回總覽
                     </Link>

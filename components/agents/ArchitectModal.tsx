@@ -414,7 +414,7 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder={t.input_placeholder}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none resize-none text-sm"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none resize-none text-sm text-gray-900 placeholder:text-gray-400 bg-white"
                                 rows={2}
                                 disabled={loading}
                             />

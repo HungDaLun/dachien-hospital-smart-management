@@ -82,7 +82,7 @@ export async function uploadToS3(
   });
 
   const response = await client.send(command);
-  
+
   if (!response.ETag) {
     throw new Error('上傳失敗：未取得 ETag');
   }
@@ -105,7 +105,7 @@ export async function downloadFromS3(key: string): Promise<Buffer> {
   });
 
   const response = await client.send(command);
-  
+
   if (!response.Body) {
     throw new Error('檔案不存在或無法讀取');
   }
@@ -115,7 +115,7 @@ export async function downloadFromS3(key: string): Promise<Buffer> {
   for await (const chunk of response.Body as any) {
     chunks.push(chunk);
   }
-  
+
   return Buffer.concat(chunks);
 }
 
@@ -143,7 +143,8 @@ export async function deleteFromS3(key: string): Promise<void> {
  */
 export async function getSignedUrlForS3(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
+  options?: { responseContentDisposition?: string }
 ): Promise<string> {
   const config = getS3Config();
   const client = createS3Client(config);
@@ -151,6 +152,7 @@ export async function getSignedUrlForS3(
   const command = new GetObjectCommand({
     Bucket: config.bucketName,
     Key: key,
+    ResponseContentDisposition: options?.responseContentDisposition,
   });
 
   return await getSignedUrl(client, command, { expiresIn });

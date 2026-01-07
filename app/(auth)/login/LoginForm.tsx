@@ -133,7 +133,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 autoComplete="off"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-400"
                                 placeholder="your@email.com"
                                 disabled={loading}
                             />
@@ -150,7 +150,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 autoComplete="off"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-400"
                                 placeholder="••••••••"
                                 disabled={loading}
                             />
