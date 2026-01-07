@@ -58,7 +58,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 {label && (
                     <label
                         htmlFor={textareaId}
-                        className="block text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] ml-1 mb-1.5"
+                        className="block text-sm font-black text-white uppercase tracking-[0.2em] ml-1 mb-2"
                     >
                         {label}
                     </label>
@@ -115,7 +115,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                         role="alert"
                     >
                         <AlertCircle size={14} className="text-semantic-danger shrink-0" />
-                        <span className="text-[11px] font-bold text-semantic-danger uppercase tracking-wider">
+                        <span className="text-xs font-bold text-semantic-danger uppercase tracking-wider">
                             {error}
                         </span>
                     </div>
@@ -125,7 +125,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 {hint && !error && (
                     <p
                         id={`${textareaId}-hint`}
-                        className="mt-1.5 px-1 text-[10px] font-bold text-text-tertiary italic opacity-60 uppercase tracking-widest"
+                        className="mt-2 px-1 text-[13px] font-bold text-white/80 uppercase tracking-widest leading-relaxed"
                     >
                         {hint}
                     </p>

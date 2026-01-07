@@ -79,7 +79,7 @@ function TagInput({
       {tags.map((tag, index) => (
         <span
           key={index}
-          className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-500/10 text-primary-400 rounded-lg text-xs font-bold border border-primary-500/20 uppercase tracking-widest shadow-glow-cyan/10"
+          className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-500/20 text-white rounded-lg text-sm font-bold border border-primary-500/40 uppercase tracking-widest shadow-glow-cyan/10"
         >
           {tag}
           {!disabled && (
@@ -100,7 +100,7 @@ function TagInput({
         onKeyDown={handleKeyDown}
         placeholder={tags.length === 0 ? placeholder : ''}
         disabled={disabled}
-        className="flex-1 min-w-[120px] outline-none bg-transparent text-sm text-text-primary placeholder:text-text-tertiary"
+        className="flex-1 min-w-[120px] outline-none bg-transparent text-base text-white placeholder:text-white/30"
       />
     </div>
   );
@@ -304,17 +304,17 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
         </div>
 
         <div>
-          <h3 className="text-xl font-black text-text-primary uppercase tracking-tight">個人頭像</h3>
-          <p className="text-xs text-text-tertiary mt-2 font-medium tracking-wide">
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight">個人頭像</h3>
+          <p className="text-sm text-white/60 mt-2 font-medium tracking-wide">
             支援 .JPG, .PNG 格式。建議尺寸 400x400PX。
           </p>
         </div>
       </div>
 
       {/* ===== 基本資訊區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/5">
-        <h3 className="text-sm font-black text-text-primary flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-8 h-px bg-primary-500/20" /> {dict.settings.basic_info_section || '基本資訊'}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.basic_info_section || '基本資訊'}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -333,52 +333,52 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
 
           {/* 職稱（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.job_title_label || '職稱'}
             </label>
             <input
               type="text"
               value={profile.job_title || '-'}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 員工編號（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.employee_id_label || '員工編號'}
             </label>
             <input
               type="text"
               value={profile.employee_id || '-'}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 工作地點（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.location_label || '工作地點'}
             </label>
             <input
               type="text"
               value={profile.location || '-'}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
         </div>
       </div>
 
       {/* ===== 聯絡資訊區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/5">
-        <h3 className="text-sm font-black text-text-primary flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-8 h-px bg-primary-500/20" /> {dict.settings.contact_section || '聯絡資訊'}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.contact_section || '聯絡資訊'}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -396,16 +396,16 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
 
           {/* 分機號碼（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.extension_label || '分機號碼'}
             </label>
             <input
               type="text"
               value={profile.extension || '-'}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 辦公室電話 */}
@@ -437,33 +437,33 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
       </div>
 
       {/* ===== 專業資訊區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/5">
-        <h3 className="text-sm font-black text-text-primary flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-8 h-px bg-primary-500/20" /> {dict.settings.professional_section || '專業資訊'}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.professional_section || '專業資訊'}
         </h3>
 
         {/* 個人簡介 */}
         <div>
-          <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
             {dict.settings.bio_label || '個人簡介'}
           </label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder={dict.settings.bio_placeholder || '簡單介紹您的專業背景和專長...'}
+            placeholder={dict.settings.bio_placeholder || '簡單介紹您的專業背景 and 專長...'}
             disabled={isLoading}
             rows={4}
             maxLength={1000}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/5 text-text-primary focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/10 transition-all resize-none shadow-inner"
+            className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 focus:bg-white/[0.08] transition-all resize-none shadow-inner text-base"
           />
-          <p className="mt-2 text-[10px] text-text-tertiary font-mono">
+          <p className="mt-2 text-[13px] text-white/50 font-mono">
             {bio.length}/1000 {dict.settings.bio_hint || '字元'}
           </p>
         </div>
 
         {/* 技能標籤 */}
         <div>
-          <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
             {dict.settings.skills_label || '技能標籤'}
           </label>
           <TagInput
@@ -472,14 +472,14 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             placeholder={dict.settings.skills_placeholder || '輸入技能並按 Enter 新增'}
             disabled={isLoading}
           />
-          <p className="mt-2 text-[10px] text-text-tertiary font-medium">
+          <p className="mt-2 text-[13px] text-white/60 font-medium">
             {dict.settings.skills_hint || '加入您擅長的技能，例如：Python、資料分析、專案管理'}
           </p>
         </div>
 
         {/* 專業領域 */}
         <div>
-          <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
             {dict.settings.expertise_areas_label || '專業領域'}
           </label>
           <TagInput
@@ -488,16 +488,16 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             placeholder={dict.settings.expertise_areas_placeholder || '輸入專業領域並按 Enter 新增'}
             disabled={isLoading}
           />
-          <p className="mt-2 text-[10px] text-text-tertiary font-medium">
+          <p className="mt-2 text-[13px] text-white/60 font-medium">
             {dict.settings.expertise_areas_hint || '加入您的專業領域，例如：財務會計、人力資源、軟體開發'}
           </p>
         </div>
       </div>
 
       {/* ===== 社群連結區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/5">
-        <h3 className="text-sm font-black text-text-primary flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-8 h-px bg-primary-500/20" /> {dict.settings.social_section || '社群連結'}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.social_section || '社群連結'}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -517,91 +517,91 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
       </div>
 
       {/* ===== 帳戶資訊區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/5">
-        <h3 className="text-sm font-black text-text-primary flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-8 h-px bg-primary-500/20" /> {dict.settings.account_section || '帳戶資訊'}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.account_section || '帳戶資訊'}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 角色（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.role_label}
             </label>
             <input
               type="text"
               value={roleLabels[profile.role] || profile.role}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 部門（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.department_label}
             </label>
             <input
               type="text"
               value={departmentName || dict.settings.no_department}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 直屬主管（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.manager_label || '直屬主管'}
             </label>
             <input
               type="text"
               value={profile.manager?.display_name || profile.manager?.email || dict.settings.no_manager || '(未指定)'}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 入職日期（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.hire_date_label || '入職日期'}
             </label>
             <input
               type="text"
               value={formatDate(profile.hire_date)}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
-            <p className="mt-2 text-[10px] text-primary-500/50 font-bold uppercase tracking-tighter">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 建立時間（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.created_at_label}
             </label>
             <input
               type="text"
               value={formatDateTime(profile.created_at)}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
           </div>
 
           {/* 最後登入（唯讀） */}
           <div>
-            <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">
+            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.last_login_label || '最後登入'}
             </label>
             <input
               type="text"
               value={formatDateTime(profile.last_login_at)}
               disabled
-              className="w-full px-4 py-2.5 border border-white/5 rounded-xl bg-white/[0.03] text-text-secondary cursor-not-allowed font-medium text-sm"
+              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
           </div>
         </div>

@@ -83,13 +83,13 @@ export async function generateUserAuditReport(
 
     // 統計各類操作
     const statistics = {
-        filesViewed: safeLogs.filter(l => l.action === 'VIEW_FILE' || l.action === 'VIEW_FILE_METADATA').length,
-        filesDownloaded: safeLogs.filter(l => l.action === 'DOWNLOAD_FILE').length,
-        filesUploaded: safeLogs.filter(l => l.action === 'UPLOAD_FILE').length,
-        filesUpdated: safeLogs.filter(l => l.action === 'UPDATE_FILE').length,
-        filesDeleted: safeLogs.filter(l => l.action === 'DELETE_FILE').length,
-        agentsCreated: safeLogs.filter(l => l.action === 'CREATE_AGENT').length,
-        agentsQueried: safeLogs.filter(l => l.action === 'AGENT_QUERY').length,
+        filesViewed: safeLogs.filter(l => l.action_type === 'VIEW_FILE' || l.action_type === 'VIEW_FILE_METADATA').length,
+        filesDownloaded: safeLogs.filter(l => l.action_type === 'DOWNLOAD_FILE').length,
+        filesUploaded: safeLogs.filter(l => l.action_type === 'UPLOAD_FILE').length,
+        filesUpdated: safeLogs.filter(l => l.action_type === 'UPDATE_FILE').length,
+        filesDeleted: safeLogs.filter(l => l.action_type === 'DELETE_FILE').length,
+        agentsCreated: safeLogs.filter(l => l.action_type === 'CREATE_AGENT').length,
+        agentsQueried: safeLogs.filter(l => l.action_type === 'AGENT_QUERY').length,
         crossDepartmentAccess: [] as Array<{ departmentId: string; departmentName: string; accessCount: number }>,
         anomalies: [] as string[],
     };
@@ -164,7 +164,7 @@ export async function generateUserAuditReport(
         statistics,
         detailedLogs: safeLogs.map(log => ({
             timestamp: new Date(log.created_at),
-            action: log.action,
+            action: log.action_type,
             resourceType: log.resource_type,
             resourceId: log.resource_id,
             details: log.details || {},

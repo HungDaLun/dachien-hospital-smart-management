@@ -1,8 +1,8 @@
-import React from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import WatchTopicManager from '@/components/war-room/intelligence/WatchTopicManager';
 import { RiskAlertSystem } from '@/lib/war-room/kpi/risk-alerts';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import SyncIntelligenceButton from '@/components/war-room/intelligence/SyncIntelligenceButton';
 import IntelligenceList from '@/components/war-room/intelligence/IntelligenceList';
 
@@ -44,6 +44,16 @@ export default async function ExternalIntelligencePage() {
             <div className="war-room-grid fixed inset-0 pointer-events-none z-0 opacity-30" />
 
             <div className="max-w-7xl mx-auto relative z-10">
+                <div className="mb-6">
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center gap-2 text-text-tertiary hover:text-primary-400 transition-colors group"
+                    >
+                        <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-sm font-bold tracking-widest uppercase">返回控制面板</span>
+                    </Link>
+                </div>
+
                 {/* Internal Risks Section */}
                 {internalRisks.risks.length > 0 && (
                     <div className="mb-12">

@@ -39,9 +39,11 @@ export class RiskAlertSystem {
         const { data: externalRisks } = await supabase
             .from('external_intelligence')
             .select('*')
-            .or('risk_level.eq.high,risk_level.eq.critical')
+            .eq('user_id', userId)
+            .or('risk_level.eq.high,risk_level.eq.critical,risk_level.eq.medium')
             .eq('status', 'pending')
-            .limit(5);
+            .order('published_at', { ascending: false })
+            .limit(10);
 
         if (externalRisks) {
             externalRisks.forEach((r: any) => {

@@ -83,7 +83,7 @@ export async function getSystemStats(): Promise<{ success: boolean; data?: Syste
         // Using existing audit_logs table
         const { data: recentLogs } = await supabase
             .from('audit_logs')
-            .select('id, action, created_at, user_profiles(display_name)')
+            .select('id, action_type, created_at, user_profiles(display_name)')
             .order('created_at', { ascending: false })
             .limit(5);
 
@@ -94,7 +94,7 @@ export async function getSystemStats(): Promise<{ success: boolean; data?: Syste
 
             return {
                 id: log.id,
-                action: log.action,
+                action: (log as any).action_type,
                 user: userProfile?.display_name || 'Unknown',
                 time: log.created_at
             };

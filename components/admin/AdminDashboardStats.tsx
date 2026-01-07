@@ -148,6 +148,7 @@ export default function AdminDashboardStats({ dict, stats }: AdminDashboardStats
                                         border: '1px solid rgba(255,255,255,0.1)',
                                         backdropFilter: 'blur(12px)'
                                     }}
+                                    itemStyle={{ color: '#FFFFFF', fontWeight: 'bold' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>

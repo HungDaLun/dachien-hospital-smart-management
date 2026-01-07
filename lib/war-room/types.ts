@@ -25,6 +25,10 @@ export interface WatchTopic {
     competitors: string[];
     suppliers: string[];
     risk_threshold: 'low' | 'medium' | 'high';
+    sync_mode: 'manual' | 'auto';
+    sync_interval_value?: number;
+    sync_interval_unit?: 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+    last_synced_at?: string;
 }
 
 export interface MetricDefinition {

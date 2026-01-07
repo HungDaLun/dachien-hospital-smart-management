@@ -5,6 +5,7 @@ import { WatchTopic } from '@/lib/war-room/types';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card, Input } from '@/components/ui';
 import { Trash2, Edit2, X } from 'lucide-react';
+import { logAudit } from '@/lib/actions/audit';
 
 interface WatchTopicManagerProps {
     initialTopics?: WatchTopic[];
@@ -20,6 +21,9 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
     const [newTopicName, setNewTopicName] = useState('');
     const [newTopicKeywords, setNewTopicKeywords] = useState('');
     const [newTopicThreshold, setNewTopicThreshold] = useState<'low' | 'medium' | 'high'>('low');
+    const [newSyncMode, setNewSyncMode] = useState<'manual' | 'auto'>('auto');
+    const [newSyncValue, setNewSyncValue] = useState<number>(24);
+    const [newSyncUnit, setNewSyncUnit] = useState<'minutes' | 'hours' | 'days' | 'weeks' | 'months'>('hours');
     const [isSaving, setIsSaving] = useState(false);
 
     const handleOpenEdit = (topic: WatchTopic) => {
@@ -27,6 +31,9 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
         setNewTopicName(topic.name);
         setNewTopicKeywords(topic.keywords.join(', '));
         setNewTopicThreshold(topic.risk_threshold as any || 'low');
+        setNewSyncMode(topic.sync_mode || 'auto');
+        setNewSyncValue(topic.sync_interval_value || 24);
+        setNewSyncUnit(topic.sync_interval_unit || 'hours');
         setIsAdding(true);
     };
 
@@ -44,7 +51,10 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                 ...t,
                 name: newTopicName,
                 keywords: newTopicKeywords.split(/[,，、]/).map(k => k.trim()).filter(k => k),
-                risk_threshold: newTopicThreshold
+                risk_threshold: newTopicThreshold,
+                sync_mode: newSyncMode,
+                sync_interval_value: newSyncValue,
+                sync_interval_unit: newSyncUnit
             } : t);
         } else {
             // Add new
@@ -54,7 +64,10 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                 keywords: newTopicKeywords.split(/[,，、]/).map(k => k.trim()).filter(k => k),
                 competitors: [],
                 suppliers: [],
-                risk_threshold: newTopicThreshold
+                risk_threshold: newTopicThreshold,
+                sync_mode: newSyncMode,
+                sync_interval_value: newSyncValue,
+                sync_interval_unit: newSyncUnit
             };
             updatedTopics = [...topics, newTopic];
         }
@@ -83,12 +96,26 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                 });
         }
 
+        // Log Activity
+        await logAudit({
+            action: 'UPDATE_WATCH_TOPICS',
+            resourceType: 'department' as any,
+            details: {
+                topic_name: newTopicName,
+                is_edit: !!editingTopicId,
+                total_topics: updatedTopics.length
+            }
+        });
+
         setIsSaving(false);
         setIsAdding(false);
         setEditingTopicId(null);
         setNewTopicName('');
         setNewTopicKeywords('');
         setNewTopicThreshold('low');
+        setNewSyncMode('auto');
+        setNewSyncValue(24);
+        setNewSyncUnit('hours');
     };
 
     const handleDeleteTopic = async (id: string) => {
@@ -102,6 +129,17 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
             .from('war_room_config')
             .update({ watch_topics: updatedTopics })
             .eq('user_id', userId);
+
+        // Log Activity
+        await logAudit({
+            action: 'UPDATE_WATCH_TOPICS',
+            resourceType: 'department' as any,
+            details: {
+                action: 'DELETE',
+                id: id,
+                total_topics: updatedTopics.length
+            }
+        });
     };
 
     const getRiskLabel = (threshold: string) => {
@@ -133,6 +171,9 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                             setNewTopicName('');
                             setNewTopicKeywords('');
                             setNewTopicThreshold('low');
+                            setNewSyncMode('auto');
+                            setNewSyncValue(24);
+                            setNewSyncUnit('hours');
                             setIsAdding(true);
                         }}
                         variant="cta"
@@ -150,19 +191,12 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                             variant="glass"
                             className="p-6 rounded-2xl border border-white/5 relative group hover:border-primary-500/30 transition-all duration-300 hover:scale-[1.02] hover:bg-white/[0.03]"
                         >
-                            <div className="flex justify-between items-start mb-6">
-                                <h3 className="font-black text-lg text-text-primary tracking-tight group-hover:text-primary-400 transition-colors">{topic.name}</h3>
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border
-                                        ${topic.risk_threshold === 'high' ? 'bg-semantic-danger/10 text-semantic-danger border-semantic-danger/20' :
-                                                topic.risk_threshold === 'medium' ? 'bg-semantic-warning/10 text-semantic-warning border-semantic-warning/20' :
-                                                    'bg-semantic-success/10 text-semantic-success border-semantic-success/20'}
-                                    `}
-                                    >
-                                        {getRiskLabel(topic.risk_threshold || 'low')}
-                                    </span>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="mb-6">
+                                <div className="flex justify-between items-start gap-4 mb-3">
+                                    <h3 className="font-black text-lg text-text-primary tracking-tight group-hover:text-primary-400 transition-colors leading-tight flex-1">
+                                        {topic.name}
+                                    </h3>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                         <button
                                             onClick={() => handleOpenEdit(topic)}
                                             className="p-1.5 rounded-lg bg-white/5 text-text-tertiary hover:text-white hover:bg-white/10 transition-all"
@@ -181,6 +215,24 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                             <Trash2 size={12} />
                                         </button>
                                     </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <span
+                                        className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border shrink-0
+                                        ${topic.risk_threshold === 'high' ? 'bg-semantic-danger/10 text-semantic-danger border-semantic-danger/20' :
+                                                topic.risk_threshold === 'medium' ? 'bg-semantic-warning/10 text-semantic-warning border-semantic-warning/20' :
+                                                    'bg-semantic-success/10 text-semantic-success border-semantic-success/20'}
+                                    `}
+                                    >
+                                        {getRiskLabel(topic.risk_threshold || 'low')}
+                                    </span>
+                                    <span className="text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border border-white/10 bg-white/5 text-text-tertiary shrink-0">
+                                        更新：{topic.sync_mode === 'manual' ? '手動' :
+                                            `每 ${topic.sync_interval_value} ${topic.sync_interval_unit === 'minutes' ? '分鐘' :
+                                                topic.sync_interval_unit === 'hours' ? '小時' :
+                                                    topic.sync_interval_unit === 'days' ? '日' :
+                                                        topic.sync_interval_unit === 'weeks' ? '週' : '月'}`}
+                                    </span>
                                 </div>
                             </div>
 
@@ -246,7 +298,7 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                 <div>
                                     <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">預警靈敏度 (影響門檻)</label>
                                     <select
-                                        className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50 appearance-none"
+                                        className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50 appearance-none mb-6"
                                         value={newTopicThreshold}
                                         onChange={(e: any) => setNewTopicThreshold(e.target.value)}
                                     >
@@ -254,6 +306,49 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                         <option value="medium" className="bg-background-secondary text-white">中 (標準情資預警)</option>
                                         <option value="high" className="bg-background-secondary text-white">高 (捕捉細微市場變動)</option>
                                     </select>
+
+                                    <label className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest">自動監控頻率 (AI 爬取週期)</label>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setNewSyncMode('manual')}
+                                                className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newSyncMode === 'manual' ? 'bg-primary-500 border-primary-500 text-black' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                            >
+                                                手動執行
+                                            </button>
+                                            <button
+                                                onClick={() => setNewSyncMode('auto')}
+                                                className={`flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newSyncMode === 'auto' ? 'bg-primary-500 border-primary-500 text-black' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                            >
+                                                自動監控
+                                            </button>
+                                        </div>
+
+                                        {newSyncMode === 'auto' && (
+                                            <div className="flex items-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                <span className="text-sm font-bold text-text-secondary pr-1">每</span>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className="w-20 bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50"
+                                                    value={newSyncValue}
+                                                    onChange={(e) => setNewSyncValue(parseInt(e.target.value) || 1)}
+                                                />
+                                                <select
+                                                    className="flex-1 bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50 appearance-none"
+                                                    value={newSyncUnit}
+                                                    onChange={(e: any) => setNewSyncUnit(e.target.value)}
+                                                >
+                                                    <option value="minutes" className="bg-background-secondary text-white">分鐘</option>
+                                                    <option value="hours" className="bg-background-secondary text-white">小時</option>
+                                                    <option value="days" className="bg-background-secondary text-white">日</option>
+                                                    <option value="weeks" className="bg-background-secondary text-white">週</option>
+                                                    <option value="months" className="bg-background-secondary text-white">月</option>
+                                                </select>
+                                                <span className="text-sm font-bold text-text-secondary pl-1">執行一次</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

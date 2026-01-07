@@ -21,6 +21,8 @@ export type AuditAction =
     | 'CREATE_DEPT'
     | 'UPDATE_DEPT'
     | 'DELETE_DEPT'
+    | 'SYNC_INTELLIGENCE'       // 外部情報同步（新增）
+    | 'UPDATE_WATCH_TOPICS'     // 監控主題變更（新增）
     | 'CREATE_CATEGORY'
     | 'UPDATE_CATEGORY'
     | 'DELETE_CATEGORY';

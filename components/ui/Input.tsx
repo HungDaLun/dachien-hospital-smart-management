@@ -67,7 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {label && (
                     <label
                         htmlFor={inputId}
-                        className="block text-[10px] font-black text-text-tertiary mb-2 uppercase tracking-widest"
+                        className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest"
                     >
                         {label}
                     </label>
@@ -127,7 +127,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                         <span className="w-1 h-1 rounded-full bg-semantic-danger" />
                         <p
                             id={`${inputId}-error`}
-                            className="text-[11px] font-bold text-semantic-danger/90 uppercase tracking-tight"
+                            className="text-xs font-bold text-semantic-danger/90 uppercase tracking-tight"
                             role="alert"
                         >
                             {error}
@@ -139,7 +139,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {hint && !error && (
                     <p
                         id={`${inputId}-hint`}
-                        className="mt-2 text-[10px] font-bold text-text-tertiary uppercase tracking-tight opacity-70"
+                        className="mt-2.5 text-[13px] font-bold text-white/80 uppercase tracking-wide"
                     >
                         {hint}
                     </p>

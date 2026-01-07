@@ -99,6 +99,33 @@ export async function POST() {
             }
         }
 
+        // 4. 更新最後同步時間 (用於自動監控頻率判斷)
+        const updatedTopics = topics.map(t => ({
+            ...t,
+            last_synced_at: new Date().toISOString()
+        }));
+
+        await supabase
+            .from('war_room_config')
+            .update({ watch_topics: updatedTopics })
+            .eq('user_id', user.id);
+
+        // 5. 記錄稽核日誌
+        try {
+            const { logAudit } = await import('@/lib/actions/audit');
+            await logAudit({
+                action: 'SYNC_INTELLIGENCE',
+                resourceType: 'AUTH',
+                details: {
+                    topic_count: topics.length,
+                    new_items: allNewIntelligence.length,
+                    success: true
+                }
+            });
+        } catch (auditErr) {
+            console.warn('[Sync] Audit log failed:', auditErr);
+        }
+
         return NextResponse.json({
             success: true,
             count: allNewIntelligence.length,
