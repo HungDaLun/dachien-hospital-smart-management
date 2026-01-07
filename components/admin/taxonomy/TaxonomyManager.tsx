@@ -120,41 +120,44 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
             <div key={node.id} className="relative select-none">
                 <div
                     className={`
-                        group flex items-center p-3 rounded-2xl transition-all duration-300
+                        group flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 p-3 rounded-2xl transition-all duration-300
                         ${isExpanded ? 'bg-white/[0.04]' : 'bg-transparent hover:bg-white/[0.02]'}
-                        ${level > 0 ? 'ml-8' : ''}
+                        ${level > 0 ? 'ml-4 sm:ml-8' : ''}
                         mb-1 border border-transparent hover:border-white/10
                     `}
                 >
                     {/* Indent connector */}
                     {level > 0 && (
-                        <div className="absolute left-[-2rem] top-0 bottom-1/2 w-4 border-l border-b border-white/10 rounded-bl-xl" />
+                        <div className="absolute left-[-1rem] sm:left-[-2rem] top-0 bottom-1/2 w-4 border-l border-b border-white/10 rounded-bl-xl" />
                     )}
 
-                    {/* Expand/Collapse */}
-                    <button
-                        onClick={() => toggleExpand(node.id)}
-                        className={`mr-2 p-1.5 rounded-lg transition-all ${!hasChildren ? 'invisible' : 'text-text-tertiary hover:bg-white/5 hover:text-text-primary'}`}
-                    >
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </button>
+                    {/* Left Section: Expand, Icon, Content */}
+                    <div className="flex items-center flex-1 min-w-0">
+                        {/* Expand/Collapse */}
+                        <button
+                            onClick={() => toggleExpand(node.id)}
+                            className={`mr-2 p-1.5 rounded-lg transition-all shrink-0 ${!hasChildren ? 'invisible' : 'text-text-tertiary hover:bg-white/5 hover:text-text-primary'}`}
+                        >
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </button>
 
-                    {/* Icon Node */}
-                    <div className={`mr-4 p-2 rounded-xl border transition-all duration-500 ${isExpanded ? 'bg-primary-500/10 border-primary-500/20 text-primary-400 shadow-glow-cyan/5' : 'bg-white/5 border-white/5 text-text-tertiary'}`}>
-                        {isExpanded ? <FolderOpen size={18} /> : <Folder size={18} />}
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight truncate">{node.name}</h3>
-                            {level === 0 && <Badge variant="outline" size="sm" className="text-[9px] font-black opacity-30 px-1.5 border-white/5">ROOT_NODE</Badge>}
+                        {/* Icon Node */}
+                        <div className={`mr-3 sm:mr-4 p-2 rounded-xl border transition-all duration-500 shrink-0 ${isExpanded ? 'bg-primary-500/10 border-primary-500/20 text-primary-400 shadow-glow-cyan/5' : 'bg-white/5 border-white/5 text-text-tertiary'}`}>
+                            {isExpanded ? <FolderOpen size={18} /> : <Folder size={18} />}
                         </div>
-                        {node.description && <p className="text-[11px] font-bold text-text-tertiary truncate opacity-60 group-hover:opacity-100 transition-opacity mt-0.5">{node.description}</p>}
+
+                        {/* Content Section */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-black text-text-primary uppercase tracking-tight break-words">{node.name}</h3>
+                                {level === 0 && <Badge variant="outline" size="sm" className="text-[9px] font-black opacity-30 px-1.5 border-white/5 shrink-0">ROOT_NODE</Badge>}
+                            </div>
+                            {node.description && <p className="text-[11px] font-bold text-text-tertiary break-words opacity-60 group-hover:opacity-100 transition-opacity mt-0.5">{node.description}</p>}
+                        </div>
                     </div>
 
                     {/* Actions Terminal */}
-                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                    <div className="flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 sm:translate-x-2 sm:group-hover:translate-x-0 shrink-0">
                         <Button
                             size="sm"
                             variant="ghost"
@@ -184,7 +187,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
 
                 {/* Recursive Children Container */}
                 {hasChildren && isExpanded && (
-                    <div className="pl-4 border-l border-white/5 ml-4 my-1 space-y-1">
+                    <div className="pl-2 sm:pl-4 border-l border-white/5 ml-2 sm:ml-4 my-1 space-y-1">
                         {node.children.map(child => renderNode(child, level + 1))}
                     </div>
                 )}
@@ -193,31 +196,31 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
     };
 
     return (
-        <Card variant="glass" className="p-8 min-h-[600px] border-white/5 relative overflow-hidden">
+        <Card variant="glass" className="p-4 sm:p-6 lg:p-8 min-h-[600px] border-white/5 relative overflow-hidden w-full">
             {/* Background Decorative */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/[0.02] blur-[100px] pointer-events-none -mr-32 -mt-32" />
 
-            <div className="flex justify-between items-start mb-10">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400 shadow-glow-cyan/5">
+                    <div className="w-12 h-12 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400 shadow-glow-cyan/5 shrink-0">
                         <Network size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-text-primary uppercase tracking-tight">智庫語義架構 <span className="opacity-30">|</span> TAXONOMY</h2>
+                        <h2 className="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight">智庫語義架構 <span className="opacity-30">|</span> TAXONOMY</h2>
                         <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">定義全域知識網絡的維度與階層基準</p>
                     </div>
                 </div>
                 <Button
                     variant="cta"
                     onClick={() => handleOpenModal(null)}
-                    className="h-11 px-6 rounded-xl shadow-glow-cyan/10"
+                    className="h-11 px-6 rounded-xl shadow-glow-cyan/10 shrink-0 w-full sm:w-auto"
                 >
                     <Plus size={16} className="mr-2" />
                     <span className="font-black uppercase tracking-widest text-[10px]">建立頂級節點</span>
                 </Button>
             </div>
 
-            <div className="bg-black/20 rounded-[32px] border border-white/5 p-6 shadow-inner min-h-[400px]">
+            <div className="bg-black/20 rounded-[32px] border border-white/5 p-4 sm:p-6 shadow-inner min-h-[400px]">
                 {tree.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-30">
                         <div className="p-6 rounded-3xl border border-dashed border-white/10">

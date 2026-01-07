@@ -95,7 +95,7 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                 {isFramework ? (data.frameworkName || 'Knowledge Instance') : (data.label || 'Source Document')}
                                             </h2>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 shrink-0 ml-4">
                                             {isFramework && (
                                                 <button
                                                     type="button"
@@ -223,9 +223,14 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                                                     <li key={i} className="flex gap-3">
                                                                                         <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-2 shrink-0 opacity-50" />
                                                                                         {typeof item === 'object' ? (
-                                                                                            <pre className="text-[11px] bg-black/40 p-3 rounded-xl border border-white/5 overflow-x-auto whitespace-pre-wrap font-mono text-text-tertiary">
-                                                                                                {JSON.stringify(item, null, 2)}
-                                                                                            </pre>
+                                                                                            <div className="text-sm space-y-1">
+                                                                                                {Object.entries(item).map(([k, v]) => (
+                                                                                                    <div key={k}>
+                                                                                                        <span className="text-text-tertiary">{k}:</span>{' '}
+                                                                                                        <span className="text-text-secondary">{typeof v === 'object' ? Object.entries(v as object).map(([ik, iv]) => `${ik}: ${iv}`).join(', ') : String(v)}</span>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
                                                                                         ) : (
                                                                                             String(item)
                                                                                         )}
@@ -233,9 +238,14 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                                                 ))}
                                                                             </ul>
                                                                         ) : typeof value === 'object' ? (
-                                                                            <pre className="text-[11px] bg-black/40 p-4 rounded-xl border border-white/5 overflow-x-auto whitespace-pre-wrap font-mono text-text-tertiary">
-                                                                                {JSON.stringify(value, null, 2)}
-                                                                            </pre>
+                                                                            <div className="text-sm space-y-1">
+                                                                                {Object.entries(value).map(([k, v]) => (
+                                                                                    <div key={k}>
+                                                                                        <span className="text-text-tertiary">{k}:</span>{' '}
+                                                                                        <span className="text-text-secondary">{typeof v === 'object' ? Object.entries(v as object).map(([ik, iv]) => `${ik}: ${iv}`).join(', ') : String(v)}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
                                                                         ) : (
                                                                             <span className="text-text-primary font-bold">{String(value)}</span>
                                                                         )}
@@ -249,9 +259,19 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                                 <span className="block text-[10px] font-black text-primary-500 mb-2 uppercase tracking-widest opacity-60">{k}</span>
                                                                 <div className="text-sm text-text-secondary break-words whitespace-pre-wrap">
                                                                     {typeof v === 'object' ? (
-                                                                        <pre className="text-[11px] bg-black/40 p-4 rounded-xl font-mono">
-                                                                            {JSON.stringify(v, null, 2)}
-                                                                        </pre>
+                                                                        <div className="space-y-1">
+                                                                            {Array.isArray(v)
+                                                                                ? v.map((item, i) => (
+                                                                                    <div key={i}>{typeof item === 'object' ? Object.entries(item).map(([ik, iv]) => `${ik}: ${iv}`).join(', ') : String(item)}</div>
+                                                                                ))
+                                                                                : (v && Object.entries(v as Record<string, unknown>).map(([ik, iv]) => (
+                                                                                    <div key={ik}>
+                                                                                        <span className="text-text-tertiary">{ik}:</span>{' '}
+                                                                                        <span>{typeof iv === 'object' && iv !== null ? Object.entries(iv as Record<string, unknown>).map(([iik, iiv]) => `${iik}: ${iiv}`).join(', ') : String(iv)}</span>
+                                                                                    </div>
+                                                                                )))
+                                                                            }
+                                                                        </div>
                                                                     ) : (
                                                                         String(v)
                                                                     )}
@@ -350,11 +370,27 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                         {Object.entries(data.metadata).map(([k, v]) => (
                                                             <div key={k} className="flex flex-col gap-1 border-b border-white/[0.03] pb-3 last:border-0 last:pb-0">
                                                                 <span className="text-[9px] text-text-tertiary uppercase font-black tracking-widest opacity-50">{k}</span>
-                                                                <div className="text-sm text-text-secondary font-mono break-all">
-                                                                    {typeof v === 'object' ? (
-                                                                        <pre className="text-[11px] bg-black/20 p-3 rounded-xl border border-white/5 mt-2">
-                                                                            {JSON.stringify(v, null, 2)}
-                                                                        </pre>
+                                                                <div className="text-sm text-text-secondary break-all">
+                                                                    {typeof v === 'object' && v !== null ? (
+                                                                        Array.isArray(v)
+                                                                            ? v.map((item, i) => (
+                                                                                <div key={i} className="py-0.5">
+                                                                                    {typeof item === 'object' && item !== null
+                                                                                        ? Object.entries(item).map(([ik, iv]) => `${ik}: ${iv}`).join(', ')
+                                                                                        : String(item)}
+                                                                                </div>
+                                                                            ))
+                                                                            : Object.entries(v).map(([ik, iv]) => (
+                                                                                <div key={ik} className="py-0.5">
+                                                                                    <span className="text-text-tertiary">{ik}:</span>{' '}
+                                                                                    <span>{typeof iv === 'object' && iv !== null
+                                                                                        ? (Array.isArray(iv)
+                                                                                            ? iv.join(', ')
+                                                                                            : Object.entries(iv as Record<string, unknown>).map(([iik, iiv]) => `${iik}: ${iiv}`).join(', '))
+                                                                                        : String(iv)}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ))
                                                                     ) : (
                                                                         String(v)
                                                                     )}

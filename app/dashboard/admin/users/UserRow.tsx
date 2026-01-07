@@ -95,21 +95,21 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
     const hasChanged = role !== user.role || (deptId || '') !== (user.department_id || '');
 
     return (
-        <tr className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${isPending ? 'bg-yellow-50' : ''}`}>
-            <td className="py-3 px-4">
-                <div className="font-medium text-gray-900">{user.display_name || dict.admin.users.unnamed}</div>
-                <div className="text-sm text-gray-500">{user.email}</div>
+        <tr className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors ${isPending ? 'bg-semantic-warning/5' : ''}`}>
+            <td className="py-4 px-6">
+                <div className="font-bold text-text-primary">{user.display_name || dict.admin.users.unnamed}</div>
+                <div className="text-sm text-text-tertiary">{user.email}</div>
                 {isPending && (
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-semantic-warning/10 text-semantic-warning text-xs font-bold rounded border border-semantic-warning/20">
                         待審核
                     </span>
                 )}
             </td>
-            <td className="py-3 px-4">
+            <td className="py-4 px-6">
                 <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="border rounded px-2 py-1 text-sm bg-white"
+                    className="border border-white/10 rounded-lg px-3 py-2 text-sm bg-background-secondary text-text-primary focus:border-primary-500 focus:outline-none"
                     disabled={isLoading}
                 >
                     <option value="USER">{dict.admin.users.roles.user}</option>
@@ -118,11 +118,11 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
                     <option value="SUPER_ADMIN">{dict.admin.users.roles.super_admin}</option>
                 </select>
             </td>
-            <td className="py-3 px-4">
+            <td className="py-4 px-6">
                 <select
                     value={deptId}
                     onChange={(e) => setDeptId(e.target.value)}
-                    className="border rounded px-2 py-1 text-sm bg-white max-w-[150px]"
+                    className="border border-white/10 rounded-lg px-3 py-2 text-sm bg-background-secondary text-text-primary focus:border-primary-500 focus:outline-none max-w-[150px]"
                     disabled={isLoading}
                 >
                     <option value="">{dict.admin.users.no_dept}</option>
@@ -131,7 +131,7 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
                     ))}
                 </select>
             </td>
-            <td className="py-3 px-4 text-right">
+            <td className="py-4 px-6 text-right">
                 {isPending ? (
                     // 待審核：顯示審核按鈕
                     <div className="flex gap-2 justify-end">
@@ -139,7 +139,7 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
                             size="sm"
                             onClick={() => handleApprove(false)}
                             disabled={isLoading}
-                            className="bg-red-500 hover:bg-red-600"
+                            className="bg-semantic-danger hover:bg-semantic-danger/80 text-white"
                         >
                             {isLoading ? <Spinner size="sm" /> : '拒絕'}
                         </Button>
@@ -147,7 +147,7 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
                             size="sm"
                             onClick={() => handleApprove(true)}
                             disabled={isLoading}
-                            className="bg-green-500 hover:bg-green-600"
+                            className="bg-semantic-success hover:bg-semantic-success/80 text-white"
                         >
                             {isLoading ? <Spinner size="sm" /> : '通過'}
                         </Button>

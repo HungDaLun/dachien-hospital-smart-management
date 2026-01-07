@@ -2,8 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import WatchTopicManager from '@/components/war-room/intelligence/WatchTopicManager';
 import { RiskAlertSystem } from '@/lib/war-room/kpi/risk-alerts';
-import PageHeader from '@/components/layout/PageHeader';
-import { AlertTriangle, Cpu } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 
 export default async function ExternalIntelligencePage() {
@@ -44,10 +43,6 @@ export default async function ExternalIntelligencePage() {
             <div className="war-room-grid fixed inset-0 pointer-events-none z-0 opacity-30" />
 
             <div className="max-w-7xl mx-auto relative z-10">
-                <PageHeader
-                    title="企業戰情"
-                    icon={Cpu}
-                />
 
 
                 {/* Internal Risks Section */}

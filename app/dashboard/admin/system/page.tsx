@@ -3,6 +3,7 @@
  * 僅 SUPER_ADMIN 可以存取
  */
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getCurrentUserProfile, requireSuperAdmin } from '@/lib/permissions';
 import SystemConfigClient from './SystemConfigClient';
 import { getLocale } from '@/lib/i18n/server';
@@ -21,10 +22,24 @@ export default async function SystemConfigPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-10 text-text-primary">
-      <div className="mb-10 border-b border-white/5 pb-8">
-        <h1 className="text-4xl font-black text-text-primary mb-2 uppercase tracking-tight">{dict.admin.system.title}</h1>
-        <p className="text-text-secondary font-medium tracking-wide">{dict.admin.system.subtitle}</p>
+    <div className="p-6 space-y-8 animate-in fade-in duration-700">
+      {/* 返回按鈕 */}
+      <div>
+        <Link
+          href="/dashboard/admin"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+        >
+          <span>←</span>
+          <span>返回系統管理</span>
+        </Link>
+      </div>
+
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div>
+          <h1 className="text-2xl font-black text-text-primary uppercase tracking-tight">{dict.admin.system.title}</h1>
+          <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">{dict.admin.system.subtitle}</p>
+        </div>
       </div>
 
       <SystemConfigClient dict={dict} />

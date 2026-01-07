@@ -55,19 +55,10 @@ export async function GET(request: NextRequest) {
             query = query.lte('created_at', endDate);
         }
 
-        // 部門管理員只能看到自己部門成員的操作記錄 (Optional rule, depending on requirements)
-        // 根據 PERMISSION_TEST_PLAN.md: "DEPT_ADMIN ... 僅看到部門日誌"
-        // 這裡需要 Join user_profiles 來篩選部門
-        if (profile.role === 'DEPT_ADMIN' && profile.department_id) {
-            // Supabase PostgREST 不支援深層篩選 (audit_logs -> user_profiles -> department_id) 直接在 select 語法中輕鬆過濾。
-            // 為了效能，通常建議在 audit_logs 中 Denormalize department_id，或者使用 RLS。
-            // 假設 RLS 已經設定好 (migration 中應有 policy)，這裡的 query 會自動被 RLS 過濾。
-            // 為求保險，我們依賴 RLS。如果沒有 RLS，這裡需要額外邏輯。
-            // 檢查之前的 schema，audit_logs table 沒有 department_id。
-            // 如果 RLS 是基於 user_id -> user_profiles -> department_id，則不用擔心。
-            // 若 RLS 尚未實作此邏輯，則 DEPT_ADMIN 可能會看到所有人。
-            // 暫時假設 RLS 有效。
-        }
+        // 部門過濾：DEPT_ADMIN 只能看到自己部門的記錄
+        // 此功能已透過 RLS 政策實作（migration: 20260127000000_fix_audit_logs_schema.sql）
+        // RLS 政策會自動根據 audit_logs.department_id 過濾記錄
+        // 因此這裡不需要額外的應用層過濾邏輯
 
         // 套用分頁
         query = query.range(offset, offset + limit - 1);

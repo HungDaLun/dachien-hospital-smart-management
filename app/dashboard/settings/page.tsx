@@ -5,8 +5,6 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
 import SettingsForm from './SettingsForm';
 import { Card } from '@/components/ui';
-import PageHeader from '@/components/layout/PageHeader';
-import { User } from 'lucide-react';
 
 
 export default async function SettingsPage() {
@@ -47,11 +45,6 @@ export default async function SettingsPage() {
 
   return (
     <div className="w-full p-4 md:p-6 bg-background-primary text-text-primary min-h-screen">
-      <PageHeader
-        title="個人設定"
-        icon={User}
-      />
-
 
       <Card variant="glass">
         <div className="p-6">

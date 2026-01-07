@@ -51,22 +51,22 @@ export function AuditLogTable({ logs, isLoading, dict }: AuditLogTableProps) {
                 <table className="min-w-full divide-y divide-white/5">
                     <thead className="bg-white/[0.03]">
                         <tr>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em]">
                                 {dict.admin.audit.timestamp}
                             </th>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em]">
                                 {dict.admin.audit.user}
                             </th>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em]">
                                 {dict.admin.audit.action}
                             </th>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em]">
                                 {dict.admin.audit.resource}
                             </th>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em] min-w-[400px]">
                                 {dict.admin.audit.details}
                             </th>
-                            <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em]">
+                            <th scope="col" className="px-6 py-4 text-center text-sm font-black text-white uppercase tracking-[0.2em]">
                                 {dict.admin.audit.ip}
                             </th>
                         </tr>
@@ -96,11 +96,17 @@ export function AuditLogTable({ logs, isLoading, dict }: AuditLogTableProps) {
                                     {log.resource_type}
                                     {log.resource_id && <span className="block text-[9px] font-mono text-text-tertiary opacity-50 truncate max-w-[120px] mt-1">{log.resource_id}</span>}
                                 </td>
-                                <td className="px-6 py-5 text-xs text-text-secondary max-w-xs truncate font-medium">
-                                    {formatDetails(log.details)}
+                                <td className="px-6 py-5 text-xs text-text-secondary font-medium min-w-[400px] max-w-2xl">
+                                    <div className="whitespace-normal break-words leading-relaxed">
+                                        {formatDetails(log.details)}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-5 whitespace-nowrap text-xs font-mono text-text-tertiary">
-                                    {log.ip_address || '-'}
+                                    {log.ip_address ? (
+                                        <span className="text-text-secondary">{log.ip_address}</span>
+                                    ) : (
+                                        <span className="opacity-50 italic">歷史記錄</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -118,8 +124,72 @@ function getActionColor(action: string): string {
     return 'bg-white/5 text-text-tertiary border-white/10';
 }
 
+/**
+ * 格式化詳情為友好的文字格式
+ */
 function formatDetails(details: any): string {
     if (!details) return '-';
     if (typeof details === 'string') return details;
-    return JSON.stringify(details);
+    
+    // 如果是物件，根據內容格式化為友好的文字
+    if (typeof details === 'object') {
+        const parts: string[] = [];
+        
+        // 優先處理檔案相關的詳情（檔案名稱最重要）
+        if (details.filename) {
+            parts.push(`檔案：${details.filename}`);
+            // 如果有檔案大小，顯示在檔案名稱後面
+            if (details.size_bytes) {
+                const sizeMB = (details.size_bytes / 1024 / 1024).toFixed(2);
+                parts.push(`大小：${sizeMB} MB`);
+            }
+            // 如果有 MIME 類型，也顯示
+            if (details.mime_type) {
+                parts.push(`類型：${details.mime_type}`);
+            }
+        } else {
+            // 如果不是檔案，處理其他類型的名稱
+            if (details.name) {
+                // 如果是部門且有描述
+                if (details.description) {
+                    parts.push(`${details.name} - ${details.description}`);
+                } else {
+                    // Agent 或其他類型
+                    parts.push(details.name);
+                }
+            }
+        }
+        
+        // 處理使用者相關的詳情（只有在不是檔案的情況下）
+        if (!details.filename) {
+            if (details.email) {
+                parts.push(`Email：${details.email}`);
+            }
+            if (details.display_name && !details.name) {
+                parts.push(`名稱：${details.display_name}`);
+            }
+            if (details.role) {
+                parts.push(`角色：${details.role}`);
+            }
+        }
+        
+        // 處理模型版本（Agent 相關）
+        if (details.model_version) {
+            parts.push(`模型：${details.model_version}`);
+        }
+        
+        // 處理部門 ID（如果有）
+        if (details.department_id) {
+            parts.push(`部門 ID：${details.department_id}`);
+        }
+        
+        // 如果有 note，顯示在最後（用括號標示）
+        if (details.note) {
+            parts.push(`（${details.note}）`);
+        }
+        
+        return parts.length > 0 ? parts.join(' | ') : '-';
+    }
+    
+    return '-';
 }

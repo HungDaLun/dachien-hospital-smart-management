@@ -8,7 +8,6 @@ import { RiskAlertSystem } from '@/lib/war-room/kpi/risk-alerts';
 import { CorporateStrategyAnalyzer } from '@/lib/war-room/kpi/corporate-strategy';
 import { WarRoomDataProvider } from '@/lib/war-room/kpi/war-room-data-provider';
 import KPICard from '@/components/war-room/kpi-cards/KPICard';
-import PageHeader from '@/components/layout/PageHeader';
 import InsightRefreshButton from '@/components/war-room/InsightRefreshButton';
 import { ChevronRight, Cpu, Activity, ShieldAlert, Globe, Clock } from 'lucide-react';
 import CorporateConsultantButton from '@/components/war-room/CorporateConsultantButton';
@@ -61,28 +60,22 @@ export default async function DashboardPage() {
       <div className="war-room-grid fixed inset-0 pointer-events-none z-0" />
 
       <div className="w-full mx-auto space-y-10 relative z-10">
-        {/* Page Header */}
-        <PageHeader
-          title="企業戰情"
-          icon={Cpu}
-          actions={
-            <div className="flex flex-wrap gap-4">
-              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
-                SYSTEM LIVE
-              </div>
-              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
-                <Globe size={14} />
-                GLOBAL SYNCED
-              </div>
-              <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
-                <Clock size={14} />
-                每日 05:00 更新
-              </div>
-              <CorporateConsultantButton />
-            </div>
-          }
-        />
+        {/* 頂部狀態列 */}
+        <div className="flex flex-wrap gap-4 justify-end">
+          <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+            SYSTEM LIVE
+          </div>
+          <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
+            <Globe size={14} />
+            GLOBAL SYNCED
+          </div>
+          <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-text-tertiary text-xs font-bold flex items-center gap-2">
+            <Clock size={14} />
+            每日 05:00 更新
+          </div>
+          <CorporateConsultantButton />
+        </div>
 
 
         {/* KPI Grid - Layer 1 */}

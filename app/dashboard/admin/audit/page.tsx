@@ -17,12 +17,12 @@ export default async function AuditLogPage() {
 
     const profile = await getCachedUserProfile(user.id);
 
-    // 檢查是否為 SUPER_ADMIN（RLS 會確保只有 SUPER_ADMIN 可以查詢稽核日誌）
-    if (!profile || profile.role !== 'SUPER_ADMIN') {
+    // 檢查是否為 SUPER_ADMIN 或 DEPT_ADMIN（RLS 會確保只有管理員可以查詢稽核日誌）
+    if (!profile || (profile.role !== 'SUPER_ADMIN' && profile.role !== 'DEPT_ADMIN')) {
         return (
             <div className="p-6">
                 <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-                    {dict.common.error}: {!profile ? '無法取得使用者資料' : '需要 SUPER_ADMIN 權限'}
+                    {dict.common.error}: {!profile ? '無法取得使用者資料' : '需要管理員權限（SUPER_ADMIN 或 DEPT_ADMIN）'}
                 </div>
             </div>
         );

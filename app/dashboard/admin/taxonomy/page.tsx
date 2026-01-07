@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { getCategories } from '@/lib/actions/taxonomy';
 import TaxonomyManager from '@/components/admin/taxonomy/TaxonomyManager';
 import { AlertCircle } from 'lucide-react';
@@ -44,12 +45,26 @@ export default async function TaxonomyPage() {
     }
 
     return (
-        <div className="p-6 max-w-5xl mx-auto text-text-primary">
-            <div className="mb-10 border-b border-white/5 pb-8">
-                <h1 className="text-3xl font-black text-text-primary mb-2 uppercase tracking-tight">統一分類表管理 (Unified Taxonomy)</h1>
-                <p className="text-text-secondary font-medium leading-relaxed">
-                    定義企業知識庫的標準分類架構。此分類將應用於所有上傳文件，並協助 AI 進行自動歸檔與權限劃分。
-                </p>
+        <div className="w-full p-6 xl:p-10 space-y-8 animate-in fade-in duration-700">
+            {/* 返回按鈕 */}
+            <div>
+                <Link
+                    href="/dashboard/admin"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+                >
+                    <span>←</span>
+                    <span>返回系統管理</span>
+                </Link>
+            </div>
+
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-black text-text-primary uppercase tracking-tight">{dict.admin.taxonomy?.title || '統一分類表管理 (Unified Taxonomy)'}</h1>
+                    <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">
+                        {dict.admin.taxonomy?.subtitle || '定義企業知識庫的標準分類架構。此分類將應用於所有上傳文件，並協助 AI 進行自動歸檔與權限劃分。'}
+                    </p>
+                </div>
             </div>
 
             <TaxonomyManager initialCategories={categories || []} />

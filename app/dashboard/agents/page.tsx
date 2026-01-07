@@ -8,8 +8,7 @@ import { Button, Card, Badge } from '@/components/ui';
 import Link from 'next/link';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
-import PageHeader from '@/components/layout/PageHeader';
-import { Bot, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 
 export default async function AgentsPage() {
@@ -36,18 +35,14 @@ export default async function AgentsPage() {
 
     return (
         <div className="w-full p-6 xl:p-10 space-y-10 bg-background-primary text-text-primary min-h-screen">
-            {/* 頁面標題 - 使用統一組件 */}
-            <PageHeader
-                title="智能代理"
-                icon={Bot}
-                actions={
-                    <Link href="/dashboard/agents/new">
-                        <Button variant="cta" size="lg">
-                            <Sparkles size={18} className="mr-2" /> {dict.agents.create_new}
-                        </Button>
-                    </Link>
-                }
-            />
+            {/* 頁面操作按鈕 */}
+            <div className="flex justify-end">
+                <Link href="/dashboard/agents/new">
+                    <Button variant="cta" size="lg">
+                        <Sparkles size={18} className="mr-2" /> {dict.agents.create_new}
+                    </Button>
+                </Link>
+            </div>
 
 
             {/* Agent 列表 */}

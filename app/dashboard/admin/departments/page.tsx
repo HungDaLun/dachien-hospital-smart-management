@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
 import { Card, Badge } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import CreateDepartmentForm from './CreateDepartmentForm';
 import DeleteDepartmentButton from './DeleteDepartmentButton';
+import EditDepartmentButton from './EditDepartmentButton';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
-import PageHeader from '@/components/layout/PageHeader';
-import { Settings } from 'lucide-react';
 
 
 export const dynamic = 'force-dynamic';
@@ -72,11 +72,17 @@ export default async function DepartmentsPage() {
 
     return (
         <div className="p-6 w-full text-text-primary">
-            <PageHeader
-                title="系統管理"
-                icon={Settings}
-                actions={<CreateDepartmentForm dict={dict} />}
-            />
+            {/* 返回按鈕 */}
+            <div className="flex justify-between items-center mb-6">
+                <Link
+                    href="/dashboard/admin"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+                >
+                    <span>←</span>
+                    <span>返回系統管理</span>
+                </Link>
+                <CreateDepartmentForm dict={dict} />
+            </div>
 
 
             <div className="grid gap-6">
@@ -103,6 +109,7 @@ export default async function DepartmentsPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <EditDepartmentButton department={dept} dict={dict} />
                             <DeleteDepartmentButton id={dept.id} dict={dict} />
                         </div>
                     </Card>

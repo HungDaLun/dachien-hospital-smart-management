@@ -8,8 +8,6 @@ import { redirect } from 'next/navigation';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
-import PageHeader from '@/components/layout/PageHeader';
-import { MessageSquare } from 'lucide-react';
 
 
 interface ChatPageProps {
@@ -41,10 +39,6 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
 
     return (
         <div className="w-full p-6 xl:p-10 h-[calc(100vh-120px)] flex flex-col bg-background-primary">
-            <PageHeader
-                title="智能對話"
-                icon={MessageSquare}
-            />
             <div className="flex-1 overflow-hidden">
                 <ChatInterface
                     agents={agents || []}

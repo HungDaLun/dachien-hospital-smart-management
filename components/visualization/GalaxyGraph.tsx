@@ -25,7 +25,8 @@ import {
     forceLink,
     forceManyBody,
     forceCollide,
-    forceRadial
+    forceRadial,
+    forceCenter
 } from 'd3-force';
 
 
@@ -152,21 +153,37 @@ const getNodeRadius = (node: any) => {
 
 // Layout Helper
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
-    const d3Nodes = nodes.map((n) => ({
-        ...n,
-        x: n.position.x || Math.random() * 100 - 50, // Start near center
-        y: n.position.y || Math.random() * 100 - 50
-    }));
+    // 找出哪些節點是孤立的（沒有連接）
+    const connectedNodeIds = new Set<string>();
+    edges.forEach(e => {
+        connectedNodeIds.add(e.source);
+        connectedNodeIds.add(e.target);
+    });
+
+    const d3Nodes = nodes.map((n, index) => {
+        // 給所有節點圓形分散的初始位置
+        const isIsolated = !connectedNodeIds.has(n.id);
+        const angle = (index / nodes.length) * 2 * Math.PI;
+        // 孤立節點放更外圍
+        const radius = isIsolated ? 800 + Math.random() * 300 : 200 + Math.random() * 150;
+
+        return {
+            ...n,
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius
+        };
+    });
     const d3Links = edges.map((e) => ({ ...e, source: e.source, target: e.target }));
 
     const simulation = forceSimulation(d3Nodes as any)
-        .force('link', forceLink(d3Links).id((d: any) => d.id).distance(100).strength(0.5)) // Looser links to allow radial structure
-        .force('charge', forceManyBody().strength(-300)) // Repulsion to spacing
-        .force('collide', forceCollide().radius(40).iterations(2)) // Avoid overlap
-        .force('radial', forceRadial((d: any) => getNodeRadius(d), 0, 0).strength(0.8)) // Strong Radial Force for Rings
+        .force('center', forceCenter(0, 0)) // 強制置中
+        .force('link', forceLink(d3Links).id((d: any) => d.id).distance(200).strength(0.4)) // 連接的節點靠近但距離增加
+        .force('charge', forceManyBody().strength(-1200)) // 大幅增加斥力使節點分散
+        .force('collide', forceCollide().radius(100).iterations(4)) // 增加碰撞半徑避免重疊
+        .force('radial', forceRadial((d: any) => getNodeRadius(d), 0, 0).strength(0.15)) // 進一步降低徑向力
         .stop();
 
-    const TICK_COUNT = 300;
+    const TICK_COUNT = 500; // 增加迭代次數使佈局更穩定
     for (let i = 0; i < TICK_COUNT; ++i) {
         simulation.tick();
     }
@@ -191,11 +208,13 @@ interface GalaxyGraphProps {
     enableWebGL?: boolean;
     focusNodeId?: string | null;
     refreshTrigger?: number;
+    isVisible?: boolean; // 新增：容器是否可見
 }
 
 function GalaxyGraphContent({
     focusNodeId,
-    refreshTrigger = 0
+    refreshTrigger = 0,
+    isVisible = true
 }: GalaxyGraphProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -209,7 +228,19 @@ function GalaxyGraphContent({
     // 追蹤上次處理的 focusNodeId，避免重複處理造成無限循環
     const prevFocusNodeIdRef = useRef<string | null>(null);
 
-    const { getEdges, getNodes, setCenter } = useReactFlow();
+    const { getEdges, getNodes, setCenter, fitView } = useReactFlow();
+
+    // 當容器變為可見時，重新觸發 fitView 置中
+    useEffect(() => {
+        if (isVisible && !loading && nodes.length > 0) {
+            // 延遲執行確保容器已完全展開
+            const timer = setTimeout(() => {
+                fitView({ padding: 0.4, duration: 600 });
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+        return undefined;
+    }, [isVisible, loading, nodes.length, fitView]);
 
     // --- Neighbor Highlighting Logic (定義在 useEffect 之前) ---
     const handleHitNode = useCallback((nodeId: string) => {
@@ -415,10 +446,9 @@ function GalaxyGraphContent({
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 fitView
-                fitViewOptions={{ padding: 0.2, includeHiddenNodes: false, duration: 200 }}
+                fitViewOptions={{ padding: 0.4, includeHiddenNodes: false, duration: 800 }}
                 minZoom={0.1}
                 maxZoom={4}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                 attributionPosition="bottom-right"
                 className="galaxy-flow"
                 style={{ background: 'transparent' }}

@@ -11,8 +11,6 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 import { getSystemStats } from '@/lib/actions/analytics';
-import PageHeader from '@/components/layout/PageHeader';
-import { Settings } from 'lucide-react';
 
 
 export default async function AdminPage() {
@@ -70,11 +68,6 @@ export default async function AdminPage() {
 
   return (
     <div className="w-full p-6 xl:p-10 space-y-10">
-      {/* 頁面標題 */}
-      <PageHeader
-        title="系統管理"
-        icon={Settings}
-      />
 
 
       {/* 1. 快速管理入口 */}

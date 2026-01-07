@@ -1,12 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
 import { Card } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import UserRow from './UserRow';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
-import PageHeader from '@/components/layout/PageHeader';
-import { Settings } from 'lucide-react';
 
 
 export const dynamic = 'force-dynamic';
@@ -101,12 +100,16 @@ export default async function UsersPage() {
 
     return (
         <div className="p-6 w-full text-text-primary">
-            <PageHeader
-                title="系統管理"
-                icon={Settings}
-            />
-
-
+            {/* 返回按鈕 */}
+            <div className="mb-6">
+                <Link
+                    href="/dashboard/admin"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+                >
+                    <span>←</span>
+                    <span>返回系統管理</span>
+                </Link>
+            </div>
             {/* 待審核使用者區塊 */}
             {pendingUsers.length > 0 && (
                 <div className="mb-10 animate-fade-in">

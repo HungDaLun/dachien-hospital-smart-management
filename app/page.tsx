@@ -33,9 +33,9 @@ export default async function HomePage() {
           <span className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent block font-heading">NEXUS</span>
           <span className="text-4xl block mt-2 text-white/90 tracking-widest font-bold">智樞</span>
         </h1>
-        <div className="text-primary-400/80 tracking-[0.3em] font-mono text-sm mb-2 font-medium">ENTERPRISE DECISION COMMAND</div>
-        <div className="text-primary-300/60 tracking-[0.2em] text-xs mb-8 font-bold">企業戰情智能決策系統</div>
-        <p className="text-text-secondary text-lg mb-12 font-medium tracking-wide">
+        <div className="text-primary-400/80 tracking-[0.3em] font-mono text-base md:text-lg mb-2 font-semibold">ENTERPRISE DECISION COMMAND</div>
+        <div className="text-primary-300/70 tracking-[0.15em] text-sm md:text-base mb-10 font-bold">企業戰情智能決策系統</div>
+        <p className="text-text-secondary text-xl md:text-2xl mb-12 font-medium tracking-wide max-w-2xl mx-auto leading-relaxed">
           {dict.common.subtitle}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

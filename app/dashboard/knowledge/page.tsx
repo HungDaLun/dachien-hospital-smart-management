@@ -4,8 +4,6 @@ import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
 import { createClient } from '@/lib/supabase/server';
-import PageHeader from '@/components/layout/PageHeader';
-import { Library } from 'lucide-react';
 
 
 export default async function KnowledgePage() {
@@ -55,11 +53,7 @@ export default async function KnowledgePage() {
 
     return (
         <div className="w-full h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-background-primary p-6 xl:p-10">
-            <PageHeader
-                title="知識管理"
-                icon={Library}
-            />
-            <div className="flex-1 overflow-hidden relative mt-4">
+            <div className="flex-1 overflow-hidden relative">
                 <ControlCenter
                     canUpload={canUpload || false}
                     dict={dict}
