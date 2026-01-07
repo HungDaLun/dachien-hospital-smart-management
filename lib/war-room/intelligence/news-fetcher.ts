@@ -17,10 +17,11 @@ export class NewsFetcher {
         }
 
         try {
-            const response = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&apiKey=${this.apiKey}&pageSize=5&sortBy=publishedAt`);
+            const response = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&apiKey=${this.apiKey}&pageSize=20&sortBy=publishedAt`);
             const data = await response.json();
 
             if (data.status !== 'ok') {
+                console.error('[NewsFetcher] NewsAPI Error:', data.message || 'Unknown error');
                 throw new Error(data.message || 'News API Error');
             }
 

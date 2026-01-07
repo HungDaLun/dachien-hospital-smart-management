@@ -11,6 +11,7 @@ export class NewsAnalyzer {
     ): Promise<Partial<ExternalIntelligence>> {
         const prompt = `
 You are a Corporate Intelligence Analyst. Analyze the following news article for its impact on our business.
+IMPORTANT: All text output (summary, impact areas, recommended actions, key points) MUST be in Traditional Chinese (Taiwan).
 
 CONTEXT:
 - Watch Topic: "${topic.name}"
@@ -26,20 +27,20 @@ NEWS ARTICLE:
 TASK:
 1. Determine Relevance Score (0-1): How relevant is this to our business context?
 2. Assess Risk Level: 'low', 'medium', 'high', or 'critical'.
-3. Identify Impact Areas (e.g., Supply Chain, Competition, Regulation).
-4. Summarize: A 1-sentence executive summary.
-5. Recommend Actions: 2-3 specific steps we should take.
+3. Identify Impact Areas (e.g., 供應鏈, 市場競爭, 政策法規).
+4. Summarize: A 1-sentence executive summary in Traditional Chinese.
+5. Recommend Actions: 2-3 specific steps we should take in Traditional Chinese.
 
 Return JSON:
 {
   "relevance_score": 0.85,
   "risk_level": "medium",
-  "impact_areas": ["Supply Chain"],
+  "impact_areas": ["市場競爭"],
   "sentiment": "negative",
-  "ai_summary": "Summary text...",
-  "key_points": ["Point 1", "Point 2"],
+  "ai_summary": "繁體中文摘要...",
+  "key_points": ["重點1", "重點2"],
   "affected_entities": { "suppliers": ["Name"] },
-  "recommended_actions": ["Action 1", "Action 2"]
+  "recommended_actions": ["建議行動1", "建議行動2"]
 }
 `;
 
