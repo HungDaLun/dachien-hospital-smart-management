@@ -2,12 +2,20 @@
  * 對話 API
  * 提供與 Agent 對話功能，支援串流回應
  * 遵循 EAKAP API 規範
+ * 
+ * 🔧 修正：改用向量搜尋 + markdown_content 作為知識來源
+ *    不再依賴 gemini_file_uri（48 小時後會過期）
  */
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { NotFoundError, ValidationError, toApiResponse } from '@/lib/errors';
 import { getCurrentUserProfile, canAccessAgent } from '@/lib/permissions';
+import { generateEmbedding } from '@/lib/knowledge/embedding';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 /**
  * POST /api/chat
@@ -96,11 +104,13 @@ export async function POST(request: NextRequest) {
             .select('rule_type, rule_value')
             .eq('agent_id', agent.id);
 
-        let fileUris: Array<{ uri: string; mimeType: string }> = [];
         let matchedFileIds: Set<string> = new Set(agent.knowledge_files || []);
 
         // 使用 Admin 客戶端進行檢索，確保能存取規則所定義的檔案範圍
         const adminSupabase = createAdminClient();
+
+        // 收集部門 ID 列表（用於向量搜尋過濾）
+        let departmentIds: string[] = [];
 
         if (rules && rules.length > 0) {
             // 分類規則
@@ -132,12 +142,12 @@ export async function POST(request: NextRequest) {
                     .or(`code.in.(${deptValues.map(v => `"${v}"`).join(',')}),name.in.(${deptValues.map(v => `"${v}"`).join(',')})`);
 
                 if (departments && departments.length > 0) {
-                    const deptIds = departments.map(d => d.id);
+                    departmentIds = departments.map(d => d.id);
                     const { data: deptFiles } = await adminSupabase
                         .from('files')
                         .select('id')
-                        .in('department_id', deptIds)
-                        .eq('gemini_state', 'SYNCED');
+                        .in('department_id', departmentIds)
+                        .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
 
                     deptFiles?.forEach(f => matchedFileIds.add(f.id));
                 }
@@ -150,31 +160,110 @@ export async function POST(request: NextRequest) {
                     .from('files')
                     .select('id')
                     .in('category_id', catIds)
-                    .eq('gemini_state', 'SYNCED');
+                    .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
 
                 catFiles?.forEach(f => matchedFileIds.add(f.id));
             }
         }
 
-        // 4. 統一查詢檔案詳情與 URI
+        // ============================================
+        // 🔧 修正：使用向量搜尋 + markdown_content
+        //    不再依賴會過期的 gemini_file_uri
+        // ============================================
+        let knowledgeContext = '';
         let retrievedFiles: any[] = [];
-        if (matchedFileIds.size > 0) {
+
+        // 方式 1: 使用向量搜尋找出最相關的內容
+        try {
+            const embedding = await generateEmbedding(message);
+
+            // 如果有限定部門，使用部門過濾搜尋
+            if (departmentIds.length > 0) {
+                // 對每個部門進行搜尋
+                for (const deptId of departmentIds) {
+                    const { data: vectorMatches, error: rpcError } = await adminSupabase.rpc('search_knowledge_by_embedding', {
+                        query_embedding: embedding,
+                        match_threshold: 0.1,
+                        match_count: 5,
+                        filter_department: deptId
+                    });
+
+                    if (!rpcError && vectorMatches && vectorMatches.length > 0) {
+                        retrievedFiles.push(...vectorMatches);
+                    }
+                }
+            } else if (matchedFileIds.size > 0) {
+                // 如果有特定檔案 ID，直接查詢這些檔案的內容
+                const { data: files } = await adminSupabase
+                    .from('files')
+                    .select('id, filename, markdown_content, metadata_analysis, department_id')
+                    .in('id', Array.from(matchedFileIds))
+                    .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
+
+                if (files) {
+                    retrievedFiles = files.map(f => ({
+                        id: f.id,
+                        filename: f.filename,
+                        content: f.markdown_content,
+                        summary: f.metadata_analysis?.summary,
+                        department_id: f.department_id
+                    }));
+                }
+            } else {
+                // 無特定規則時，使用全域搜尋
+                const { data: vectorMatches, error: rpcError } = await adminSupabase.rpc('search_knowledge_global', {
+                    query_embedding: embedding,
+                    match_threshold: 0.1,
+                    match_count: 8
+                });
+
+                if (!rpcError && vectorMatches && vectorMatches.length > 0) {
+                    retrievedFiles = vectorMatches;
+                }
+            }
+        } catch (vectorErr) {
+            console.error('[Agent Chat] 向量搜尋失敗，使用 fallback:', vectorErr);
+        }
+
+        // Fallback: 如果向量搜尋失敗，直接查詢檔案內容
+        if (retrievedFiles.length === 0 && matchedFileIds.size > 0) {
             const { data: files } = await adminSupabase
                 .from('files')
-                .select('id, filename, gemini_file_uri, mime_type, department_id')
-                .eq('gemini_state', 'SYNCED')
-                .in('id', Array.from(matchedFileIds));
+                .select('id, filename, markdown_content, metadata_analysis, department_id')
+                .in('id', Array.from(matchedFileIds))
+                .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED'])
+                .limit(10);
 
             if (files) {
-                retrievedFiles = files;
-                fileUris = files.map(f => ({
-                    uri: f.gemini_file_uri!,
-                    mimeType: f.mime_type
+                retrievedFiles = files.map(f => ({
+                    id: f.id,
+                    filename: f.filename,
+                    content: f.markdown_content,
+                    summary: f.metadata_analysis?.summary,
+                    department_id: f.department_id
                 }));
+            }
+        }
 
-                // 記錄 Agent 查詢操作
-                const { logAudit } = await import('@/lib/actions/audit');
-                for (const file of files) {
+        // 建構知識上下文
+        if (retrievedFiles.length > 0) {
+            knowledgeContext = retrievedFiles.map((f: any, i: number) => {
+                const content = f.content || f.markdown_content || '';
+                const summary = f.summary || '';
+                // 截取內容以避免 token 超限（每個檔案最多 8000 字元）
+                const truncatedContent = content.length > 8000
+                    ? content.substring(0, 8000) + '...(內容已截斷)'
+                    : content;
+
+                return `【知識文件 ${i + 1}：${f.filename || f.source || '未命名'}】\n` +
+                    (summary ? `摘要：${summary}\n` : '') +
+                    `內容：\n${truncatedContent}`;
+            }).join('\n\n---\n\n');
+
+            // 記錄 Agent 查詢操作
+            const { logAudit } = await import('@/lib/actions/audit');
+            for (const file of retrievedFiles) {
+                if (file.id) {
                     await logAudit({
                         action: 'AGENT_QUERY',
                         resourceType: 'FILE',
@@ -197,47 +286,50 @@ export async function POST(request: NextRequest) {
             .order('created_at', { ascending: true })
             .limit(10); // 上取最近 10 則訊息
 
-        // 呼叫 Gemini 串流介面
-        const { chatWithGemini } = await import('@/lib/gemini/client');
+        // 建構完整的系統提示詞（包含知識上下文）
+        const fullSystemPrompt = `${agent.system_prompt}
 
-        // 建立知識映射暗示 (Knowledge Mapping Hint)
-        // 這有助於 AI 將系統提示詞中的檔案名與傳入的內容對接
-        let mappingHint = '';
-        if (fileUris.length > 0) {
-            mappingHint = "系統已為您載入以下知識庫檔案內容：\n" +
-                retrievedFiles.map((f, i) => `- 檔案 ${i + 1}: [${f.filename}]`).join('\n') +
-                "\n請務必根據提示詞中的檔案名稱引用對應內容。\n\n";
-        }
+${knowledgeContext ? `
+【已載入的知識庫內容】
+${knowledgeContext}
 
-        const stream = await chatWithGemini(
-            agent.model_version,
-            agent.system_prompt,
-            mappingHint + message,
-            fileUris,
-            (history || []).map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : msg.role,
-                content: msg.content
-            }))
-        );
+【回答準則】
+1. 優先引用上述知識庫中的具體事實。
+2. 標註來源文件名稱。
+3. 以繁體中文回答，語氣專業、精準。
+4. 若資訊不足，請坦白告知。
+` : ''}`;
+
+        // 使用 Gemini 進行對話（不再傳入 fileData）
+        const model = genAI.getGenerativeModel({
+            model: agent.model_version || 'gemini-3-flash-preview',
+            systemInstruction: fullSystemPrompt,
+        });
+
+        const chat = model.startChat({
+            history: (history || []).map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }],
+            })),
+        });
+
+        // 開始串流
+        const result = await chat.sendMessageStream([{ text: message }]);
 
         // 建立 SSE 串流回應
         const encoder = new TextEncoder();
-        const decoder = new TextDecoder();
         let fullAiResponse = '';
 
         const sseStream = new ReadableStream({
             async start(controller) {
-                const reader = stream.getReader();
                 try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        const chunkText = decoder.decode(value);
-                        fullAiResponse += chunkText;
-
-                        // 正確的 SSE 格式: data: [JSON]\n\n
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+                    for await (const chunk of result.stream) {
+                        const chunkText = chunk.text();
+                        if (chunkText) {
+                            fullAiResponse += chunkText;
+                            // 正確的 SSE 格式: data: [JSON]\n\n
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+                        }
                     }
 
                     // 串流結束，發送完成訊號
@@ -262,6 +354,7 @@ export async function POST(request: NextRequest) {
 
                     controller.close();
                 } catch (error) {
+                    console.error('[Agent Chat] Streaming error:', error);
                     controller.error(error);
                 }
             }

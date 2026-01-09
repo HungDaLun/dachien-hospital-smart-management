@@ -1,8 +1,13 @@
-
+/**
+ * ETL API - AI 知識清洗與結構化
+ * 
+ * 🔧 修正：當 Gemini File URI 過期時，自動從 S3 重新上傳
+ *    這確保即使超過 48 小時，使用者仍可重新分析任何檔案
+ */
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { generateContent } from '@/lib/gemini/client';
-import { uploadToS3 } from '@/lib/storage/s3';
+import { generateContent, uploadFileToGemini } from '@/lib/gemini/client';
+import { uploadToS3, downloadFromS3 } from '@/lib/storage/s3';
 import { syncFileToGemini } from '@/lib/gemini/files';
 
 export async function POST(
@@ -30,11 +35,61 @@ export async function POST(
             return NextResponse.json({ error: 'File not found' }, { status: 404 });
         }
 
-        if (!file.gemini_file_uri || file.gemini_state !== 'SYNCED') {
-            return NextResponse.json(
-                { error: 'File must be synced to Gemini before ETL processing' },
-                { status: 400 }
-            );
+        // ============================================
+        // 🔧 修正：確保有有效的 Gemini File URI
+        //    如果沒有或已過期，從 S3 重新上傳
+        // ============================================
+        let geminiFileUri = file.gemini_file_uri;
+        let needsReupload = !geminiFileUri || file.gemini_state !== 'SYNCED';
+
+        // 嘗試使用現有 URI，如果失敗則重新上傳
+        if (geminiFileUri && !needsReupload) {
+            try {
+                // 先嘗試用現有 URI 進行簡單測試
+                await generateContent(
+                    'gemini-3-flash-preview',
+                    '請簡單描述這個檔案的格式。只需回答一個詞。',
+                    geminiFileUri,
+                    file.mime_type
+                );
+            } catch (testError: any) {
+                // 如果錯誤是 403 (權限問題/檔案不存在)，需要重新上傳
+                if (testError.message?.includes('403') ||
+                    testError.message?.includes('permission') ||
+                    testError.message?.includes('not exist')) {
+                    console.log(`[ETL] Gemini URI 已過期，將重新上傳: ${fileId}`);
+                    needsReupload = true;
+                } else {
+                    throw testError;
+                }
+            }
+        }
+
+        // 如果需要重新上傳
+        if (needsReupload) {
+            console.log(`[ETL] 從 S3 下載並重新上傳到 Gemini: ${file.filename}`);
+
+            // 從 S3 下載檔案
+            if (!file.s3_storage_path || !file.s3_etag || file.s3_etag.startsWith('mock-')) {
+                return NextResponse.json({
+                    error: '檔案無法重新處理：找不到原始檔案。請重新上傳檔案。'
+                }, { status: 400 });
+            }
+
+            const buffer = await downloadFromS3(file.s3_storage_path);
+
+            // 上傳到 Gemini
+            const geminiFile = await uploadFileToGemini(buffer, file.mime_type, file.filename);
+            geminiFileUri = geminiFile.uri;
+
+            // 更新資料庫中的 URI
+            await supabase.from('files').update({
+                gemini_file_uri: geminiFileUri,
+                gemini_state: 'SYNCED'
+            }).eq('id', fileId);
+
+            // 等待 Gemini 處理完成
+            await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
         // Detect Data Files (CSV/Excel)
@@ -46,7 +101,6 @@ export async function POST(
 
         if (isDataFile) {
             // STRATEGY: Raw Data Injection
-            // Keep CSV format compact to maximize token usage efficiency.
             prompt = `
             You are an expert Data Engineer AI.
             Your task is to Clean and Standardize the attached dataset.
@@ -60,7 +114,6 @@ export async function POST(
             `;
         } else {
             // STRATEGY: Document Digitization
-            // Convert unstructured text to structured Markdown structure.
             prompt = `
             You are an expert AI Knowledge Librarian.
             Your task is to convert the attached document into a clean, structured Markdown file.
@@ -75,13 +128,12 @@ export async function POST(
         }
 
         // Create Gemini Client
-        // FORCE Gemini 3 for best performance as per user instruction
         const modelVersion = process.env.GEMINI_MODEL_VERSION || 'gemini-3-flash-preview';
 
         const structuredContent = await generateContent(
             modelVersion,
             prompt,
-            file.gemini_file_uri,
+            geminiFileUri!,
             file.mime_type
         );
 
@@ -109,7 +161,7 @@ export async function POST(
                 size_bytes: newFileBuffer.length,
                 uploaded_by: user.id,
                 is_active: true,
-                gemini_state: 'PENDING' // Setup for sync
+                gemini_state: 'PENDING'
             })
             .select()
             .single();
@@ -119,17 +171,14 @@ export async function POST(
         }
 
         // 4. Sync the new structured file back to Gemini (Spoke)
-        // This allows Agents to use the *clean* version immediately.
         await syncFileToGemini(newFile.id, supabase);
-
-        // 5. Add a tag to link them conceptually (Optional, but good for "Librarian")
-        // For now, allow simple return.
 
         return NextResponse.json({
             success: true,
             original_file_id: fileId,
             structured_file_id: newFile.id,
-            message: 'AI Librarian ETL completed successfully'
+            message: 'AI Librarian ETL completed successfully',
+            reuploadedToGemini: needsReupload
         });
 
     } catch (error: any) {

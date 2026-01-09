@@ -1,16 +1,21 @@
+/**
+ * OpenAI 相容 API
+ * 提供與 OpenAI Chat Completion API 相容的介面
+ * 
+ * 🔧 修正：改用向量搜尋 + markdown_content 作為知識來源
+ *    不再依賴 gemini_file_uri（48 小時後會過期）
+ */
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkAuth } from '@/lib/auth/api-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithGemini } from '@/lib/gemini/client';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateEmbedding } from '@/lib/knowledge/embedding';
 
-export const runtime = 'nodejs'; // Ensure Node.js runtime for SSE optimization
-export const dynamic = 'force-dynamic'; // Disable static caching
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-/**
- * Authorization Check
- * For this MVP, we accept requests with a valid Bearer token.
- * A more robust implementation would verify the token against Supabase Auth.
- */
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: NextRequest) {
     if (!checkAuth(req)) {
@@ -24,7 +29,6 @@ export async function POST(req: NextRequest) {
         const supabase = createAdminClient();
         const body = await req.json();
         const { model, messages, stream = true } = body;
-        // const stream = false; // Enabled streaming
 
         console.log('[DEBUG] Request Stream param:', stream, typeof stream);
 
@@ -36,7 +40,6 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Fetch Agent (Model)
-        // Check if input is a valid UUID, otherwise treat as Name
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(model);
 
         let query = supabase
@@ -58,108 +61,199 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Fetch Knowledge Context (RAG)
-        // Similar logic to api/chat/route.ts
+        // 2. Fetch Knowledge Context (RAG - 使用向量搜尋 + markdown_content)
         const { data: rules } = await supabase
             .from('agent_knowledge_rules')
-            .select('rule_value')
+            .select('rule_type, rule_value')
             .eq('agent_id', agent.id);
 
-        let fileUris: Array<{ uri: string; mimeType: string }> = [];
+        let knowledgeContext = '';
+        let matchedFileIds: Set<string> = new Set();
+        let departmentIds: string[] = [];
 
         if (rules && rules.length > 0) {
-            // Parse rules "key:value"
-            const tagFilters = rules.map(r => {
-                const [key, value] = r.rule_value.split(':');
-                return { key, value };
-            });
+            const tagRules = rules.filter((r: any) => r.rule_type === 'TAG');
+            const deptRules = rules.filter((r: any) => r.rule_type === 'DEPARTMENT');
+            const categoryRules = rules.filter((r: any) => r.rule_type === 'CATEGORY');
 
-            // Find files that match tags (OR logic for simplicity)
-            const { data: files } = await supabase
-                .from('files')
-                .select('id, gemini_file_uri, mime_type')
-                .eq('gemini_state', 'SYNCED')
-                .in('id', (
-                    await supabase
-                        .from('file_tags')
-                        .select('file_id')
-                        .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','))
-                ).data?.map(t => t.file_id) || []);
+            // 處理 TAG 規則
+            if (tagRules.length > 0) {
+                const tagFilters = tagRules.map((r: any) => {
+                    const [key, value] = r.rule_value.split(':');
+                    return { key, value };
+                });
 
-            if (files) {
-                fileUris = files.map(f => ({
-                    uri: f.gemini_file_uri!,
-                    mimeType: f.mime_type
-                }));
+                const { data: tagFiles } = await supabase
+                    .from('file_tags')
+                    .select('file_id')
+                    .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','));
+
+                tagFiles?.forEach((f: any) => matchedFileIds.add(f.file_id));
+            }
+
+            // 處理 DEPARTMENT 規則
+            if (deptRules.length > 0) {
+                const deptValues = deptRules.map((r: any) => r.rule_value);
+                const { data: departments } = await supabase
+                    .from('departments')
+                    .select('id')
+                    .or(`code.in.(${deptValues.map(v => `"${v}"`).join(',')}),name.in.(${deptValues.map(v => `"${v}"`).join(',')})`);
+
+                if (departments && departments.length > 0) {
+                    departmentIds = departments.map((d: any) => d.id);
+                    const { data: deptFiles } = await supabase
+                        .from('files')
+                        .select('id')
+                        .in('department_id', departmentIds)
+                        .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
+
+                    deptFiles?.forEach((f: any) => matchedFileIds.add(f.id));
+                }
+            }
+
+            // 處理 CATEGORY 規則
+            if (categoryRules.length > 0) {
+                const catIds = categoryRules.map((r: any) => r.rule_value);
+                const { data: catFiles } = await supabase
+                    .from('files')
+                    .select('id')
+                    .in('category_id', catIds)
+                    .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
+
+                catFiles?.forEach((f: any) => matchedFileIds.add(f.id));
             }
         }
 
-        // 3. Prepare Chat History
-        // OpenAI messages are already in [{ role, content }] format.
-        // We need to separate the *latest* user message from the *history*.
+        // 使用向量搜尋或直接查詢檔案內容
         const lastMessage = messages[messages.length - 1];
-        const historyMessages = messages.slice(0, messages.length - 1);
+        let retrievedFiles: any[] = [];
 
-        // Map OpenAI roles to Gemini roles if needed (user/assistant -> user/model)
-        // chatWithGemini expects { role: 'user' | 'model', content: string }
+        try {
+            const embedding = await generateEmbedding(lastMessage.content);
+
+            if (departmentIds.length > 0) {
+                for (const deptId of departmentIds) {
+                    const { data: vectorMatches, error: rpcError } = await supabase.rpc('search_knowledge_by_embedding', {
+                        query_embedding: embedding,
+                        match_threshold: 0.1,
+                        match_count: 5,
+                        filter_department: deptId
+                    });
+
+                    if (!rpcError && vectorMatches && vectorMatches.length > 0) {
+                        retrievedFiles.push(...vectorMatches);
+                    }
+                }
+            } else if (matchedFileIds.size > 0) {
+                const { data: files } = await supabase
+                    .from('files')
+                    .select('id, filename, markdown_content, metadata_analysis')
+                    .in('id', Array.from(matchedFileIds))
+                    .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
+
+                if (files) {
+                    retrievedFiles = files.map((f: any) => ({
+                        filename: f.filename,
+                        content: f.markdown_content,
+                        summary: f.metadata_analysis?.summary
+                    }));
+                }
+            } else {
+                // 無規則時使用全域搜尋
+                const { data: vectorMatches, error: rpcError } = await supabase.rpc('search_knowledge_global', {
+                    query_embedding: embedding,
+                    match_threshold: 0.1,
+                    match_count: 8
+                });
+
+                if (!rpcError && vectorMatches && vectorMatches.length > 0) {
+                    retrievedFiles = vectorMatches;
+                }
+            }
+        } catch (vectorErr) {
+            console.error('[OpenAI API] 向量搜尋失敗:', vectorErr);
+        }
+
+        // 建構知識上下文
+        if (retrievedFiles.length > 0) {
+            knowledgeContext = retrievedFiles.map((f: any, i: number) => {
+                const content = f.content || f.markdown_content || '';
+                const summary = f.summary || '';
+                const truncatedContent = content.length > 8000
+                    ? content.substring(0, 8000) + '...(內容已截斷)'
+                    : content;
+
+                return `【知識文件 ${i + 1}：${f.filename || f.source || '未命名'}】\n` +
+                    (summary ? `摘要：${summary}\n` : '') +
+                    `內容：\n${truncatedContent}`;
+            }).join('\n\n---\n\n');
+        }
+
+        // 3. 建構完整的系統提示詞
+        const fullSystemPrompt = `${agent.system_prompt}
+
+${knowledgeContext ? `
+【已載入的知識庫內容】
+${knowledgeContext}
+
+【回答準則】
+1. 優先引用上述知識庫中的具體事實。
+2. 標註來源文件名稱。
+3. 以繁體中文回答，語氣專業、精準。
+4. 若資訊不足，請坦白告知。
+` : ''}`;
+
+        // 4. Prepare Chat History
+        const historyMessages = messages.slice(0, messages.length - 1);
         const geminiHistory = historyMessages.map((m: any) => ({
-            role: m.role === 'assistant' ? 'model' : m.role,
-            content: m.content
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
         }));
 
-        // 4. Call Gemini
-        // Note: chatWithGemini returns a ReadableStream
-        const geminiStream = await chatWithGemini(
-            agent.model_version,
-            agent.system_prompt,
-            lastMessage.content,
-            fileUris,
-            geminiHistory
-        );
+        // 5. 使用 Gemini（不再傳入 fileData）
+        const geminiModel = genAI.getGenerativeModel({
+            model: agent.model_version || 'gemini-3-flash-preview',
+            systemInstruction: fullSystemPrompt,
+        });
 
-        // 5. Handle Response
+        const chat = geminiModel.startChat({ history: geminiHistory });
+
+        // 6. Handle Response
         if (stream) {
+            const result = await chat.sendMessageStream([{ text: lastMessage.content }]);
             const encoder = new TextEncoder();
-            const decoder = new TextDecoder('utf-8');
 
-            // Use AsyncGenerator for better SSE compatibility with Open WebUI/Node.js
             const streamIterator = async function* () {
-                const reader = geminiStream.getReader();
                 const created = Math.floor(Date.now() / 1000);
                 const id = `chatcmpl-${Math.random().toString(36).slice(2)}`;
 
                 try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) {
-                            yield encoder.encode('data: [DONE]\n\n');
-                            break;
+                    for await (const chunk of result.stream) {
+                        const text = chunk.text();
+                        if (text) {
+                            const chunkData = {
+                                id,
+                                object: 'chat.completion.chunk',
+                                created,
+                                model: model,
+                                choices: [
+                                    {
+                                        index: 0,
+                                        delta: { content: text },
+                                        finish_reason: null,
+                                    },
+                                ],
+                            };
+                            yield encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`);
                         }
-
-                        const text = decoder.decode(value, { stream: true });
-
-                        const chunk = {
-                            id,
-                            object: 'chat.completion.chunk',
-                            created,
-                            model: model,
-                            choices: [
-                                {
-                                    index: 0,
-                                    delta: { content: text },
-                                    finish_reason: null,
-                                },
-                            ],
-                        };
-
-                        yield encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`);
                     }
+                    yield encoder.encode('data: [DONE]\n\n');
                 } catch (err) {
                     console.error('Stream Error:', err);
                 }
             };
 
-            // @ts-ignore - Next.js/Node supports passing iterator to Response in modern runtimes
+            // @ts-ignore
             return new Response(streamIterator(), {
                 headers: {
                     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -171,30 +265,14 @@ export async function POST(req: NextRequest) {
 
         } else {
             // Non-streaming response
-            console.log('[Non-Stream] Starting to read from Gemini stream...');
-            const reader = geminiStream.getReader();
-            const decoder = new TextDecoder();
-            let fullText = '';
-            let chunkCount = 0;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
-                    console.log(`[Non-Stream] Stream finished. Total chunks: ${chunkCount}`);
-                    break;
-                }
-                chunkCount++;
-                const chunkText = decoder.decode(value, { stream: true });
-                // console.log(`[Non-Stream] Chunk ${chunkCount}:`, chunkText.substring(0, 20) + '...');
-                fullText += chunkText;
-            }
-            console.log('[Non-Stream] Full text assembled. Length:', fullText.length);
+            const result = await chat.sendMessage([{ text: lastMessage.content }]);
+            const fullText = result.response.text();
 
             return NextResponse.json({
                 id: `chatcmpl-${Math.random().toString(36).slice(2)}`,
                 object: 'chat.completion',
                 created: Math.floor(Date.now() / 1000),
-                model: model, // Echo back the exact model ID requested by the client
+                model: model,
                 choices: [
                     {
                         index: 0,
@@ -206,8 +284,8 @@ export async function POST(req: NextRequest) {
                     },
                 ],
                 usage: {
-                    prompt_tokens: 0, // Placeholder
-                    completion_tokens: 0, // Placeholder
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
                     total_tokens: 0
                 }
             });
@@ -221,3 +299,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+
