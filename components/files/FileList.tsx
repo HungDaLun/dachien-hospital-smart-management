@@ -4,7 +4,7 @@
  * 遵循 EAKAP 設計系統規範
  */
 // ...existing code...
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Input, Select, Button, Card, Spinner, Progress, Checkbox, Badge, Modal } from '@/components/ui';
 import { Trash2, Sparkles, Download, FileText, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -246,24 +246,40 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             .then(res => {
                 if (res.success) setActualDepartments(res.data);
             });
-    }, [fetchFiles, search, statusFilter, deptFilter, typeFilter, page, initialFiles]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, statusFilter, deptFilter, typeFilter, page, initialFiles]); // Removed fetchFiles to prevent infinite loop
 
     // Handle Refresh Trigger (Silent Update for Uploads/Actions)
     useEffect(() => {
         if (refreshTrigger > 0) {
             fetchFiles(true); // Silent fetch without spinner
         }
-    }, [refreshTrigger, fetchFiles]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshTrigger]); // Only depend on refreshTrigger, not fetchFiles
 
-    // Polling for active states
+    // Polling for active states - using ref to prevent interval churn
+    const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
         const hasTransientFiles = files.some(f => ['PENDING', 'PROCESSING'].includes(f.gemini_state));
-        if (hasTransientFiles) {
-            const pollTimer = setInterval(() => fetchFiles(true), 3000);
-            return () => clearInterval(pollTimer);
+
+        if (hasTransientFiles && !pollTimerRef.current) {
+            // Start polling only if not already polling
+            pollTimerRef.current = setInterval(() => fetchFiles(true), 3000);
+        } else if (!hasTransientFiles && pollTimerRef.current) {
+            // Stop polling if no transient files
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
         }
-        return undefined;
-    }, [files, fetchFiles]);
+
+        return () => {
+            if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [files]); // Only depend on files array, not fetchFiles function
 
     // Search Debounce
     const [searchInput, setSearchInput] = useState('');

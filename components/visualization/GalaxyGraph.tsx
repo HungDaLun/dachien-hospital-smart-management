@@ -104,8 +104,11 @@ const StarNode = ({ data, selected }: any) => {
                 {data.label}
             </div>
 
-            {/* Interact Area - Changed cursor to grab */}
-            <div className="absolute inset-0 -m-3 rounded-full cursor-grab active:cursor-grabbing z-0 bg-transparent" />
+            {/* Interact Area - 確保拖曳區域可被正確點擊 */}
+            <div
+                className="absolute inset-0 -m-4 rounded-full cursor-grab active:cursor-grabbing"
+                style={{ zIndex: 10 }}
+            />
 
             <Handle
                 type="target"
@@ -227,6 +230,10 @@ function GalaxyGraphContent({
     // Highlighting State
     // 追蹤上次處理的 focusNodeId，避免重複處理造成無限循環
     const prevFocusNodeIdRef = useRef<string | null>(null);
+
+    // 新增：追蹤拖曳狀態，避免在拖曳過程中觸發不預期的狀態更新
+    const isDraggingRef = useRef<boolean>(false);
+    const dragEndTimeRef = useRef<number>(0);
 
     const { getEdges, getNodes, setCenter, fitView } = useReactFlow();
 
@@ -395,15 +402,31 @@ function GalaxyGraphContent({
         setCenter(node.position.x + offset, node.position.y, { zoom: 1.5, duration: 800 });
     }, [handleHitNode, setCenter]);
 
+    // 節點開始拖曳時，設定拖曳狀態
+    const onNodeDragStart = useCallback(() => {
+        isDraggingRef.current = true;
+    }, []);
+
+    // 節點拖曳結束時，重置拖曳狀態並記錄時間
+    const onNodeDragStop = useCallback(() => {
+        isDraggingRef.current = false;
+        dragEndTimeRef.current = Date.now();
+    }, []);
+
     // Reset on background click
+    // 修正：在拖曳結束後短暂時間內不處理 pane click，避免誤觸
     const onPaneClick = useCallback(() => {
+        // 如果正在拖曳，或者剛剛拖曳結束（200ms 內），忽略這次點擊
+        if (isDraggingRef.current || Date.now() - dragEndTimeRef.current < 200) {
+            return;
+        }
+
         setNodes(nds => nds.map(node => ({
             ...node,
             data: { ...node.data, dimmed: false, highlighted: false }
         })));
         setEdges(eds => eds.map(edge => ({
             ...edge,
-
             style: { ...edge.style, stroke: 'rgba(255, 255, 255, 0.4)', strokeWidth: 1.0 }
         })));
         setIsSidebarOpen(false); // Close sidebar when clicking empty space
@@ -445,6 +468,8 @@ function GalaxyGraphContent({
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
+                onNodeDragStart={onNodeDragStart}
+                onNodeDragStop={onNodeDragStop}
                 fitView
                 fitViewOptions={{ padding: 0.4, includeHiddenNodes: false, duration: 800 }}
                 minZoom={0.1}
@@ -453,13 +478,17 @@ function GalaxyGraphContent({
                 className="galaxy-flow"
                 style={{ background: 'transparent' }}
 
-                // Interaction Props Fixes
+                // 互動設定：
+                // panOnDrag={true} 允許左鍵在空白區域拖曳平移畫面
                 panOnDrag={true}
                 panOnScroll={true}
                 zoomOnScroll={true}
-                nodesDraggable={true} // Allow node dragging
-                selectionOnDrag={false} // Disable selection box to ensure panning works
-                preventScrolling={false}
+                nodesDraggable={true}
+                selectionOnDrag={false}
+                preventScrolling={true}
+
+                // 確保節點拖曳事件被正確處理
+                nodeDragThreshold={2}
             >
                 <Controls className="galaxy-controls !bg-background-secondary/80 !backdrop-blur-md !border-white/10 !fill-text-tertiary" />
                 <MiniMap

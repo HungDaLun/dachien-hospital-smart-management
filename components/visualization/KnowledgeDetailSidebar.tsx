@@ -64,7 +64,8 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-[100]">
             <div className="absolute inset-0 overflow-hidden">
-                <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                {/* 使用 top-20 (80px) 讓側邊欄從導航列下方開始，避免被遮住 */}
+                <div className="pointer-events-none fixed top-20 bottom-0 right-0 flex max-w-full pl-10">
                     <Transition
                         show={isOpen}
                         as={Fragment}
@@ -75,14 +76,14 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                         leaveFrom="translate-x-0"
                         leaveTo="translate-x-full"
                     >
-                        {/* Sidebar Panel */}
-                        <div className="pointer-events-auto w-screen max-w-2xl mt-6 mb-6 mr-6">
-                            <div className="flex h-full flex-col overflow-y-auto bg-background-secondary/80 backdrop-blur-2xl shadow-floating rounded-[32px] border border-white/10 min-w-0 relative">
+                        {/* Sidebar Panel - 使用 py-6 內間距取代 mt-6 mb-6 外間距，確保高度正確 */}
+                        <div className="pointer-events-auto w-screen max-w-2xl py-6 pr-6 h-full">
+                            <div className="flex h-full flex-col bg-background-secondary/80 backdrop-blur-2xl shadow-floating rounded-[32px] border border-white/10 min-w-0 relative overflow-hidden">
                                 {/* Decorative line */}
                                 <div className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-primary-500/20 via-transparent to-transparent" />
 
-                                {/* Header */}
-                                <div className={`px-8 py-8 ${isFramework ? 'bg-primary-500/[0.03] border-b border-white/5' : 'bg-white/[0.01] border-b border-white/5'}`}>
+                                {/* Header - shrink-0 確保 header 不會被壓縮，X 按鈕永遠可見 */}
+                                <div className={`shrink-0 px-8 py-8 ${isFramework ? 'bg-primary-500/[0.03] border-b border-white/5' : 'bg-white/[0.01] border-b border-white/5'}`}>
                                     <div className="flex items-start justify-between gap-6">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-2">
