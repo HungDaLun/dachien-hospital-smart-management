@@ -165,7 +165,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <span className="font-bold text-text-secondary group-hover:text-primary-400 transition-colors uppercase tracking-widest text-sm">{dept.department_name}</span>
-                    <span className="font-mono text-xs text-blue-400 font-bold">{Math.round(dept.score * 100)}%</span>
+                    <span className="font-mono text-xs text-blue-400 font-bold">{dept.metrics.totalFiles} 文件</span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                     <div

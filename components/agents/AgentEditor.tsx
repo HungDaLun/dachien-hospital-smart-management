@@ -10,6 +10,8 @@ import { Card, Button, Spinner, Badge, Input, Select } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import ArchitectChat from './ArchitectModal';
 import FilePickerModal from './FilePickerModal';
+import { ToolSelector } from './ToolSelector';
+import { SkillSelector } from './SkillSelector';
 import {
     Users,
     MessageSquare,
@@ -25,7 +27,8 @@ import {
     Target,
     Zap,
     AlertCircle,
-    Database
+    Database,
+    BrainCircuit
 } from 'lucide-react';
 
 interface KnowledgeRule {
@@ -44,6 +47,8 @@ interface AgentData {
     knowledge_rules?: KnowledgeRule[];
     knowledge_files?: string[];
     mcp_config?: string;
+    enabled_tools?: string[];
+    enabled_skills?: string[];
 }
 
 interface PromptVersion {
@@ -87,10 +92,15 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         knowledge_rules: [],
         knowledge_files: [],
         mcp_config: (initialData as any)?.mcp_config || '{}',
+        enabled_tools: (initialData as any)?.enabled_tools || [],
+        enabled_skills: (initialData as any)?.enabled_skills || [],
     });
 
     const [fileNames, setFileNames] = useState<Record<string, string>>({});
+    const [toolNames, setToolNames] = useState<Record<string, string>>({});
+    const [skillNames, setSkillNames] = useState<Record<string, string>>({});
     const [allFiles, setAllFiles] = useState<any[]>([]);
+    const [allSkills, setAllSkills] = useState<any[]>([]); // 新增：保存所有技能以供名稱轉 ID
     const [departments, setDepartments] = useState<any[]>([]);
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
@@ -118,23 +128,47 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     }, [isEditing, formData.id]);
 
     useEffect(() => {
-        const fetchAllFiles = async () => {
+        const fetchMetadata = async () => {
             try {
-                const res = await fetch('/api/files');
-                const data = await res.json();
-                if (data.success) {
-                    setAllFiles(data.data);
-                    const mapping: Record<string, string> = { ...fileNames };
-                    data.data.forEach((f: any) => {
+                // Fetch Files
+                const filesRes = await fetch('/api/files');
+                const filesData = await filesRes.json();
+                if (filesData.success) {
+                    setAllFiles(filesData.data);
+                    const mapping: Record<string, string> = {};
+                    filesData.data.forEach((f: any) => {
                         mapping[f.id] = f.filename;
                     });
                     setFileNames(mapping);
                 }
+
+                // Fetch Tools
+                const toolsRes = await fetch('/api/tools');
+                const toolsData = await toolsRes.json();
+                if (toolsData.success) {
+                    const mapping: Record<string, string> = {};
+                    toolsData.data.forEach((t: any) => {
+                        mapping[t.name] = t.display_name;
+                    });
+                    setToolNames(mapping);
+                }
+
+                // Fetch Skills
+                const skillsRes = await fetch('/api/skills');
+                const skillsData = await skillsRes.json();
+                if (skillsData.success) {
+                    setAllSkills(skillsData.data); // 保存完整物件
+                    const mapping: Record<string, string> = {};
+                    skillsData.data.forEach((s: any) => {
+                        mapping[s.name] = s.display_name;
+                    });
+                    setSkillNames(mapping);
+                }
             } catch (error) {
-                console.error('Failed to fetch file names:', error);
+                console.error('Failed to fetch metadata:', error);
             }
         };
-        fetchAllFiles();
+        fetchMetadata();
     }, []);
 
     const fetchVersions = async () => {
@@ -239,7 +273,22 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 knowledge_files: mergedFiles,
                 mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
                     ? JSON.stringify(blueprint.mcp_config, null, 2)
-                    : prev.mcp_config
+                    : prev.mcp_config,
+                enabled_tools: blueprint.suggested_tools
+                    ? [...new Set([...(prev.enabled_tools || []), ...blueprint.suggested_tools])]
+                    : prev.enabled_tools,
+                enabled_skills: blueprint.suggested_skills
+                    ? [...new Set([
+                        ...(prev.enabled_skills || []),
+                        ...blueprint.suggested_skills.map((sName: string) => {
+                            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sName);
+                            if (!isUuid) {
+                                const found = allSkills.find(s => s.name === sName);
+                                return found ? found.id : null;
+                            }
+                            return sName;
+                        }).filter(Boolean)
+                    ])] : prev.enabled_skills
             };
         });
     };
@@ -313,7 +362,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
     return (
         <div className="max-w-6xl mx-auto">
-            <form onSubmit={handleSubmit} className="space-y-8 pb-32">
+            <form onSubmit={handleSubmit} className="space-y-8">
                 {error && (
                     <div className="p-4 bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
                         <div className="flex items-center gap-2">
@@ -510,6 +559,51 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                         )}
                     </Card>
 
+                    {/* Capabilities Layer (Tools & Skills) */}
+                    <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/[0.03] blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-glow-purple/5">
+                                <Zap size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">功能與技能 <span className="opacity-30">|</span> CAPABILITIES</h3>
+                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">賦予 Agent 執行任務與專業技能的能力</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8 p-6 bg-purple-500/[0.03] border border-purple-500/10 rounded-[24px] relative group/tip overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500/40" />
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+                                    <BrainCircuit size={20} className="animate-pulse-slow" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-purple-400 uppercase tracking-widest mb-1">PRO_TIP :: 自動配置建議</p>
+                                    <p className="text-xs font-bold text-text-secondary leading-relaxed opacity-80">
+                                        不知道該選哪些工具？請使用 <span className="text-purple-400 underline decoration-purple-500/30">AI 代理架構師</span>，它會根據您的需求自動推薦適合的工具與技能包。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-10">
+                            {/* Tools Selector */}
+                            <ToolSelector
+                                selectedTools={formData.enabled_tools || []}
+                                onChange={(tools) => setFormData(prev => ({ ...prev, enabled_tools: tools }))}
+                                className="border-b border-white/5 pb-10"
+                            />
+
+                            {/* Skills Selector */}
+                            <SkillSelector
+                                selectedSkills={formData.enabled_skills || []}
+                                onChange={(skills) => setFormData(prev => ({ ...prev, enabled_skills: skills }))}
+                            />
+                        </div>
+                    </Card>
+
                     {/* Knowledge Integration Layer */}
                     <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/[0.03] blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
@@ -547,7 +641,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 <div>
                                     <p className="text-sm font-black text-primary-400 uppercase tracking-widest mb-1">PRO_TIP :: 智能建構助推器</p>
                                     <p className="text-xs font-bold text-text-secondary leading-relaxed opacity-80">
-                                        使用右下角的 <span className="text-primary-400 underline decoration-primary-500/30">AI 戰術架構師</span>，可根據 Agent 定義自動生成指令集並精準匹配相關知識檔案。
+                                        使用右下角的 <span className="text-primary-400 underline decoration-primary-500/30">AI 代理架構師</span>，可根據 Agent 定義自動生成指令集並精準匹配相關知識檔案。
                                     </p>
                                 </div>
                             </div>
@@ -685,47 +779,45 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     </Card>
                 </div>
 
-                {/* Footer Command Bar */}
-                <div className="fixed bottom-0 left-0 right-0 p-8 border-t border-white/5 bg-background-primary/80 backdrop-blur-2xl z-40 flex justify-center shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-                    <div className="max-w-6xl w-full flex justify-between items-center px-4">
-                        {isEditing ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleDelete}
-                                disabled={loading}
-                                className="border-semantic-danger/30 text-semantic-danger hover:bg-semantic-danger/10 px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
-                            >
-                                <Trash2 size={16} className="mr-2" />
-                                {dict.common.delete}
-                            </Button>
-                        ) : <div />}
+                {/* Footer Command Bar (Static) */}
+                <div className="flex justify-between items-center pt-8 border-t border-white/5 mt-8">
+                    {isEditing ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleDelete}
+                            disabled={loading}
+                            className="border-semantic-danger/30 text-semantic-danger hover:bg-semantic-danger/10 px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                        >
+                            <Trash2 size={16} className="mr-2" />
+                            {dict.common.delete}
+                        </Button>
+                    ) : <div />}
 
-                        <div className="flex gap-4">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => router.back()}
-                                disabled={loading}
-                                className="text-text-tertiary hover:text-text-primary px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
-                            >
-                                <ChevronLeft size={16} className="mr-2" />
-                                {dict.common.cancel}
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={loading}
-                                className="bg-primary-500 hover:bg-primary-600 text-black font-black px-12 h-12 rounded-2xl shadow-glow-cyan/20 min-w-[200px]"
-                            >
-                                {loading ? <Spinner size="sm" color="black" /> : (
-                                    <span className="flex items-center gap-2">
-                                        <Zap size={18} />
-                                        {isEditing ? '更新系統配置' : '同步部署 AGENT'}
-                                        <ArrowRight size={16} className="ml-2" />
-                                    </span>
-                                )}
-                            </Button>
-                        </div>
+                    <div className="flex gap-4">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => router.back()}
+                            disabled={loading}
+                            className="text-text-tertiary hover:text-text-primary px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                        >
+                            <ChevronLeft size={16} className="mr-2" />
+                            {dict.common.cancel}
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="bg-primary-500 hover:bg-primary-600 text-black font-black px-12 h-12 rounded-2xl shadow-glow-cyan/20 min-w-[200px]"
+                        >
+                            {loading ? <Spinner size="sm" color="black" /> : (
+                                <span className="flex items-center gap-2">
+                                    <Zap size={18} />
+                                    {isEditing ? '更新系統配置' : '佈署 Agent'}
+                                    <ArrowRight size={16} className="ml-2" />
+                                </span>
+                            )}
+                        </Button>
                     </div>
                 </div>
             </form>
@@ -735,6 +827,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 currentState={formData}
                 dict={dict}
                 fileNames={fileNames}
+                toolNames={toolNames}
+                skillNames={skillNames}
             />
 
             <FilePickerModal

@@ -17,19 +17,24 @@ export class OperationalHealthCalculator {
         const deptScores = [];
 
         for (const dept of departments) {
-            // 2. Calculate Doc Activity (Files updated in last 7 days)
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            // 2. Calculate Doc Activity (Files updated in last 30 days) AND Total Asset Retention
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
-            const { count: docActivity } = await supabase
+            // Recent activity
+            const { count: recentActivity } = await supabase
                 .from('files')
                 .select('*', { count: 'exact', head: true })
                 .eq('department_id', dept.id)
-                .gte('updated_at', oneWeekAgo.toISOString());
+                .gte('updated_at', oneMonthAgo.toISOString());
 
-            // 3. Calculate Agent Usage (Conversations in last 7 days)
-            // Assuming 'chats' or 'conversations' table exists and links to agents -> departments
-            // For now, mocking or using 'agents' update time as proxy
+            // Total Accumulated Assets
+            const { count: totalFiles } = await supabase
+                .from('files')
+                .select('*', { count: 'exact', head: true })
+                .eq('department_id', dept.id);
+
+            // 3. Calculate Agent Usage (Active Agents)
             const { count: activeAgents } = await supabase
                 .from('agents')
                 .select('*', { count: 'exact', head: true })
@@ -37,17 +42,30 @@ export class OperationalHealthCalculator {
                 .eq('status', 'active');
 
             // Normalize scores (0-1)
-            // Heuristic: 10 docs/week = 1.0 score
-            const docScore = Math.min((docActivity || 0) / 10, 1);
-            const agentScore = Math.min((activeAgents || 0) / 5, 1);
+            // Activity Score: 5 docs/month = 1.0 (Velocity)
+            const activityScore = Math.min((recentActivity || 0) / 5, 1);
 
+            // Asset Score: 10 docs total = 1.0 (Volume)
+            const assetScore = Math.min((totalFiles || 0) / 10, 1);
+
+            // Combined Doc Score (50% Volume, 50% Velocity)
+            const docScore = (assetScore * 0.5) + (activityScore * 0.5);
+
+            // Agent Score: 2 active agents = 1.0
+            const agentScore = Math.min((activeAgents || 0) / 2, 1);
+
+            // Total Department Score (60% Docs, 40% Agents)
             const totalScore = (docScore * 0.6) + (agentScore * 0.4);
 
             deptScores.push({
                 department_id: dept.id,
                 department_name: dept.name,
                 score: totalScore,
-                metrics: { docActivity: docActivity || 0, activeAgents: activeAgents || 0 }
+                metrics: {
+                    docActivity: recentActivity || 0,
+                    totalFiles: totalFiles || 0,
+                    activeAgents: activeAgents || 0
+                }
             });
         }
 

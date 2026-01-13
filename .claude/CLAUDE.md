@@ -1,7 +1,7 @@
 # EAKAP 進階知識架構系統設計
-**版本：** v3.1
+**版本：** v3.3
 **建立日期：** 2026-01-01
-**最後更新：** 2026-01-06
+**最後更新：** 2026-01-09
 **設計目標：** 建立一套極度專業、具技術與內容門檻的知識架構系統，讓 AI Agent 能精準解讀與運用企業知識
 
 ---
@@ -742,6 +742,1649 @@ CREATE TRIGGER trigger_knowledge_update
     WHEN (NEW.gemini_state = 'SYNCED')
     EXECUTE FUNCTION notify_knowledge_update();
 ```
+
+---
+
+### 11. AI 回答品質防護機制（AI Response Quality Safeguards）
+
+#### 11.1 設計理念
+
+**核心問題**：AI Agent 的回答可能包含錯誤資訊、過時資料或缺乏來源依據，需要建立多層防護機制確保回答品質。
+
+**解決方案**：建立 5 層防護機制，從技術強制到人工審計，確保 AI 回答的可信度與可追溯性。
+
+#### 11.2 五層防護架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│         AI 回答品質防護機制 (5-Layer Safeguards)          │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  Layer 1: 強制引用來源 (Mandatory Citations)             │
+│  └─ 每個回答都必須標註來源檔案，可追溯                     │
+│                                                           │
+│  Layer 2: 信心度評分 (Confidence Scoring)                │
+│  └─ AI 輸出信心度，低信心度主動警告                       │
+│                                                           │
+│  Layer 3: 人工覆核提示 (Manual Review Prompts)           │
+│  └─ 涉及金額、交期等關鍵資訊時提醒覆核                   │
+│                                                           │
+│  Layer 4: 使用者反饋學習 (User Feedback Learning)        │
+│  └─ 收集負評並調整知識庫權重，持續優化                   │
+│                                                           │
+│  Layer 5: 定期人工審計 (Scheduled Audit)                 │
+│  └─ 每月自動篩選高風險回答供管理員審查                   │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 11.3 Layer 1: 強制引用來源（Mandatory Citations）
+
+**技術實作**：使用 Gemini API 的 `groundingMetadata` 功能，強制提取引用來源。
+
+```typescript
+// app/api/chat/route.ts
+
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+export async function POST(request: NextRequest) {
+    // ... 現有程式碼 ...
+    
+    // 1. 取得知識庫檔案 URI（用於 Grounding）
+    const { data: matchedFiles } = await supabase
+        .from('files')
+        .select('gemini_file_uri, filename')
+        .in('id', Array.from(matchedFileIds))
+        .eq('gemini_state', 'SYNCED');
+    
+    // 2. 建構檔案資料（用於 Grounding）
+    const fileData = (matchedFiles || []).map(f => ({
+        fileUri: f.gemini_file_uri,
+        mimeType: 'application/pdf' // 或從 files 表取得實際 mime_type
+    }));
+    
+    // 3. 使用 Gemini API 並啟用 Grounding
+    const model = genAI.getGenerativeModel({
+        model: agent.model_version || 'gemini-3-flash-preview',
+        systemInstruction: fullSystemPrompt,
+    });
+    
+    const chat = model.startChat({ history: historyMessages });
+    
+    // 4. 建構請求內容（包含檔案 URI）
+    const parts = [
+        ...fileData.map(f => ({
+            fileData: {
+                fileUri: f.fileUri,
+                mimeType: f.mimeType
+            }
+        })),
+        { text: message }
+    ];
+    
+    // 5. 發送請求並提取 Grounding Metadata
+    const result = await chat.sendMessageStream(parts);
+    
+    let fullAiResponse = '';
+    let citations: Citation[] = [];
+    
+    for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+            fullAiResponse += text;
+            // 串流發送給前端
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+        }
+    }
+    
+    // 6. 取得完整回應以提取 Grounding Metadata
+    const fullResponse = await chat.sendMessage(parts);
+    const response = await fullResponse.response;
+    
+    // 7. 提取引用來源
+    if (response.groundingMetadata) {
+        const { groundingChunks, groundingSupports } = response.groundingMetadata;
+        
+        citations = groundingChunks.map((chunk: any, index: number) => {
+            // 從 URI 對應回檔案資訊
+            const file = matchedFiles?.find(f => f.gemini_file_uri === chunk.uri);
+            
+            return {
+                startIndex: groundingSupports[index]?.segment?.startIndex || 0,
+                endIndex: groundingSupports[index]?.segment?.endIndex || 0,
+                uri: chunk.uri,
+                title: file?.filename || chunk.web?.title || '未知來源',
+                content: chunk.chunk?.text || ''
+            };
+        });
+    }
+    
+    // 8. 發送引用來源給前端
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ citations })}\n\n`));
+    
+    // ... 儲存到資料庫時也包含 citations ...
+}
+```
+
+**資料庫結構擴充**：
+
+```sql
+-- 擴充 chat_messages 表以儲存引用來源
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]';
+
+-- 建立索引以加速查詢
+CREATE INDEX IF NOT EXISTS idx_chat_messages_citations 
+    ON chat_messages USING GIN (citations);
+```
+
+**前端顯示**：
+
+```typescript
+// components/chat/ChatBubble.tsx
+
+// 已有 CitationList 元件，只需確保 citations 正確傳入
+{citations && citations.length > 0 && (
+    <div className="mt-8 pt-6 border-t border-white/5">
+        <CitationList citations={citations} dict={dict} />
+    </div>
+)}
+```
+
+#### 11.4 Layer 2: 信心度評分（Confidence Scoring）
+
+**技術實作**：要求 AI 在回應中輸出信心度分數，並根據知識庫匹配度計算綜合信心度。
+
+```typescript
+// app/api/chat/route.ts
+
+// 1. 修改 System Prompt 要求輸出信心度
+const fullSystemPrompt = `${agent.system_prompt}
+
+${knowledgeContext ? `
+【已載入的知識庫內容】
+${knowledgeContext}
+
+【回答準則】
+1. 優先引用上述知識庫中的具體事實。
+2. 標註來源文件名稱。
+3. 以繁體中文回答，語氣專業、精準。
+4. 若資訊不足，請坦白告知。
+5. **必須在回答結尾以 JSON 格式輸出信心度**：
+   {"confidence": 0.0-1.0, "reasoning": "信心度說明"}
+` : ''}`;
+
+// 2. 解析回應中的信心度
+function extractConfidence(response: string): { confidence: number; reasoning: string } {
+    // 嘗試從 JSON 格式提取
+    const jsonMatch = response.match(/\{"confidence":\s*([\d.]+),\s*"reasoning":\s*"([^"]+)"\}/);
+    if (jsonMatch) {
+        return {
+            confidence: parseFloat(jsonMatch[1]),
+            reasoning: jsonMatch[2]
+        };
+    }
+    
+    // 備用：根據知識庫匹配度計算
+    return {
+        confidence: calculateConfidenceFromMatches(matchedFiles),
+        reasoning: '根據知識庫匹配度計算'
+    };
+}
+
+// 3. 計算知識庫匹配度信心度
+function calculateConfidenceFromMatches(files: any[]): number {
+    if (!files || files.length === 0) return 0.3; // 無來源，低信心度
+    
+    // 根據匹配檔案數量與品質評分計算
+    const avgQuality = files.reduce((sum, f) => sum + (f.feedback_score || 0.5), 0) / files.length;
+    const fileCountScore = Math.min(files.length / 5, 1.0); // 最多 5 個來源為滿分
+    
+    return (avgQuality * 0.7 + fileCountScore * 0.3);
+}
+
+// 4. 儲存信心度到資料庫
+const { confidence, reasoning } = extractConfidence(fullAiResponse);
+await supabase.from('chat_messages').insert({
+    // ... 其他欄位 ...
+    confidence_score: confidence,
+    confidence_reasoning: reasoning
+});
+
+// 5. 低信心度警告（< 0.6）
+if (confidence < 0.6) {
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+        warning: 'low_confidence',
+        message: '此回答的信心度較低，建議人工覆核',
+        confidence,
+        reasoning
+    })}\n\n`));
+}
+```
+
+**資料庫結構擴充**：
+
+```sql
+-- 擴充 chat_messages 表
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS confidence_score DECIMAL(3,2);
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS confidence_reasoning TEXT;
+
+-- 建立索引以加速查詢低信心度回答
+CREATE INDEX IF NOT EXISTS idx_chat_messages_low_confidence 
+    ON chat_messages(confidence_score) 
+    WHERE confidence_score < 0.6;
+```
+
+**前端顯示低信心度警告**：
+
+```typescript
+// components/chat/ChatBubble.tsx
+
+{message.confidence_score !== undefined && message.confidence_score < 0.6 && (
+    <div className="mt-4 p-4 bg-warning-500/10 border border-warning-500/30 rounded-xl">
+        <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-warning-500" />
+            <span className="text-sm text-warning-500 font-semibold">
+                低信心度警告
+            </span>
+        </div>
+        <p className="text-xs text-text-tertiary mt-2">
+            此回答的信心度為 {Math.round(message.confidence_score * 100)}%，
+            建議人工覆核。{message.confidence_reasoning && `原因：${message.confidence_reasoning}`}
+        </p>
+    </div>
+)}
+```
+
+#### 11.5 Layer 3: 人工覆核提示（Manual Review Prompts）
+
+**技術實作**：檢測關鍵字（金額、交期等），自動顯示覆核提示。
+
+```typescript
+// lib/chat/review-detector.ts
+
+export interface ReviewTrigger {
+    keywords: string[];
+    category: 'financial' | 'delivery' | 'legal' | 'safety';
+    severity: 'high' | 'medium' | 'low';
+    message: string;
+}
+
+export const REVIEW_TRIGGERS: ReviewTrigger[] = [
+    {
+        keywords: ['金額', '價格', '成本', '報價', '$', '元', '萬', '百萬', '千萬', '預算', '費用'],
+        category: 'financial',
+        severity: 'high',
+        message: '此回答涉及金額資訊，建議人工覆核確認'
+    },
+    {
+        keywords: ['交期', '交貨', '交付', '期限', 'deadline', 'lead time', '交貨日期', '完成日期'],
+        category: 'delivery',
+        severity: 'high',
+        message: '此回答涉及交期資訊，建議人工覆核確認'
+    },
+    {
+        keywords: ['合約', '協議', '條款', '違約', '賠償', '法律'],
+        category: 'legal',
+        severity: 'high',
+        message: '此回答涉及法律條款，建議人工覆核確認'
+    },
+    {
+        keywords: ['安全', '風險', '危險', '事故', '傷害'],
+        category: 'safety',
+        severity: 'high',
+        message: '此回答涉及安全相關資訊，建議人工覆核確認'
+    }
+];
+
+export function detectReviewTriggers(content: string): ReviewTrigger[] {
+    const detected: ReviewTrigger[] = [];
+    const lowerContent = content.toLowerCase();
+    
+    for (const trigger of REVIEW_TRIGGERS) {
+        const found = trigger.keywords.some(keyword => 
+            lowerContent.includes(keyword.toLowerCase())
+        );
+        
+        if (found) {
+            detected.push(trigger);
+        }
+    }
+    
+    return detected;
+}
+```
+
+**API 整合**：
+
+```typescript
+// app/api/chat/route.ts
+
+import { detectReviewTriggers } from '@/lib/chat/review-detector';
+
+// 在回應完成後檢測
+const reviewTriggers = detectReviewTriggers(fullAiResponse);
+
+if (reviewTriggers.length > 0) {
+    // 發送覆核提示給前端
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+        review_required: true,
+        triggers: reviewTriggers,
+        message: reviewTriggers[0].message // 顯示第一個觸發的訊息
+    })}\n\n`));
+    
+    // 標記訊息需要覆核
+    await supabase.from('chat_messages').update({
+        needs_review: true,
+        review_triggers: reviewTriggers.map(t => t.category)
+    }).eq('id', aiMessage.id);
+}
+```
+
+**前端顯示覆核提示**：
+
+```typescript
+// components/chat/ChatBubble.tsx
+
+{message.review_required && (
+    <div className="mt-4 p-4 bg-primary-500/10 border border-primary-500/30 rounded-xl">
+        <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-primary-400" />
+            <span className="text-sm text-primary-400 font-semibold">
+                建議人工覆核
+            </span>
+        </div>
+        <p className="text-xs text-text-tertiary mt-2">
+            {message.review_message}
+        </p>
+        <button 
+            onClick={() => markAsReviewed(message.id)}
+            className="mt-2 text-xs text-primary-400 hover:text-primary-300"
+        >
+            標記為已覆核
+        </button>
+    </div>
+)}
+```
+
+**資料庫結構擴充**：
+
+```sql
+-- 擴充 chat_messages 表
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS needs_review BOOLEAN DEFAULT FALSE;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS review_triggers TEXT[];
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES user_profiles(id);
+
+-- 建立索引以加速查詢需要覆核的訊息
+CREATE INDEX IF NOT EXISTS idx_chat_messages_needs_review 
+    ON chat_messages(needs_review) 
+    WHERE needs_review = TRUE;
+```
+
+#### 11.6 Layer 4: 使用者反饋學習（User Feedback Learning）
+
+**技術實作**：根據使用者負評調整知識庫權重，標記低品質檔案。
+
+```typescript
+// lib/knowledge/feedback-learning.ts
+
+export class FeedbackLearningEngine {
+    /**
+     * 處理使用者反饋並調整知識庫權重
+     */
+    async processFeedback(feedbackEvent: {
+        message_id: string;
+        rating: 1 | -1;
+        reason_code?: string;
+        comment?: string;
+    }): Promise<void> {
+        const supabase = await createClient();
+        
+        // 1. 取得訊息相關的知識來源
+        const { data: message } = await supabase
+            .from('chat_messages')
+            .select('id, citations, agent_id')
+            .eq('id', feedbackEvent.message_id)
+            .single();
+        
+        if (!message || !message.citations) return;
+        
+        // 2. 從 citations 提取檔案 ID
+        const fileIds = this.extractFileIdsFromCitations(message.citations);
+        
+        // 3. 根據負評調整檔案權重
+        if (feedbackEvent.rating === -1) {
+            await this.adjustFileWeights(fileIds, -0.1); // 降低權重
+            
+            // 標記檔案需要審查
+            await supabase
+                .from('files')
+                .update({ needs_review: true })
+                .in('id', fileIds);
+            
+            // 記錄反饋事件
+            await supabase.from('knowledge_feedback_events').insert({
+                file_id: fileIds[0], // 主要來源檔案
+                agent_id: message.agent_id,
+                source: 'user_explicit',
+                sentiment: 'negative',
+                score: -1,
+                feedback_type: feedbackEvent.reason_code || 'not_helpful',
+                details: {
+                    comment: feedbackEvent.comment,
+                    message_id: feedbackEvent.message_id
+                }
+            });
+        } else {
+            // 正評：提升權重
+            await this.adjustFileWeights(fileIds, 0.05);
+        }
+        
+        // 4. 更新檔案統計
+        for (const fileId of fileIds) {
+            await updateFileFeedbackStats(fileId);
+        }
+    }
+    
+    /**
+     * 調整檔案權重（影響知識檢索優先順序）
+     */
+    private async adjustFileWeights(fileIds: string[], delta: number): Promise<void> {
+        const supabase = await createClient();
+        
+        // 更新檔案的 relevance_weight（如果有的話）
+        // 或透過 feedback_score 影響檢索
+        for (const fileId of fileIds) {
+            const { data: file } = await supabase
+                .from('files')
+                .select('feedback_score')
+                .eq('id', fileId)
+                .single();
+            
+            if (file) {
+                const newScore = Math.max(0, Math.min(1, (file.feedback_score || 0.5) + delta));
+                await supabase
+                    .from('files')
+                    .update({ feedback_score: newScore })
+                    .eq('id', fileId);
+            }
+        }
+    }
+    
+    /**
+     * 從 citations 提取檔案 ID
+     */
+    private extractFileIdsFromCitations(citations: any[]): string[] {
+        // 從 citation URI 或 title 對應回檔案 ID
+        // 實作細節：需要建立 URI 到 file_id 的映射表
+        return [];
+    }
+}
+```
+
+**知識檢索時應用權重**：
+
+```typescript
+// lib/knowledge/search.ts
+
+export async function searchKnowledgeWithWeights(
+    query: string,
+    agentId: string
+): Promise<SearchResult[]> {
+    const supabase = await createClient();
+    
+    // 1. 向量搜尋
+    const embedding = await generateEmbedding(query);
+    const { data: matches } = await supabase.rpc('search_knowledge_global', {
+        query_embedding: embedding,
+        match_threshold: 0.1,
+        match_count: 20
+    });
+    
+    // 2. 取得檔案反饋分數
+    const fileIds = matches.map((m: any) => m.file_id);
+    const { data: files } = await supabase
+        .from('files')
+        .select('id, feedback_score, needs_review')
+        .in('id', fileIds);
+    
+    const fileScores = new Map(
+        files?.map(f => [f.id, f.feedback_score || 0.5]) || []
+    );
+    
+    // 3. 加權排序：相似度 * 反饋分數
+    const weightedResults = matches.map((match: any) => ({
+        ...match,
+        weighted_score: match.similarity * (fileScores.get(match.file_id) || 0.5)
+    })).sort((a, b) => b.weighted_score - a.weighted_score);
+    
+    return weightedResults.slice(0, 10); // 返回前 10 個
+}
+```
+
+#### 11.7 Layer 5: 定期人工審計（Scheduled Audit）
+
+**技術實作**：建立 Cron Job 每月自動篩選高風險回答。
+
+```typescript
+// app/api/cron/audit-high-risk-responses/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+/**
+ * 定期審計：每月 1 號自動篩選高風險回答
+ * Vercel Cron 設定：0 0 1 * * (每月 1 號 00:00 UTC)
+ */
+export async function GET(request: Request) {
+    // 1. 驗證 Cron 密鑰
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+    
+    if (!isVercelCron && (!cronSecret || authHeader !== `Bearer ${cronSecret}`)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const supabase = createAdminClient();
+    
+    try {
+        // 2. 查詢過去一個月的高風險回答
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        
+        const { data: highRiskMessages } = await supabase
+            .from('chat_messages')
+            .select(`
+                id,
+                content,
+                confidence_score,
+                needs_review,
+                review_triggers,
+                created_at,
+                agent_id,
+                agents(name),
+                chat_sessions(user_id, user_profiles(display_name, email))
+            `)
+            .gte('created_at', oneMonthAgo.toISOString())
+            .or(`
+                confidence_score.lt.0.6,
+                needs_review.eq.true,
+                review_triggers.neq.[]
+            `)
+            .order('created_at', { ascending: false })
+            .limit(100);
+        
+        // 3. 統計負評率
+        const messageIds = highRiskMessages?.map(m => m.id) || [];
+        
+        const { data: feedbacks } = await supabase
+            .from('chat_feedback')
+            .select('message_id, rating')
+            .in('message_id', messageIds);
+        
+        // 計算每個訊息的負評率
+        const negativeRateMap = new Map<string, number>();
+        for (const msg of highRiskMessages || []) {
+            const msgFeedbacks = feedbacks?.filter(f => f.message_id === msg.id) || [];
+            const negativeCount = msgFeedbacks.filter(f => f.rating === -1).length;
+            const totalCount = msgFeedbacks.length;
+            
+            if (totalCount > 0) {
+                negativeRateMap.set(msg.id, negativeCount / totalCount);
+            }
+        }
+        
+        // 4. 篩選真正高風險的回答（負評率 > 20% 或低信心度）
+        const auditList = (highRiskMessages || []).filter(msg => {
+            const negativeRate = negativeRateMap.get(msg.id) || 0;
+            return negativeRate > 0.2 || (msg.confidence_score || 1) < 0.6;
+        });
+        
+        // 5. 生成審計報告
+        const auditReport = {
+            period: {
+                start: oneMonthAgo.toISOString(),
+                end: new Date().toISOString()
+            },
+            total_messages_scanned: highRiskMessages?.length || 0,
+            high_risk_count: auditList.length,
+            breakdown: {
+                low_confidence: auditList.filter(m => (m.confidence_score || 1) < 0.6).length,
+                needs_review: auditList.filter(m => m.needs_review).length,
+                high_negative_rate: auditList.filter(m => (negativeRateMap.get(m.id) || 0) > 0.2).length
+            },
+            high_risk_messages: auditList.map(msg => ({
+                id: msg.id,
+                content_preview: msg.content.substring(0, 200),
+                confidence_score: msg.confidence_score,
+                negative_rate: negativeRateMap.get(msg.id) || 0,
+                review_triggers: msg.review_triggers || [],
+                agent_name: (msg.agents as any)?.name,
+                user_name: (msg.chat_sessions as any)?.user_profiles?.display_name,
+                created_at: msg.created_at
+            }))
+        };
+        
+        // 6. 儲存審計報告
+        const { data: report } = await supabase
+            .from('audit_reports')
+            .insert({
+                report_type: 'high_risk_responses',
+                period_start: oneMonthAgo.toISOString(),
+                period_end: new Date().toISOString(),
+                report_data: auditReport,
+                generated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+        
+        // 7. 發送 Email 給管理員（如果設定）
+        if (process.env.AUDIT_REPORT_EMAIL) {
+            await sendAuditReportEmail(auditReport);
+        }
+        
+        return NextResponse.json({
+            success: true,
+            report_id: report?.id,
+            summary: {
+                total_scanned: auditReport.total_messages_scanned,
+                high_risk_count: auditReport.high_risk_count
+            }
+        });
+        
+    } catch (error) {
+        console.error('[Audit] Failed:', error);
+        return NextResponse.json(
+            { error: 'Audit failed', details: String(error) },
+            { status: 500 }
+        );
+    }
+}
+```
+
+**資料庫結構**：
+
+```sql
+-- 審計報告表
+CREATE TABLE IF NOT EXISTS audit_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    report_type VARCHAR(50) NOT NULL, -- 'high_risk_responses', 'user_activity', etc.
+    period_start TIMESTAMPTZ NOT NULL,
+    period_end TIMESTAMPTZ NOT NULL,
+    report_data JSONB NOT NULL,
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 建立索引
+CREATE INDEX IF NOT EXISTS idx_audit_reports_type_period 
+    ON audit_reports(report_type, period_start DESC);
+```
+
+**管理員查看審計報告**：
+
+```typescript
+// app/api/audit/reports/route.ts
+
+export async function GET(request: NextRequest) {
+    const profile = await getCurrentUserProfile();
+    requireRole(profile, ['SUPER_ADMIN', 'DEPT_ADMIN']);
+    
+    const { searchParams } = new URL(request.url);
+    const reportType = searchParams.get('type') || 'high_risk_responses';
+    const limit = parseInt(searchParams.get('limit') || '10');
+    
+    const supabase = await createClient();
+    
+    const { data: reports } = await supabase
+        .from('audit_reports')
+        .select('*')
+        .eq('report_type', reportType)
+        .order('generated_at', { ascending: false })
+        .limit(limit);
+    
+    return NextResponse.json({ success: true, reports });
+}
+```
+
+#### 11.8 資料庫結構總覽
+
+```sql
+-- chat_messages 表擴充欄位
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]';
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS confidence_score DECIMAL(3,2);
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS confidence_reasoning TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS needs_review BOOLEAN DEFAULT FALSE;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS review_triggers TEXT[];
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES user_profiles(id);
+
+-- 審計報告表
+CREATE TABLE IF NOT EXISTS audit_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    report_type VARCHAR(50) NOT NULL,
+    period_start TIMESTAMPTZ NOT NULL,
+    period_end TIMESTAMPTZ NOT NULL,
+    report_data JSONB NOT NULL,
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_chat_messages_citations 
+    ON chat_messages USING GIN (citations);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_low_confidence 
+    ON chat_messages(confidence_score) WHERE confidence_score < 0.6;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_needs_review 
+    ON chat_messages(needs_review) WHERE needs_review = TRUE;
+CREATE INDEX IF NOT EXISTS idx_audit_reports_type_period 
+    ON audit_reports(report_type, period_start DESC);
+```
+
+#### 11.9 API 端點規劃
+
+| 端點 | 方法 | 用途 |
+|-----|-----|-----|
+| `/api/chat` | POST | 對話 API（已擴充支援引用來源、信心度） |
+| `/api/chat/feedback` | POST | 記錄使用者反饋（已存在，需整合學習機制） |
+| `/api/chat/messages/:id/review` | POST | 標記訊息為已覆核 |
+| `/api/audit/reports` | GET | 取得審計報告列表 |
+| `/api/audit/reports/:id` | GET | 取得單一審計報告詳情 |
+| `/api/cron/audit-high-risk-responses` | GET | 定期審計排程（Cron Job） |
+
+#### 11.10 實施優先順序
+
+| 優先級 | 功能 | 預估時間 | 狀態 |
+|--------|------|----------|------|
+| P0 | Layer 1: 強制引用來源 | 2-3 小時 | 待實作 |
+| P0 | Layer 2: 信心度評分 | 1-2 小時 | 待實作 |
+| P0 | Layer 3: 人工覆核提示 | 1 小時 | 待實作 |
+| P1 | Layer 4: 使用者反饋學習 | 3-4 小時 | 待實作 |
+| P1 | Layer 5: 定期人工審計 | 2-3 小時 | 待實作 |
+
+**總預估時間**：9-13 小時（1-2 個工作天）
+
+---
+
+### 12. AI 決策可解釋性系統（Explainable AI Decision System）
+
+#### 12.1 設計理念
+
+**核心問題**：企業主與高階主管面對 AI Agent 的決策建議時，往往缺乏「安全感」，因為：
+1. **黑盒子疑慮**：不知道 AI 如何得出這個結論
+2. **無法驗證**：無法追溯決策邏輯，難以判斷建議是否可信
+3. **缺乏信心**：即使建議很好，但沒有理解過程就不敢採行
+
+**解決方案**：建立完整的「決策可解釋性系統」，透過視覺化呈現 AI 的思考過程，讓決策建議變得「透明、可追溯、可驗證」。
+
+#### 12.2 系統架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│      AI 決策可解釋性系統 (Explainable AI System)          │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  Layer 1: 決策推理鏈追蹤 (Reasoning Chain Tracking)      │
+│  └─ 記錄 AI 的每一步思考過程                              │
+│                                                           │
+│  Layer 2: 知識來源路徑圖 (Knowledge Source Path)         │
+│  └─ 視覺化展示知識來源與引用關係                          │
+│                                                           │
+│  Layer 3: 信心度分解 (Confidence Breakdown)             │
+│  └─ 展示每個決策點的信心度與依據                          │
+│                                                           │
+│  Layer 4: 假設驗證 (Assumption Validation)              │
+│  └─ 列出 AI 的假設與驗證方法                              │
+│                                                           │
+│  Layer 5: 替代方案比較 (Alternative Comparison)         │
+│  └─ 展示其他可能的決策方案與優劣比較                       │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 12.3 Layer 1: 決策推理鏈追蹤（Reasoning Chain Tracking）
+
+**技術實作**：要求 AI 輸出結構化的推理過程，並儲存為可視覺化的推理鏈。
+
+```typescript
+// lib/chat/reasoning-tracker.ts
+
+export interface ReasoningStep {
+    step_id: string;
+    step_type: 'observation' | 'analysis' | 'inference' | 'conclusion';
+    content: string;
+    confidence: number;
+    knowledge_sources: string[]; // 檔案 ID 或知識框架 ID
+    assumptions?: string[];
+    next_steps?: string[]; // 指向下一個步驟的 ID
+}
+
+export interface ReasoningChain {
+    chain_id: string;
+    message_id: string;
+    query: string;
+    steps: ReasoningStep[];
+    final_conclusion: string;
+    overall_confidence: number;
+    created_at: string;
+}
+
+/**
+ * 要求 AI 輸出結構化推理過程
+ */
+export async function generateReasoningChain(
+    query: string,
+    knowledgeContext: string,
+    agentPrompt: string
+): Promise<ReasoningChain> {
+    const reasoningPrompt = `${agentPrompt}
+
+【使用者問題】
+${query}
+
+【可用知識庫】
+${knowledgeContext}
+
+【任務要求】
+請以結構化的方式展示你的思考過程。你必須：
+1. 逐步分析問題
+2. 引用具體的知識來源
+3. 標註每個步驟的信心度
+4. 列出你的假設
+5. 最終給出結論
+
+請以 JSON 格式回覆：
+{
+  "reasoning_chain": [
+    {
+      "step_id": "step_1",
+      "step_type": "observation",
+      "content": "觀察到的具體事實...",
+      "confidence": 0.9,
+      "knowledge_sources": ["file_id_1", "framework_id_1"],
+      "assumptions": []
+    },
+    {
+      "step_id": "step_2",
+      "step_type": "analysis",
+      "content": "分析過程...",
+      "confidence": 0.85,
+      "knowledge_sources": ["file_id_2"],
+      "assumptions": ["假設市場趨勢持續"],
+      "next_steps": ["step_3"]
+    },
+    {
+      "step_id": "step_3",
+      "step_type": "inference",
+      "content": "推論結果...",
+      "confidence": 0.8,
+      "knowledge_sources": ["file_id_1", "file_id_2"],
+      "assumptions": ["假設供應鏈穩定"],
+      "next_steps": ["step_4"]
+    },
+    {
+      "step_id": "step_4",
+      "step_type": "conclusion",
+      "content": "最終結論與建議...",
+      "confidence": 0.75,
+      "knowledge_sources": ["file_id_1", "file_id_2", "file_id_3"],
+      "assumptions": []
+    }
+  ],
+  "final_conclusion": "完整的結論與建議",
+  "overall_confidence": 0.78,
+  "key_assumptions": [
+    "假設市場趨勢持續",
+    "假設供應鏈穩定"
+  ]
+}`;
+
+    const genAI = createGeminiClient();
+    const model = genAI.getGenerativeModel({ 
+        model: 'gemini-3-pro-preview' // 使用 Pro 模型以獲得更好的推理能力
+    });
+    
+    const result = await model.generateContent(reasoningPrompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // 解析 JSON
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error('無法解析推理鏈 JSON');
+    }
+    
+    const reasoningData = JSON.parse(jsonMatch[0]);
+    
+    return {
+        chain_id: crypto.randomUUID(),
+        message_id: '', // 稍後填入
+        query,
+        steps: reasoningData.reasoning_chain,
+        final_conclusion: reasoningData.final_conclusion,
+        overall_confidence: reasoningData.overall_confidence,
+        created_at: new Date().toISOString()
+    };
+}
+```
+
+**API 整合**：
+
+```typescript
+// app/api/chat/route.ts
+
+import { generateReasoningChain } from '@/lib/chat/reasoning-tracker';
+
+export async function POST(request: NextRequest) {
+    // ... 現有程式碼 ...
+    
+    // 在生成回應時，同時生成推理鏈
+    const reasoningChain = await generateReasoningChain(
+        message,
+        knowledgeContext,
+        fullSystemPrompt
+    );
+    
+    // 儲存推理鏈到資料庫
+    const { data: savedChain } = await supabase
+        .from('reasoning_chains')
+        .insert({
+            chain_id: reasoningChain.chain_id,
+            message_id: aiMessage.id,
+            query: message,
+            steps: reasoningChain.steps,
+            final_conclusion: reasoningChain.final_conclusion,
+            overall_confidence: reasoningChain.overall_confidence
+        })
+        .select()
+        .single();
+    
+    // 發送推理鏈給前端
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+        reasoning_chain: reasoningChain 
+    })}\n\n`));
+}
+```
+
+#### 12.4 Layer 2: 知識來源路徑圖（Knowledge Source Path Visualization）
+
+**視覺化元件**：使用 React Flow 繪製知識來源的引用關係圖。
+
+```typescript
+// components/chat/ReasoningChainVisualizer.tsx
+
+'use client';
+
+import ReactFlow, { Node, Edge } from 'reactflow';
+import { ReasoningChain } from '@/lib/chat/reasoning-tracker';
+import { FileText, Brain, Target, CheckCircle } from 'lucide-react';
+
+interface ReasoningChainVisualizerProps {
+    chain: ReasoningChain;
+    onStepClick?: (stepId: string) => void;
+}
+
+export default function ReasoningChainVisualizer({ 
+    chain, 
+    onStepClick 
+}: ReasoningChainVisualizerProps) {
+    // 1. 建構節點（每個推理步驟 + 知識來源）
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
+    
+    // 2. 添加推理步驟節點
+    chain.steps.forEach((step, index) => {
+        const stepNode: Node = {
+            id: step.step_id,
+            type: 'reasoningStep',
+            position: { x: index * 300, y: 0 },
+            data: {
+                label: step.content.substring(0, 100) + '...',
+                stepType: step.step_type,
+                confidence: step.confidence,
+                stepNumber: index + 1
+            },
+            style: {
+                background: getStepColor(step.step_type),
+                color: '#fff',
+                border: '2px solid',
+                borderColor: getConfidenceColor(step.confidence),
+                borderRadius: '12px',
+                padding: '16px',
+                width: 280,
+                minHeight: 120
+            }
+        };
+        nodes.push(stepNode);
+        
+        // 3. 添加知識來源節點
+        step.knowledge_sources.forEach((sourceId, sourceIndex) => {
+            const sourceNodeId = `source_${step.step_id}_${sourceIndex}`;
+            const sourceNode: Node = {
+                id: sourceNodeId,
+                type: 'knowledgeSource',
+                position: { 
+                    x: index * 300 + (sourceIndex - step.knowledge_sources.length / 2) * 100, 
+                    y: 200 
+                },
+                data: {
+                    label: `來源 ${sourceIndex + 1}`,
+                    sourceId
+                },
+                style: {
+                    background: '#1e293b',
+                    color: '#94a3b8',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    width: 80,
+                    height: 60
+                }
+            };
+            nodes.push(sourceNode);
+            
+            // 4. 連接推理步驟與知識來源
+            edges.push({
+                id: `edge_${step.step_id}_${sourceNodeId}`,
+                source: step.step_id,
+                target: sourceNodeId,
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: '#64748b', strokeWidth: 2 }
+            });
+        });
+        
+        // 5. 連接推理步驟（形成鏈）
+        if (step.next_steps && step.next_steps.length > 0) {
+            step.next_steps.forEach(nextStepId => {
+                edges.push({
+                    id: `edge_${step.step_id}_${nextStepId}`,
+                    source: step.step_id,
+                    target: nextStepId,
+                    type: 'smoothstep',
+                    animated: true,
+                    style: { stroke: '#3b82f6', strokeWidth: 3 }
+                });
+            });
+        } else if (index < chain.steps.length - 1) {
+            // 預設連接下一個步驟
+            edges.push({
+                id: `edge_${step.step_id}_${chain.steps[index + 1].step_id}`,
+                source: step.step_id,
+                target: chain.steps[index + 1].step_id,
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: '#3b82f6', strokeWidth: 3 }
+            });
+        }
+    });
+    
+    // 6. 添加最終結論節點
+    const conclusionNode: Node = {
+        id: 'conclusion',
+        type: 'conclusion',
+        position: { x: chain.steps.length * 300, y: 0 },
+        data: {
+            label: chain.final_conclusion,
+            confidence: chain.overall_confidence
+        },
+        style: {
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+            color: '#fff',
+            border: '3px solid #a78bfa',
+            borderRadius: '16px',
+            padding: '20px',
+            width: 320,
+            minHeight: 150,
+            fontSize: '14px',
+            fontWeight: '600'
+        }
+    };
+    nodes.push(conclusionNode);
+    
+    // 連接最後一步到結論
+    if (chain.steps.length > 0) {
+        const lastStep = chain.steps[chain.steps.length - 1];
+        edges.push({
+            id: `edge_${lastStep.step_id}_conclusion`,
+            source: lastStep.step_id,
+            target: 'conclusion',
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#8b5cf6', strokeWidth: 4 }
+        });
+    }
+    
+    return (
+        <div className="w-full h-[600px] bg-background-secondary/50 rounded-2xl border border-white/10 p-4">
+            <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-text-primary">
+                    AI 決策推理過程
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                    <span>整體信心度：</span>
+                    <span className="font-bold text-primary-400">
+                        {Math.round(chain.overall_confidence * 100)}%
+                    </span>
+                </div>
+            </div>
+            
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                nodeTypes={{
+                    reasoningStep: ReasoningStepNode,
+                    knowledgeSource: KnowledgeSourceNode,
+                    conclusion: ConclusionNode
+                }}
+            />
+        </div>
+    );
+}
+
+function getStepColor(stepType: string): string {
+    const colors = {
+        observation: '#06b6d4', // Cyan
+        analysis: '#3b82f6',     // Blue
+        inference: '#10b981',    // Green
+        conclusion: '#8b5cf6'    // Purple
+    };
+    return colors[stepType as keyof typeof colors] || '#64748b';
+}
+
+function getConfidenceColor(confidence: number): string {
+    if (confidence >= 0.8) return '#10b981'; // Green
+    if (confidence >= 0.6) return '#f59e0b'; // Yellow
+    return '#ef4444'; // Red
+}
+```
+
+#### 12.5 Layer 3: 信心度分解（Confidence Breakdown）
+
+**視覺化元件**：展示每個決策點的信心度與依據。
+
+```typescript
+// components/chat/ConfidenceBreakdown.tsx
+
+interface ConfidenceBreakdownProps {
+    chain: ReasoningChain;
+}
+
+export default function ConfidenceBreakdown({ chain }: ConfidenceBreakdownProps) {
+    return (
+        <div className="space-y-4">
+            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider">
+                信心度分解
+            </h4>
+            
+            {/* 整體信心度 */}
+            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-text-secondary">整體信心度</span>
+                    <span className="text-lg font-bold text-primary-400">
+                        {Math.round(chain.overall_confidence * 100)}%
+                    </span>
+                </div>
+                <div className="w-full bg-white/5 rounded-full h-2">
+                    <div 
+                        className="bg-primary-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${chain.overall_confidence * 100}%` }}
+                    />
+                </div>
+            </div>
+            
+            {/* 各步驟信心度 */}
+            {chain.steps.map((step, index) => (
+                <div key={step.step_id} className="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-text-tertiary">
+                                步驟 {index + 1}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-primary-500/20 text-primary-400 rounded">
+                                {getStepTypeLabel(step.step_type)}
+                            </span>
+                        </div>
+                        <span className="text-sm font-bold text-text-primary">
+                            {Math.round(step.confidence * 100)}%
+                        </span>
+                    </div>
+                    
+                    <div className="w-full bg-white/5 rounded-full h-1.5 mb-2">
+                        <div 
+                            className={`h-1.5 rounded-full transition-all duration-500 ${
+                                step.confidence >= 0.8 ? 'bg-green-500' :
+                                step.confidence >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${step.confidence * 100}%` }}
+                        />
+                    </div>
+                    
+                    <p className="text-xs text-text-tertiary line-clamp-2">
+                        {step.content}
+                    </p>
+                    
+                    {/* 知識來源數量 */}
+                    {step.knowledge_sources.length > 0 && (
+                        <div className="mt-2 flex items-center gap-1 text-xs text-text-tertiary">
+                            <FileText size={12} />
+                            <span>{step.knowledge_sources.length} 個知識來源</span>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function getStepTypeLabel(stepType: string): string {
+    const labels = {
+        observation: '觀察',
+        analysis: '分析',
+        inference: '推論',
+        conclusion: '結論'
+    };
+    return labels[stepType as keyof typeof labels] || stepType;
+}
+```
+
+#### 12.6 Layer 4: 假設驗證（Assumption Validation）
+
+**視覺化元件**：列出 AI 的假設與驗證方法。
+
+```typescript
+// components/chat/AssumptionValidator.tsx
+
+interface AssumptionValidatorProps {
+    assumptions: string[];
+    knowledgeSources: string[];
+}
+
+export default function AssumptionValidator({ 
+    assumptions, 
+    knowledgeSources 
+}: AssumptionValidatorProps) {
+    return (
+        <div className="space-y-4">
+            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider">
+                關鍵假設與驗證
+            </h4>
+            
+            {assumptions.map((assumption, index) => (
+                <div key={index} className="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                            <span className="text-xs font-bold text-yellow-400">
+                                {index + 1}
+                            </span>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm text-text-primary mb-2">
+                                {assumption}
+                            </p>
+                            
+                            {/* 驗證狀態 */}
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
+                                    可驗證
+                                </span>
+                                <span className="text-text-tertiary">
+                                    基於 {knowledgeSources.length} 個知識來源
+                                </span>
+                            </div>
+                            
+                            {/* 驗證建議 */}
+                            <div className="mt-2 p-2 bg-white/5 rounded text-xs text-text-tertiary">
+                                💡 建議：可透過實際數據或市場調研驗證此假設
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+```
+
+#### 12.7 Layer 5: 替代方案比較（Alternative Comparison）
+
+**技術實作**：要求 AI 輸出多個決策方案並比較優劣。
+
+```typescript
+// lib/chat/alternative-generator.ts
+
+export interface AlternativeOption {
+    option_id: string;
+    title: string;
+    description: string;
+    pros: string[];
+    cons: string[];
+    confidence: number;
+    risk_level: 'low' | 'medium' | 'high';
+    expected_outcome: string;
+    required_resources: string[];
+}
+
+export interface AlternativeComparison {
+    query: string;
+    recommended_option: string; // option_id
+    alternatives: AlternativeOption[];
+    comparison_criteria: string[];
+}
+
+/**
+ * 生成替代方案比較
+ */
+export async function generateAlternatives(
+    query: string,
+    knowledgeContext: string,
+    recommendedSolution: string
+): Promise<AlternativeComparison> {
+    const prompt = `
+你是一位戰略顧問。針對以下問題，請提供 3-4 個不同的決策方案，並進行優劣比較。
+
+【問題】
+${query}
+
+【AI 推薦方案】
+${recommendedSolution}
+
+【可用知識庫】
+${knowledgeContext}
+
+【任務要求】
+1. 生成 3-4 個可行的替代方案
+2. 每個方案需包含：優點、缺點、風險等級、預期結果、所需資源
+3. 比較各方案的優劣
+4. 說明為什麼推薦某個方案
+
+請以 JSON 格式回覆：
+{
+  "recommended_option": "option_1",
+  "alternatives": [
+    {
+      "option_id": "option_1",
+      "title": "方案一：...",
+      "description": "詳細描述...",
+      "pros": ["優點1", "優點2"],
+      "cons": ["缺點1", "缺點2"],
+      "confidence": 0.85,
+      "risk_level": "medium",
+      "expected_outcome": "預期結果...",
+      "required_resources": ["資源1", "資源2"]
+    }
+  ],
+  "comparison_criteria": ["成本", "時效", "風險", "效益"]
+}`;
+
+    // ... 呼叫 Gemini API 並解析 ...
+}
+```
+
+**視覺化元件**：
+
+```typescript
+// components/chat/AlternativeComparison.tsx
+
+export default function AlternativeComparison({ 
+    comparison 
+}: { comparison: AlternativeComparison }) {
+    return (
+        <div className="space-y-4">
+            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider">
+                替代方案比較
+            </h4>
+            
+            {/* 比較表格 */}
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="border-b border-white/10">
+                            <th className="text-left p-3 text-xs font-bold text-text-tertiary">
+                                方案
+                            </th>
+                            {comparison.comparison_criteria.map(criterion => (
+                                <th key={criterion} className="text-center p-3 text-xs font-bold text-text-tertiary">
+                                    {criterion}
+                                </th>
+                            ))}
+                            <th className="text-center p-3 text-xs font-bold text-text-tertiary">
+                                推薦度
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {comparison.alternatives.map((option, index) => (
+                            <tr 
+                                key={option.option_id}
+                                className={`border-b border-white/5 ${
+                                    option.option_id === comparison.recommended_option 
+                                        ? 'bg-primary-500/10' 
+                                        : ''
+                                }`}
+                            >
+                                <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                        {option.option_id === comparison.recommended_option && (
+                                            <CheckCircle size={16} className="text-primary-400" />
+                                        )}
+                                        <span className="text-sm text-text-primary font-semibold">
+                                            {option.title}
+                                        </span>
+                                    </div>
+                                </td>
+                                {/* 各項評分 */}
+                                <td className="p-3 text-center">
+                                    <span className="text-xs text-text-secondary">
+                                        {option.risk_level === 'low' ? '低' : 
+                                         option.risk_level === 'medium' ? '中' : '高'}
+                                    </span>
+                                </td>
+                                <td className="p-3 text-center">
+                                    <span className="text-xs text-text-secondary">
+                                        {Math.round(option.confidence * 100)}%
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+```
+
+#### 12.8 整合 UI：決策可解釋性面板
+
+**完整整合元件**：
+
+```typescript
+// components/chat/DecisionExplainabilityPanel.tsx
+
+'use client';
+
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Eye, Brain, Target } from 'lucide-react';
+import ReasoningChainVisualizer from './ReasoningChainVisualizer';
+import ConfidenceBreakdown from './ConfidenceBreakdown';
+import AssumptionValidator from './AssumptionValidator';
+import AlternativeComparison from './AlternativeComparison';
+import { ReasoningChain } from '@/lib/chat/reasoning-tracker';
+
+interface DecisionExplainabilityPanelProps {
+    messageId: string;
+    chain: ReasoningChain;
+    alternatives?: any;
+}
+
+export default function DecisionExplainabilityPanel({
+    messageId,
+    chain,
+    alternatives
+}: DecisionExplainabilityPanelProps) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [activeTab, setActiveTab] = useState<'reasoning' | 'confidence' | 'assumptions' | 'alternatives'>('reasoning');
+    
+    return (
+        <div className="mt-6 border-t border-white/10 pt-6">
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all"
+            >
+                <div className="flex items-center gap-3">
+                    <Brain size={20} className="text-primary-400" />
+                    <span className="text-sm font-bold text-text-primary">
+                        查看 AI 決策過程
+                    </span>
+                </div>
+                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
+            
+            {isExpanded && (
+                <div className="mt-4 space-y-4">
+                    {/* 標籤頁 */}
+                    <div className="flex gap-2 border-b border-white/10">
+                        {[
+                            { id: 'reasoning', label: '推理鏈', icon: Brain },
+                            { id: 'confidence', label: '信心度', icon: Target },
+                            { id: 'assumptions', label: '假設', icon: Eye },
+                            { id: 'alternatives', label: '替代方案', icon: Target }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                                    activeTab === tab.id
+                                        ? 'border-primary-400 text-primary-400'
+                                        : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                                }`}
+                            >
+                                <tab.icon size={16} className="inline mr-2" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* 內容區域 */}
+                    <div className="min-h-[400px]">
+                        {activeTab === 'reasoning' && (
+                            <ReasoningChainVisualizer chain={chain} />
+                        )}
+                        {activeTab === 'confidence' && (
+                            <ConfidenceBreakdown chain={chain} />
+                        )}
+                        {activeTab === 'assumptions' && (
+                            <AssumptionValidator 
+                                assumptions={chain.steps.flatMap(s => s.assumptions || [])}
+                                knowledgeSources={chain.steps.flatMap(s => s.knowledge_sources)}
+                            />
+                        )}
+                        {activeTab === 'alternatives' && alternatives && (
+                            <AlternativeComparison comparison={alternatives} />
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+```
+
+#### 12.9 資料庫結構
+
+```sql
+-- 推理鏈表
+CREATE TABLE IF NOT EXISTS reasoning_chains (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chain_id VARCHAR(255) UNIQUE NOT NULL,
+    message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+    query TEXT NOT NULL,
+    steps JSONB NOT NULL, -- ReasoningStep[]
+    final_conclusion TEXT NOT NULL,
+    overall_confidence DECIMAL(3,2) NOT NULL,
+    key_assumptions TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 替代方案比較表
+CREATE TABLE IF NOT EXISTS alternative_comparisons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+    query TEXT NOT NULL,
+    recommended_option_id VARCHAR(255) NOT NULL,
+    alternatives JSONB NOT NULL, -- AlternativeOption[]
+    comparison_criteria TEXT[] NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_reasoning_chains_message_id 
+    ON reasoning_chains(message_id);
+CREATE INDEX IF NOT EXISTS idx_alternative_comparisons_message_id 
+    ON alternative_comparisons(message_id);
+```
+
+#### 12.10 API 端點規劃
+
+| 端點 | 方法 | 用途 |
+|-----|-----|-----|
+| `/api/chat` | POST | 對話 API（已擴充支援推理鏈） |
+| `/api/chat/messages/:id/reasoning` | GET | 取得訊息的推理鏈 |
+| `/api/chat/messages/:id/alternatives` | GET | 取得訊息的替代方案比較 |
+| `/api/chat/explain` | POST | 手動觸發決策解釋（針對已存在的訊息） |
+
+#### 12.11 實施優先順序
+
+| 優先級 | 功能 | 預估時間 | 狀態 |
+|--------|------|----------|------|
+| P0 | Layer 1: 決策推理鏈追蹤 | 4-6 小時 | 待實作 |
+| P0 | Layer 2: 知識來源路徑圖 | 3-4 小時 | 待實作 |
+| P1 | Layer 3: 信心度分解 | 2 小時 | 待實作 |
+| P1 | Layer 4: 假設驗證 | 2 小時 | 待實作 |
+| P2 | Layer 5: 替代方案比較 | 3-4 小時 | 待實作 |
+
+**總預估時間**：14-18 小時（2-3 個工作天）
+
+#### 12.12 使用場景範例
+
+**場景：企業主詢問「是否應該擴展新市場？」**
+
+1. **AI 回答**：「建議先進行小規模測試，原因如下...」
+
+2. **點擊「查看 AI 決策過程」**，展開面板：
+
+   - **推理鏈標籤**：顯示 5 個推理步驟
+     - 步驟 1（觀察）：當前市場飽和度 85%
+     - 步驟 2（分析）：競爭對手動態
+     - 步驟 3（推論）：新市場機會評估
+     - 步驟 4（結論）：建議小規模測試
+   
+   - **信心度標籤**：整體信心度 78%
+     - 步驟 1：90%（數據充分）
+     - 步驟 2：85%（有競爭情報）
+     - 步驟 3：70%（部分假設）
+     - 步驟 4：75%（綜合評估）
+   
+   - **假設標籤**：
+     - 假設 1：市場趨勢持續（可驗證）
+     - 假設 2：競爭對手不會立即反應（需監控）
+   
+   - **替代方案標籤**：
+     - 方案 A：小規模測試（推薦）✓
+     - 方案 B：直接大規模進入（高風險）
+     - 方案 C：暫緩擴展（保守）
+
+3. **企業主可以**：
+   - 查看每個推理步驟的依據
+   - 驗證 AI 的假設是否合理
+   - 比較不同方案的優劣
+   - 決定是否採行建議
 
 ---
 
@@ -2462,9 +4105,30 @@ export class ScenarioSimulator {
 
 **報告結束**
 
-**文件版本**: v3.1
-**更新日期**: 2026-01-06
+**文件版本**: v3.3
+**更新日期**: 2026-01-09
 **作者**: EAKAP 系統架構團隊
+
+**v3.3 更新摘要**：
+- 新增 12. AI 決策可解釋性系統（Explainable AI Decision System）
+- Layer 1: 決策推理鏈追蹤（結構化推理過程記錄）
+- Layer 2: 知識來源路徑圖（React Flow 視覺化）
+- Layer 3: 信心度分解（各步驟信心度展示）
+- Layer 4: 假設驗證（關鍵假設與驗證方法）
+- Layer 5: 替代方案比較（多方案優劣比較）
+- 完整視覺化元件設計（ReasoningChainVisualizer、ConfidenceBreakdown 等）
+- 資料庫結構與 API 端點規劃
+- 使用場景範例與實施優先順序
+
+**v3.2 更新摘要**：
+- 新增 11. AI 回答品質防護機制（5 層防護架構）
+- Layer 1: 強制引用來源（使用 Gemini Grounding Metadata）
+- Layer 2: 信心度評分（AI 輸出 + 知識庫匹配度計算）
+- Layer 3: 人工覆核提示（關鍵字檢測：金額、交期、法律、安全）
+- Layer 4: 使用者反饋學習（根據負評調整知識庫權重）
+- Layer 5: 定期人工審計（每月自動篩選高風險回答）
+- 完整技術實作方案、資料庫結構、API 端點規劃
+- 實施優先順序與時間估算
 
 **v3.1 更新摘要**：
 - 新增 Phase 6: 企業戰情中樞 (Executive Command Center) 完整技術規劃

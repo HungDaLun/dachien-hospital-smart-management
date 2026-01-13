@@ -85,7 +85,9 @@ export async function PUT(
             is_active,
             knowledge_rules,
             knowledge_files,
-            mcp_config
+            mcp_config,
+            enabled_tools,
+            enabled_skills
         } = body;
 
         // 1.5 若 System Prompt 有變更，儲存版本歷史
@@ -119,6 +121,8 @@ export async function PUT(
                 is_active,
                 knowledge_files: knowledge_files || [],
                 mcp_config: mcp_config || {},
+                enabled_tools: enabled_tools || [],
+                enabled_skills: enabled_skills || [],
                 updated_at: new Date().toISOString(),
             })
             .eq('id', params.id)
@@ -159,10 +163,6 @@ export async function PUT(
     }
 }
 
-/**
- * DELETE /api/agents/[id]
- * 硬刪除 Agent 及其所有關聯資料
- */
 /**
  * DELETE /api/agents/[id]
  * 硬刪除 Agent 及其所有關聯資料

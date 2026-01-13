@@ -59,7 +59,15 @@ function LoginFormContent({ dict }: LoginFormProps) {
             });
 
             if (signInError) {
-                setError(signInError.message);
+                // 翻譯錯誤訊息
+                let errorMessage = signInError.message;
+                if (errorMessage === 'Invalid login credentials') {
+                    errorMessage = '帳號或密碼錯誤，請檢查後重新輸入';
+                } else if (errorMessage === 'Email not confirmed') {
+                    errorMessage = '電子郵件尚未驗證，請檢查您的信箱';
+                }
+
+                setError(errorMessage);
                 setLoading(false);
                 return;
             }
@@ -116,8 +124,8 @@ function LoginFormContent({ dict }: LoginFormProps) {
                     )}
 
                     {error && (
-                        <div className="mb-4 p-3 bg-error-50 border border-error-500 rounded-md">
-                            <p className="text-sm text-error-500">{error}</p>
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md shadow-sm">
+                            <p className="text-sm text-black font-medium">{error}</p>
                         </div>
                     )}
 

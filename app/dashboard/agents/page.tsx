@@ -36,7 +36,12 @@ export default async function AgentsPage() {
     return (
         <div className="w-full p-6 xl:p-10 space-y-10 bg-background-primary text-text-primary min-h-screen">
             {/* 頁面操作按鈕 */}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+                <Link href="/dashboard/skills">
+                    <Button variant="outline" size="lg">
+                        <Sparkles size={18} className="mr-2" /> 技能市集
+                    </Button>
+                </Link>
                 <Link href="/dashboard/agents/new">
                     <Button variant="cta" size="lg">
                         <Sparkles size={18} className="mr-2" /> {dict.agents.create_new}

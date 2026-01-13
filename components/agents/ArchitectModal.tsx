@@ -20,6 +20,8 @@ interface ArchitectResponse {
     system_prompt: string;
     suggested_knowledge_rules: { rule_type: 'TAG' | 'DEPARTMENT'; rule_value: string }[];
     suggested_knowledge_files?: string[];
+    suggested_tools?: string[]; // 新增：建議工具 ID 列表
+    suggested_skills?: string[]; // 新增：建議技能 ID 列表
     mcp_config?: Record<string, any>; // 新增：推薦的 MCP 設定
 }
 
@@ -37,12 +39,14 @@ interface ArchitectChatProps {
     currentState?: any; // 當前的 Agent 狀態
     dict: Dictionary;
     fileNames?: Record<string, string>; // 新增：檔案名稱映射
+    toolNames?: Record<string, string>; // 新增：工具名稱映射
+    skillNames?: Record<string, string>; // 新增：技能名稱映射
 }
 
 // 閒置超時時間（20 分鐘）
 const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 
-export default function ArchitectChat({ onApply, departmentContext, currentState, dict, fileNames = {} }: ArchitectChatProps) {
+export default function ArchitectChat({ onApply, departmentContext, currentState, dict, fileNames = {}, toolNames = {}, skillNames = {} }: ArchitectChatProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -210,12 +214,61 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
             {!isOpen && (
                 <button
                     onClick={handleOpen}
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center text-white text-2xl z-50 hover:scale-110 group"
+                    className="fixed bottom-6 right-6 w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:shadow-[0_0_30px_rgba(124,58,237,0.8)] transition-all duration-300 flex items-center justify-center text-white z-50 hover:scale-110 group border-2 border-white/20 overflow-hidden"
                     title={t.open_architect}
                 >
-                    <span className="group-hover:scale-110 transition-transform">🤖</span>
-                    {/* 脈動動畫 */}
-                    <span className="absolute inset-0 rounded-full bg-violet-500 animate-ping opacity-25" />
+                    {/* 脈動動畫底層 */}
+                    <span className="absolute inset-0 rounded-full bg-violet-500 animate-ping opacity-20" />
+
+                    {/* SVG 內容：機器人臉與環繞文字 */}
+                    <svg viewBox="0 0 100 100" className="w-full h-full p-1 drop-shadow-lg transform transition-transform group-hover:scale-105">
+                        <defs>
+                            {/* 橫排模式下不再需要底部的弧線路徑 */}
+                        </defs>
+
+                        {/* 機器人臉部 (保持橫向比例，位置微調以配合下方橫排文字) */}
+                        <g transform="translate(50, 42) scale(0.9)">
+                            {/* 天線環 */}
+                            <circle cx="0" cy="-30" r="3.5" fill="#A78BFA" />
+                            <rect x="-1" y="-28" width="2" height="8" fill="#A78BFA" ry="1" />
+
+                            {/* 頭部外殼 (橫向平衡比例) */}
+                            <rect x="-24" y="-18" width="48" height="34" rx="14" fill="url(#headGradient)" />
+                            <defs>
+                                <linearGradient id="headGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#FFFFFF" />
+                                    <stop offset="100%" stopColor="#CBD5E1" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* 數位螢幕面罩 */}
+                            <rect x="-19" y="-13" width="38" height="24" rx="10" fill="#0F172A" />
+
+                            {/* 數位眼睛 (科技感橫向圓點) */}
+                            <g className="animate-[pulse_4s_infinite]">
+                                <circle cx="-9" cy="-1" r="4.5" fill="#22D3EE" />
+                                <circle cx="9" cy="-1" r="4.5" fill="#22D3EE" />
+                                <circle cx="-10.5" cy="-2.5" r="1.5" fill="white" opacity="0.8" />
+                                <circle cx="7.5" cy="-2.5" r="1.5" fill="white" opacity="0.8" />
+                            </g>
+
+                            {/* 能量感應器 (下方裝飾) */}
+                            <rect x="-6" y="7" width="12" height="1.5" rx="0.75" fill="#22D3EE" opacity="0.3" />
+                        </g>
+
+                        {/* 橫排文字 (不再繞圓圈) */}
+                        <text
+                            x="50"
+                            y="86"
+                            textAnchor="middle"
+                            fontSize="11"
+                            fontWeight="900"
+                            fill="white"
+                            className="select-none tracking-tighter"
+                        >
+                            AI代理架構師
+                        </text>
+                    </svg>
                 </button>
             )}
 
@@ -349,6 +402,33 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
                                                     <label className="text-xs font-semibold text-gray-500">建議外部技能 (Skills)</label>
                                                     <div className="p-2 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-600 truncate">
                                                         {JSON.stringify(msg.blueprint.mcp_config).slice(0, 50)}...
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 建議工具與技能 */}
+                                            {(msg.blueprint.suggested_tools?.length || 0) > 0 && (
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-semibold text-gray-500">建議啟用功能 (Tools)</label>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {msg.blueprint.suggested_tools?.map((toolId, idx) => (
+                                                            <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] border border-blue-100 font-medium">
+                                                                🔧 {toolNames[toolId] || toolId}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {(msg.blueprint.suggested_skills?.length || 0) > 0 && (
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-semibold text-gray-500">建議載入技能包 (Skills)</label>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {msg.blueprint.suggested_skills?.map((skillId, idx) => (
+                                                            <span key={idx} className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-[10px] border border-purple-100 font-medium">
+                                                                🧠 {skillNames[skillId] || skillId}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             )}

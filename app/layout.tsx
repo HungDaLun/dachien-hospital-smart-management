@@ -57,6 +57,26 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       lang={locale}
       className={`${spaceGrotesk.variable} ${dmSans.variable} ${notoSansTC.variable}`}
     >
+      <head>
+        {/* 徹底解決 Safari / Chrome 快取導致的 ChunkLoadError */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('error', (e) => {
+                const message = e.message || '';
+                const isChunkError = message.toLowerCase().includes('chunkloaderror') || 
+                                    message.toLowerCase().includes('loading chunk') ||
+                                    e.target?.src?.includes('_next/static/chunks/');
+                
+                if (isChunkError) {
+                  console.log('偵測到版本不一致，正在自動修復與重新整理...');
+                  window.location.reload();
+                }
+              }, true);
+            `,
+          }}
+        />
+      </head>
       <body className="font-body antialiased">
         {children}
       </body>

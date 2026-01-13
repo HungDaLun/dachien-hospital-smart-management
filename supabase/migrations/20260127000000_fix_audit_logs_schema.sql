@@ -64,13 +64,19 @@ BEGIN
   ) THEN
     -- 檢查外鍵約束是否正確
     IF NOT EXISTS (
-      SELECT 1 FROM information_schema.table_constraints tc
+      SELECT 1 
+      FROM information_schema.table_constraints tc
       JOIN information_schema.key_column_usage kcu 
         ON tc.constraint_name = kcu.constraint_name
-      WHERE tc.table_name = 'audit_logs'
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      WHERE tc.table_schema = 'public'
+        AND tc.table_name = 'audit_logs'
         AND tc.constraint_type = 'FOREIGN KEY'
         AND kcu.column_name = 'user_id'
-        AND kcu.referenced_table_name = 'user_profiles'
+        AND ccu.table_name = 'user_profiles'
     ) THEN
       -- 刪除舊的外鍵（如果存在且指向 auth.users）
       ALTER TABLE audit_logs 

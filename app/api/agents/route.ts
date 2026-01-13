@@ -58,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     const adminSupabase = await createAdminClient();
 
     const body = await request.json();
-    const { name, description, system_prompt, model_version, temperature, knowledge_files, mcp_config } = body;
+    const { name, description, system_prompt, model_version, temperature, knowledge_files, mcp_config, enabled_tools, enabled_skills } = body;
 
     // 驗證必填欄位
     if (!name || !system_prompt || !model_version) {
@@ -81,6 +81,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
           ? knowledge_files.filter((id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
           : [],
         mcp_config: mcp_config || {},
+        enabled_tools: Array.isArray(enabled_tools) ? enabled_tools : [],
+        enabled_skills: Array.isArray(enabled_skills) ? enabled_skills : [],
         department_id: profile.role === 'DEPT_ADMIN' ? profile.department_id : (body.department_id || null),
         created_by: profile.id,
       })

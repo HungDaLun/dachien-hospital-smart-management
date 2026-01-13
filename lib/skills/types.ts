@@ -1,64 +1,77 @@
 import { z } from 'zod';
 
-// MCP Tool Definition (compatible with Model Context Protocol)
+/**
+ * 技能 (Skill) 相關的型別定義
+ */
+
 export const McpToolSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
-    inputSchema: z.record(z.any()), // JSON Schema for arguments
+    inputSchema: z.any(), // JSON Schema
 });
 
-// MCP Resource Definition
-export const McpResourceSchema = z.object({
-    uri: z.string(),
+export type McpTool = z.infer<typeof McpToolSchema>;
+
+export const EakapSkillSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
-    mimeType: z.string().optional(),
-});
-
-// MCP Server Configuration
-export const McpServerConfigSchema = z.object({
-    command: z.string(),
-    args: z.array(z.string()).default([]),
-    env: z.record(z.string()).optional(),
-});
-
-// EAKAP Skill Schema (Our standard for Agent Recipes)
-export const EakapSkillSchema = z.object({
-    // Core Metadata
-    id: z.string().uuid().optional(), // Optional for new imports
-    name: z.string().min(1, "Name is required"),
-    description: z.string().optional(),
-    category: z.string().default("Custom"),
-    author: z.string().default("Anonymous"),
-    version: z.string().default("1.0.0"),
-    license: z.string().default("MIT"),
-    tags: z.array(z.string()).default([]),
+    category: z.string().default('General'),
+    system_prompt_template: z.string(),
+    input_schema: z.any().optional(), // JSON Schema for variables in prompt
 
     // Knowledge Requirements
-    required_frameworks: z.array(z.string()).default([]), // codes from knowledge_frameworks table
-    required_dikw_levels: z.array(z.enum(['data', 'information', 'knowledge', 'wisdom'])).default([]),
-    department_scope: z.array(z.string()).default([]),
+    required_frameworks: z.array(z.string()).optional(),
+    required_dikw_levels: z.array(z.string()).optional(),
+    department_scope: z.array(z.string()).optional(),
 
-    // Prompt Engineering
-    system_prompt_template: z.string().min(1, "System Prompt is required"),
-    input_schema: z.record(z.any()).default({}), // Variables needed for template
+    // Metadata
+    author: z.string().optional(),
+    version: z.string().default('1.0.0'),
+    license: z.string().optional(),
+    tags: z.array(z.string()).optional(),
 
-    // MCP & Tool Use
+    // Config
     mcp_config: z.object({
-        servers: z.record(McpServerConfigSchema).optional(),
         tools: z.array(McpToolSchema).optional(),
-        resources: z.array(McpResourceSchema).optional(),
-    }).default({}),
+    }).optional(),
 
-    // Model Preferences
     model_config: z.object({
-        preferred_model: z.string().default("gemini-3-flash"),
-        temperature: z.number().min(0).max(2).default(0.7),
-        thinking_level: z.enum(['low', 'high']).optional(),
-    }).default({}),
+        preferred_model: z.string().optional(),
+        temperature: z.number().optional(),
+    }).optional(),
 });
 
 export type EakapSkill = z.infer<typeof EakapSkillSchema>;
-export type McpTool = z.infer<typeof McpToolSchema>;
-export type McpResource = z.infer<typeof McpResourceSchema>;
-export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+
+export interface Skill {
+    id: string; // UUID
+    name: string; // English ID (e.g., 'customer_service_sop')
+    display_name: string; // Traditional Chinese Name
+    description: string;
+    category: string;
+    version: string;
+    prompt_instruction: string; // The instruction injected into System Prompt
+    author?: string;
+    is_official: boolean;
+    is_active: boolean;
+    icon?: string;
+    created_at: string;
+    updated_at: string;
+    metadata?: Record<string, any>;
+}
+
+export interface SkillCategory {
+    id: string;
+    name: string;
+    display_name: string;
+    description?: string;
+}
+
+/**
+ * 技能載入結果
+ */
+export interface LoadedSkill {
+    name: string;
+    display_name: string;
+    instruction: string;
+}
