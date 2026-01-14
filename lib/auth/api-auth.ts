@@ -19,16 +19,13 @@ export function checkAuth(req: NextRequest): boolean {
 
     const token = authHeader.split(' ')[1];
 
-    // For MVP/Testing with Open WebUI, we accept 'test' or any non-empty token
-    // You can enforce a specific token here, e.g., process.env.OPENAI_API_KEY
-    if (!token || token.trim().length === 0) {
+    // ✅ 修復：驗證 token 是否為有效的 API 金鑰
+    const validApiKey = process.env.OPENAI_BRIDGE_API_KEY;
+
+    if (!validApiKey) {
+        console.error('[API Auth] OPENAI_BRIDGE_API_KEY 未設定');
         return false;
     }
 
-    // Optional: Check against a hardcoded secret for basic security
-    // if (token !== 'test' && token !== process.env.CRON_SECRET) {
-    //     return false;
-    // }
-
-    return true;
+    return token === validApiKey;
 }

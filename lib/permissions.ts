@@ -340,17 +340,25 @@ async function EXISTS_TAG_PERM(userId: string, tags: Array<{ tag_key: string; ta
   if (tags.length === 0) return false;
 
   const supabase = await createClient();
-  for (const tag of tags) {
-    const { data } = await supabase
-      .from('user_tag_permissions')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('tag_key', tag.tag_key)
-      .eq('tag_value', tag.tag_value)
-      .single();
-    if (data) return true;
+
+  // ✅ 修復：單一批次查詢
+  const tagConditions = tags.map(tag =>
+    `and(tag_key.eq.${tag.tag_key},tag_value.eq.${tag.tag_value})`
+  ).join(',');
+
+  const { data, error } = await supabase
+    .from('user_tag_permissions')
+    .select('id')
+    .eq('user_id', userId)
+    .or(tagConditions)
+    .limit(1);
+
+  if (error) {
+    console.error('[Permission] Tag permission check failed:', error);
+    return false;
   }
-  return false;
+
+  return !!(data && data.length > 0);
 }
 
 /**

@@ -164,15 +164,30 @@ export async function POST(request: NextRequest) {
             const embedding = await generateEmbedding(message);
 
             if (departmentIds.length > 0) {
-                for (const deptId of departmentIds) {
-                    const { data: vectorMatches, error: rpcError } = await adminSupabase.rpc('search_knowledge_by_embedding', {
+                // ✅ 修復：並行執行所有部門查詢
+                const searchPromises = departmentIds.map(deptId =>
+                    adminSupabase.rpc('search_knowledge_by_embedding', {
                         query_embedding: embedding,
                         match_threshold: 0.1,
                         match_count: 5,
                         filter_department: deptId
-                    });
-                    if (!rpcError && vectorMatches) retrievedFiles.push(...vectorMatches);
+                    })
+                );
+
+                const results = await Promise.all(searchPromises);
+
+                for (const { data, error } of results) {
+                    if (!error && data) {
+                        retrievedFiles.push(...data);
+                    }
                 }
+
+                // 去重並按相似度排序
+                const uniqueFiles = Array.from(
+                    new Map(retrievedFiles.map(f => [f.id, f])).values()
+                ).sort((a: any, b: any) => b.similarity - a.similarity);
+
+                retrievedFiles = uniqueFiles.slice(0, 10);
             } else if (matchedFileIds.size > 0) {
                 const { data: files } = await adminSupabase
                     .from('files')

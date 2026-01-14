@@ -5,16 +5,15 @@ import { syncPendingFiles } from '@/lib/gemini/files';
 export const dynamic = 'force-dynamic'; // 確保 API 不會被快取
 
 export async function GET(req: NextRequest) {
-    // 1. 驗證 Secret (支援 Header 或 Query Param)
+    // 1. 驗證 Secret (僅支援 Header)
     const authHeader = req.headers.get('authorization');
-    const cronKey = req.nextUrl.searchParams.get('key');
     const validSecret = process.env.CRON_SECRET;
 
-    const isValidAuth =
-        (authHeader === `Bearer ${validSecret}`) ||
-        (cronKey === validSecret);
+    // Vercel Cron 會自動帶入正確的 Header
+    const isVercelCron = req.headers.get('x-vercel-cron') === '1';
+    const isValidAuth = authHeader === `Bearer ${validSecret}`;
 
-    if (!validSecret || !isValidAuth) {
+    if (!validSecret || (!isValidAuth && !isVercelCron)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
