@@ -7,7 +7,12 @@
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { Card, Button } from '@/components/ui';
-import { Eye, EyeOff, Save, RefreshCw, Shield, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, RefreshCw, Shield, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+
+interface ConfigStatus {
+  configured: boolean;
+  source: 'database' | 'env' | 'none';
+}
 
 interface SystemConfig {
   gemini: {
@@ -25,6 +30,26 @@ interface SystemConfig {
     s3_bucket: string;
     s3_region: string;
   };
+  // 新增：Email 服務設定
+  email: {
+    provider: string;
+    resend_api_key: ConfigStatus;
+    sendgrid_api_key: ConfigStatus;
+  };
+  // 新增：新聞與情資設定
+  news: {
+    news_api_key: ConfigStatus;
+  };
+  // 新增：即時通知設定
+  notification: {
+    line_channel_token: ConfigStatus;
+    slack_webhook_url: ConfigStatus;
+  };
+  // 新增：MCP 工具設定
+  mcp: {
+    web_search_api_key: ConfigStatus;
+    cron_secret: ConfigStatus;
+  };
   app: {
     app_url: string;
     node_env: string;
@@ -40,6 +65,15 @@ interface EditableFields {
   s3_bucket?: string;
   s3_region?: string;
   app_url?: string;
+  // 新增設定項目
+  email_provider?: string;
+  resend_api_key?: string;
+  sendgrid_api_key?: string;
+  news_api_key?: string;
+  line_channel_token?: string;
+  slack_webhook_url?: string;
+  web_search_api_key?: string;
+  cron_secret?: string;
 }
 
 export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
@@ -81,6 +115,7 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
         s3_bucket: data.data.storage.s3_bucket,
         s3_region: data.data.storage.s3_region,
         app_url: data.data.app.app_url,
+        email_provider: data.data.email?.provider || 'resend',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : dict.common.error);
@@ -120,6 +155,34 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
       }
       if (editData.app_url !== config?.app.app_url) {
         updates.app_url = editData.app_url;
+      }
+      // 新增：Email 服務設定
+      if (editData.email_provider !== config?.email?.provider) {
+        updates.email_provider = editData.email_provider;
+      }
+      if (editData.resend_api_key) {
+        updates.resend_api_key = editData.resend_api_key;
+      }
+      if (editData.sendgrid_api_key) {
+        updates.sendgrid_api_key = editData.sendgrid_api_key;
+      }
+      // 新增：新聞與情資設定
+      if (editData.news_api_key) {
+        updates.news_api_key = editData.news_api_key;
+      }
+      // 新增：即時通知設定
+      if (editData.line_channel_token) {
+        updates.line_channel_token = editData.line_channel_token;
+      }
+      if (editData.slack_webhook_url) {
+        updates.slack_webhook_url = editData.slack_webhook_url;
+      }
+      // 新增：MCP 工具設定
+      if (editData.web_search_api_key) {
+        updates.web_search_api_key = editData.web_search_api_key;
+      }
+      if (editData.cron_secret) {
+        updates.cron_secret = editData.cron_secret;
       }
 
       if (Object.keys(updates).length === 0) {
@@ -161,6 +224,13 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
         s3_endpoint: undefined,
         s3_access_key: undefined,
         s3_secret_key: undefined,
+        resend_api_key: undefined,
+        sendgrid_api_key: undefined,
+        news_api_key: undefined,
+        line_channel_token: undefined,
+        slack_webhook_url: undefined,
+        web_search_api_key: undefined,
+        cron_secret: undefined,
       }));
 
       // 重新載入設定
@@ -172,95 +242,55 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
     }
   };
 
-  const handlePasswordConfirm = () => {
-    if (!confirmPassword) {
-      setError('請輸入密碼');
-      return;
-    }
-    handleSave(confirmPassword);
-  };
-
-  const toggleSecretVisibility = (key: string) => {
-    setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   if (loading) {
     return (
-      <Card variant="glass" className="p-8">
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-          <p className="mt-4 text-text-tertiary">{dict.common.loading}</p>
-        </div>
-      </Card>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <RefreshCw className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
     );
-  }
-
-  if (error && !config) {
-    return (
-      <Card variant="glass" className="p-8">
-        <div className="bg-semantic-danger/10 border border-semantic-danger/30 rounded-xl p-4">
-          <p className="text-semantic-danger">{error}</p>
-        </div>
-      </Card>
-    );
-  }
-
-  if (!config) {
-    return null;
   }
 
   return (
-    <div className="space-y-6">
-      {/* 操作按鈕列 */}
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-primary-500" />
-          <span className="text-sm text-text-tertiary font-medium">
-            僅超級管理員可檢視與編輯
-          </span>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+            <Shield className="text-purple-500" />
+            系統核心配置
+          </h1>
+          <p className="text-text-tertiary mt-1">管理 API 金鑰、儲存空間與全域應用程式設定</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
             onClick={loadConfig}
-            disabled={loading}
+            disabled={loading || saving}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            重新載入
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </Button>
           {!isEditing ? (
             <Button
               variant="cta"
-              size="sm"
               onClick={() => setIsEditing(true)}
             >
               編輯設定
             </Button>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
                 onClick={() => {
                   setIsEditing(false);
-                  setEditData({
-                    gemini_model_version: config.gemini.model_version,
-                    s3_bucket: config.storage.s3_bucket,
-                    s3_region: config.storage.s3_region,
-                    app_url: config.app.app_url,
-                  });
+                  loadConfig();
                 }}
               >
                 取消
               </Button>
               <Button
                 variant="cta"
-                size="sm"
                 onClick={() => handleSave()}
                 loading={saving}
               >
-                <Save className="w-4 h-4 mr-2" />
                 儲存變更
               </Button>
             </div>
@@ -268,246 +298,320 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
         </div>
       </div>
 
-      {/* 成功訊息 */}
-      {successMessage && (
-        <div className="bg-semantic-success/10 border border-semantic-success/30 rounded-xl p-4 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-semantic-success" />
-          <p className="text-semantic-success font-medium">{successMessage}</p>
-        </div>
-      )}
-
-      {/* 錯誤訊息 */}
       {error && (
-        <div className="bg-semantic-danger/10 border border-semantic-danger/30 rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-semantic-danger" />
-          <p className="text-semantic-danger font-medium">{error}</p>
-        </div>
+        <Card variant="glass" className="bg-semantic-danger/10 border-semantic-danger/20 p-4">
+          <div className="flex items-center gap-3 text-semantic-danger">
+            <AlertCircle size={20} />
+            <p className="font-medium">{error}</p>
+          </div>
+        </Card>
       )}
 
-      {/* Gemini API 設定 */}
-      <Card variant="glass" className="p-6">
-        <h2 className="text-xl font-black text-text-primary mb-4 uppercase tracking-tight flex items-center gap-2">
-          🤖 {dict.admin.system.gemini_settings}
-        </h2>
-        <div className="space-y-4">
-          {/* API Key */}
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">API Key</label>
-            {isEditing ? (
-              <div className="flex items-center gap-2 w-80">
-                <div className="relative flex-1">
+      {successMessage && (
+        <Card variant="glass" className="bg-semantic-success/10 border-semantic-success/20 p-4">
+          <div className="flex items-center gap-3 text-semantic-success">
+            <CheckCircle size={20} />
+            <p className="font-medium">{successMessage}</p>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Gemini 配置 */}
+        <div className="space-y-6">
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Shield className="text-purple-500" size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">Gemini AI 配置</h2>
+            </div>
+
+            <div className="space-y-6">
+              <SettingRow
+                title="API 金鑰"
+                description="Google AI Studio 獲取的 API 金鑰"
+                status={config?.gemini.api_key_configured ? { configured: true, source: config.gemini.api_key_source } : { configured: false, source: 'none' }}
+              >
+                <div className="flex gap-2">
                   <input
-                    type={showSecrets['gemini_api_key'] ? 'text' : 'password'}
+                    type={showSecrets['gemini'] ? 'text' : 'password'}
                     value={editData.gemini_api_key || ''}
-                    onChange={(e) => setEditData(prev => ({ ...prev, gemini_api_key: e.target.value }))}
-                    placeholder="輸入新的 API Key..."
-                    className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 pr-10"
+                    onChange={(e) => setEditData({ ...editData, gemini_api_key: e.target.value })}
+                    placeholder={config?.gemini.api_key_configured && !editData.gemini_api_key ? "******** (已從來源配置)" : "輸入 API Key"}
+                    disabled={!isEditing}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   />
                   <button
-                    type="button"
-                    onClick={() => toggleSecretVisibility('gemini_api_key')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+                    onClick={() => setShowSecrets({ ...showSecrets, gemini: !showSecrets['gemini'] })}
+                    className="p-3 hover:bg-white/5 rounded-xl text-text-tertiary transition-colors"
                   >
-                    {showSecrets['gemini_api_key'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showSecrets['gemini'] ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                <span title="需要密碼確認"><Lock className="w-4 h-4 text-amber-500" /></span>
-              </div>
-            ) : (
-              <ConfigStatus
-                configured={config.gemini.api_key_configured}
-                source={config.gemini.api_key_source}
-                dict={dict}
-              />
-            )}
-          </div>
+              </SettingRow>
 
-          {/* 模型版本 */}
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">{dict.admin.system.model_version}</label>
-            {isEditing ? (
-              <select
-                value={editData.gemini_model_version || config.gemini.model_version}
-                onChange={(e) => setEditData(prev => ({ ...prev, gemini_model_version: e.target.value }))}
-                className="px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-colors"
+              <SettingRow
+                title="預設模型"
+                description="系統預設使用的 Gemini 模型版本"
               >
-                <option value="gemini-3-flash-preview">gemini-3-flash-preview (速度最快、成本較低)</option>
-                <option value="gemini-3-pro-preview">gemini-3-pro-preview (推論能力最強)</option>
-              </select>
-            ) : (
-              <span className="text-sm text-text-tertiary font-mono">{config.gemini.model_version}</span>
-            )}
-          </div>
+                <select
+                  value={editData.gemini_model_version || 'gemini-3-flash-preview'}
+                  onChange={(e) => setEditData({ ...editData, gemini_model_version: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
+                >
+                  <option value="gemini-3-flash-preview">Gemini 1.5 Flash (最快)</option>
+                  <option value="gemini-3-pro-preview">Gemini 1.5 Pro (最強)</option>
+                </select>
+              </SettingRow>
+            </div>
+          </Card>
+
+          {/* S3 儲存配置 */}
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Shield className="text-blue-500" size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">S3 儲存配置 (Cloudflare R2/AWS)</h2>
+            </div>
+
+            <div className="space-y-6">
+              <SettingRow title="Endpoint URL" status={config?.storage.s3_endpoint_configured ? { configured: true, source: config.storage.s3_endpoint_source } : { configured: false, source: 'none' }}>
+                <input
+                  type="text"
+                  value={editData.s3_endpoint || ''}
+                  onChange={(e) => setEditData({ ...editData, s3_endpoint: e.target.value })}
+                  placeholder={config?.storage.s3_endpoint_configured && !editData.s3_endpoint ? "已從來源配置" : "https://<accountid>.r2.cloudflarestorage.com"}
+                  disabled={!isEditing}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+              </SettingRow>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingRow title="Access Key" status={config?.storage.s3_access_key_configured ? { configured: true, source: config.storage.s3_access_key_source } : { configured: false, source: 'none' }}>
+                  <input
+                    type="password"
+                    value={editData.s3_access_key || ''}
+                    onChange={(e) => setEditData({ ...editData, s3_access_key: e.target.value })}
+                    placeholder={config?.storage.s3_access_key_configured && !editData.s3_access_key ? "********" : "Access Key"}
+                    disabled={!isEditing}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </SettingRow>
+                <SettingRow title="Secret Key" status={config?.storage.s3_secret_key_configured ? { configured: true, source: config.storage.s3_secret_key_source } : { configured: false, source: 'none' }}>
+                  <input
+                    type="password"
+                    value={editData.s3_secret_key || ''}
+                    onChange={(e) => setEditData({ ...editData, s3_secret_key: e.target.value })}
+                    placeholder={config?.storage.s3_secret_key_configured && !editData.s3_secret_key ? "********" : "Secret Key"}
+                    disabled={!isEditing}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </SettingRow>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingRow title="Bucket Name">
+                  <input
+                    type="text"
+                    value={editData.s3_bucket || ''}
+                    onChange={(e) => setEditData({ ...editData, s3_bucket: e.target.value })}
+                    placeholder="例如: knowledge-base"
+                    disabled={!isEditing}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </SettingRow>
+                <SettingRow title="Region">
+                  <input
+                    type="text"
+                    value={editData.s3_region || ''}
+                    onChange={(e) => setEditData({ ...editData, s3_region: e.target.value })}
+                    placeholder="例如: auto 或 us-east-1"
+                    disabled={!isEditing}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </SettingRow>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
 
-      {/* 儲存設定 (S3/MinIO) */}
-      <Card variant="glass" className="p-6">
-        <h2 className="text-xl font-black text-text-primary mb-4 uppercase tracking-tight flex items-center gap-2">
-          📦 {dict.admin.system.storage_settings}
-        </h2>
-        <div className="space-y-4">
-          {/* S3 Endpoint */}
-          <SettingRow
-            label="S3 Endpoint"
-            isEditing={isEditing}
-            configured={config.storage.s3_endpoint_configured}
-            source={config.storage.s3_endpoint_source}
-            value={editData.s3_endpoint || ''}
-            onChange={(v) => setEditData(prev => ({ ...prev, s3_endpoint: v }))}
-            placeholder="https://s3.example.com"
-            isSecret
-            showSecret={showSecrets['s3_endpoint']}
-            onToggleSecret={() => toggleSecretVisibility('s3_endpoint')}
-            dict={dict}
-          />
+        {/* 其他服務配置 */}
+        <div className="space-y-6">
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-pink-500/10 rounded-lg">
+                <Shield className="text-pink-500" size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">第三方服務整合</h2>
+            </div>
 
-          {/* S3 Access Key */}
-          <SettingRow
-            label="S3 Access Key"
-            isEditing={isEditing}
-            configured={config.storage.s3_access_key_configured}
-            source={config.storage.s3_access_key_source}
-            value={editData.s3_access_key || ''}
-            onChange={(v) => setEditData(prev => ({ ...prev, s3_access_key: v }))}
-            placeholder="輸入 Access Key..."
-            isSecret
-            showSecret={showSecrets['s3_access_key']}
-            onToggleSecret={() => toggleSecretVisibility('s3_access_key')}
-            dict={dict}
-          />
+            <div className="space-y-8">
+              {/* Email 設定 */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-wider">Email 服務</h3>
+                <div className="space-y-4">
+                  <SettingRow title="服務供應商">
+                    <select
+                      value={editData.email_provider || 'resend'}
+                      onChange={(e) => setEditData({ ...editData, email_provider: e.target.value })}
+                      disabled={!isEditing}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
+                    >
+                      <option value="resend">Resend (推薦)</option>
+                      <option value="sendgrid">SendGrid</option>
+                    </select>
+                  </SettingRow>
+                  {editData.email_provider === 'resend' ? (
+                    <SettingRow title="Resend API Key" status={config?.email.resend_api_key}>
+                      <input
+                        type="password"
+                        value={editData.resend_api_key || ''}
+                        onChange={(e) => setEditData({ ...editData, resend_api_key: e.target.value })}
+                        placeholder={config?.email.resend_api_key.configured && !editData.resend_api_key ? "********" : "輸入 Resend API Key"}
+                        disabled={!isEditing}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      />
+                    </SettingRow>
+                  ) : (
+                    <SettingRow title="SendGrid API Key" status={config?.email.sendgrid_api_key}>
+                      <input
+                        type="password"
+                        value={editData.sendgrid_api_key || ''}
+                        onChange={(e) => setEditData({ ...editData, sendgrid_api_key: e.target.value })}
+                        placeholder={config?.email.sendgrid_api_key.configured && !editData.sendgrid_api_key ? "********" : "輸入 SendGrid API Key"}
+                        disabled={!isEditing}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      />
+                    </SettingRow>
+                  )}
+                </div>
+              </div>
 
-          {/* S3 Secret Key */}
-          <SettingRow
-            label="S3 Secret Key"
-            isEditing={isEditing}
-            configured={config.storage.s3_secret_key_configured}
-            source={config.storage.s3_secret_key_source}
-            value={editData.s3_secret_key || ''}
-            onChange={(v) => setEditData(prev => ({ ...prev, s3_secret_key: v }))}
-            placeholder="輸入 Secret Key..."
-            isSecret
-            showSecret={showSecrets['s3_secret_key']}
-            onToggleSecret={() => toggleSecretVisibility('s3_secret_key')}
-            dict={dict}
-          />
+              {/* 新聞設定 */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-wider">新聞與精資</h3>
+                <SettingRow title="NewsAPI Key" description="用於獲取最新行業動態" status={config?.news.news_api_key}>
+                  <input
+                    type="password"
+                    value={editData.news_api_key || ''}
+                    onChange={(e) => setEditData({ ...editData, news_api_key: e.target.value })}
+                    placeholder={config?.news.news_api_key.configured && !editData.news_api_key ? "********" : "輸入 NewsAPI Key"}
+                    disabled={!isEditing}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </SettingRow>
+              </div>
 
-          {/* S3 Bucket */}
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">S3 Bucket</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editData.s3_bucket || ''}
-                onChange={(e) => setEditData(prev => ({ ...prev, s3_bucket: e.target.value }))}
-                placeholder="my-bucket"
-                className="w-60 px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              />
-            ) : (
-              <span className="text-sm text-text-tertiary font-mono">
-                {config.storage.s3_bucket || '(未設定)'}
-              </span>
-            )}
-          </div>
+              {/* 即時通知設定 */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-wider">即時通知頻道</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <SettingRow title="Line Token" status={config?.notification.line_channel_token}>
+                    <input
+                      type="password"
+                      value={editData.line_channel_token || ''}
+                      onChange={(e) => setEditData({ ...editData, line_channel_token: e.target.value })}
+                      placeholder={config?.notification.line_channel_token.configured && !editData.line_channel_token ? "********" : "Line Token"}
+                      disabled={!isEditing}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    />
+                  </SettingRow>
+                  <SettingRow title="Slack Webhook" status={config?.notification.slack_webhook_url}>
+                    <input
+                      type="password"
+                      value={editData.slack_webhook_url || ''}
+                      onChange={(e) => setEditData({ ...editData, slack_webhook_url: e.target.value })}
+                      placeholder={config?.notification.slack_webhook_url.configured && !editData.slack_webhook_url ? "********" : "Slack URL"}
+                      disabled={!isEditing}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    />
+                  </SettingRow>
+                </div>
+              </div>
 
-          {/* S3 Region */}
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">S3 Region</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editData.s3_region || ''}
-                onChange={(e) => setEditData(prev => ({ ...prev, s3_region: e.target.value }))}
-                placeholder="ap-northeast-1"
-                className="w-60 px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              />
-            ) : (
-              <span className="text-sm text-text-tertiary font-mono">
-                {config.storage.s3_region || '(未設定)'}
-              </span>
-            )}
-          </div>
+              {/* MCP 設定 */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-wider">MCP 擴充工具</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <SettingRow title="Web Search Key" status={config?.mcp.web_search_api_key}>
+                    <input
+                      type="password"
+                      value={editData.web_search_api_key || ''}
+                      onChange={(e) => setEditData({ ...editData, web_search_api_key: e.target.value })}
+                      placeholder={config?.mcp.web_search_api_key.configured && !editData.web_search_api_key ? "********" : "輸入 Search Key"}
+                      disabled={!isEditing}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    />
+                  </SettingRow>
+                  <SettingRow title="Cron Secret" status={config?.mcp.cron_secret}>
+                    <input
+                      type="password"
+                      value={editData.cron_secret || ''}
+                      onChange={(e) => setEditData({ ...editData, cron_secret: e.target.value })}
+                      placeholder={config?.mcp.cron_secret.configured && !editData.cron_secret ? "********" : "輸入 Secret"}
+                      disabled={!isEditing}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    />
+                  </SettingRow>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-orange-500/10 rounded-lg">
+                <Shield className="text-orange-500" size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">應用程式通用設定</h2>
+            </div>
+            <div className="space-y-6">
+              <SettingRow title="APP URL" description="系統對外存取的基準 URL">
+                <input
+                  type="text"
+                  value={editData.app_url || ''}
+                  onChange={(e) => setEditData({ ...editData, app_url: e.target.value })}
+                  placeholder="https://your-app-domain.com"
+                  disabled={!isEditing}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+              </SettingRow>
+            </div>
+          </Card>
         </div>
-      </Card>
-
-      {/* 應用程式設定 */}
-      <Card variant="glass" className="p-6">
-        <h2 className="text-xl font-black text-text-primary mb-4 uppercase tracking-tight flex items-center gap-2">
-          ⚙️ {dict.admin.system.app_settings}
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">App URL</label>
-            {isEditing ? (
-              <input
-                type="url"
-                value={editData.app_url || ''}
-                onChange={(e) => setEditData(prev => ({ ...prev, app_url: e.target.value }))}
-                placeholder="https://your-app.com"
-                className="w-80 px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              />
-            ) : (
-              <span className="text-sm text-text-tertiary font-mono">{config.app.app_url}</span>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-text-secondary">Env</label>
-            <span className="text-sm text-text-tertiary font-mono">{config.app.node_env}</span>
-          </div>
-        </div>
-      </Card>
+      </div>
 
       {/* 密碼確認 Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card variant="glass" className="p-6 w-full max-w-md mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Lock className="w-5 h-5 text-amber-500" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-text-primary">安全驗證</h3>
-                <p className="text-sm text-text-tertiary">修改敏感設定需要驗證您的身份</p>
-              </div>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card variant="glass" className="w-full max-w-md p-6 border-white/10 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 text-purple-500">
+              <Lock size={24} />
+              <h3 className="text-xl font-bold">二次驗證確認</h3>
             </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-text-secondary mb-2">
-                請輸入您的密碼
-              </label>
+            <p className="text-text-secondary mb-6 text-sm">
+              修改敏感 API 金鑰需要輸入您的登入密碼以確授權安全性。
+            </p>
+            <div className="space-y-4">
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="輸入密碼..."
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handlePasswordConfirm();
-                  }
-                }}
+                placeholder="輸入您的當前密碼"
+                autoFocus
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  setConfirmPassword('');
-                }}
-              >
-                取消
-              </Button>
-              <Button
-                variant="cta"
-                className="flex-1"
-                onClick={handlePasswordConfirm}
-                loading={saving}
-              >
-                確認
-              </Button>
+              <div className="flex gap-3 pt-2">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+                  取消
+                </Button>
+                <Button variant="cta" className="flex-1" onClick={() => handleSave(confirmPassword)} loading={saving}>
+                  確認並儲存
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -516,100 +620,29 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
   );
 }
 
-/**
- * 設定狀態元件
- */
-function ConfigStatus({
-  configured,
-  source,
-  dict
-}: {
-  configured: boolean;
-  source?: 'database' | 'env' | 'none';
-  dict: Dictionary;
+function SettingRow({ title, description, status, children }: {
+  title: string;
+  description?: string;
+  status?: { configured: boolean; source: string };
+  children: React.ReactNode;
 }) {
-  if (!configured) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="inline-block w-2 h-2 bg-semantic-danger rounded-full"></span>
-        <span className="text-sm text-semantic-danger font-bold">
-          {dict.admin.system.not_configured}
-        </span>
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-bold text-text-primary">
+          {title}
+          {status && (
+            <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${status.configured
+              ? 'bg-semantic-success/10 text-semantic-success border border-semantic-success/20'
+              : 'bg-white/5 text-text-tertiary border border-white/10'
+              }`}>
+              {status.configured ? `已配置 (${status.source === 'database' ? 'DB' : 'ENV'})` : '未配置'}
+            </span>
+          )}
+        </label>
       </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="inline-block w-2 h-2 bg-semantic-success rounded-full"></span>
-      <span className="text-sm text-semantic-success font-bold">
-        {dict.admin.system.configured}
-      </span>
-      {source && source !== 'none' && (
-        <span className="text-[10px] text-text-tertiary px-1.5 py-0.5 rounded bg-white/5 uppercase">
-          {source === 'database' ? '資料庫' : '環境變數'}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/**
- * 設定列元件（含敏感資料處理）
- */
-function SettingRow({
-  label,
-  isEditing,
-  configured,
-  source,
-  value,
-  onChange,
-  placeholder,
-  isSecret = false,
-  showSecret = false,
-  onToggleSecret,
-  dict,
-}: {
-  label: string;
-  isEditing: boolean;
-  configured: boolean;
-  source: 'database' | 'env' | 'none';
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  isSecret?: boolean;
-  showSecret?: boolean;
-  onToggleSecret?: () => void;
-  dict: Dictionary;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <label className="text-sm font-bold text-text-secondary">{label}</label>
-      {isEditing ? (
-        <div className="flex items-center gap-2 w-80">
-          <div className="relative flex-1">
-            <input
-              type={isSecret && !showSecret ? 'password' : 'text'}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={placeholder}
-              className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 pr-10"
-            />
-            {isSecret && (
-              <button
-                type="button"
-                onClick={onToggleSecret}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
-              >
-                {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            )}
-          </div>
-          {isSecret && <span title="需要密碼確認"><Lock className="w-4 h-4 text-amber-500" /></span>}
-        </div>
-      ) : (
-        <ConfigStatus configured={configured} source={source} dict={dict} />
-      )}
+      {children}
+      {description && <p className="text-xs text-text-tertiary">{description}</p>}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * 重試配置
@@ -21,17 +22,55 @@ const retryConfig = {
 };
 
 /**
- * 建立 Gemini 客戶端實例
- * 匯出供其他模組使用
+ * 獲取 Gemini API Key
+ * 優先順序：
+ * 1. 環境變數 GEMINI_API_KEY
+ * 2. 資料庫 system_settings 表中的 gemini_api_key
+ */
+async function getGeminiApiKey(): Promise<string> {
+  // 1. 檢查環境變數
+  if (process.env.GEMINI_API_KEY) {
+    return process.env.GEMINI_API_KEY;
+  }
+
+  // 2. 檢查資料庫
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'gemini_api_key')
+      .single();
+
+    if (error) {
+      console.warn('[Gemini Client] DB Lookup Error:', error.message);
+    }
+
+    if (data?.setting_value) {
+      return data.setting_value;
+    }
+  } catch (error) {
+    console.warn('[Gemini Client] Failed to fetch key from DB:', error);
+  }
+
+  throw new Error('未配置 Gemini API Key (請檢查 .env 或系統設定)');
+}
+
+/**
+ * 建立 Gemini 客戶端實例 (同步版 - 僅限環境變數)
+ * @deprecated 建議改用需要等待 Key 的異步流程 createGeminiClientAsync
  */
 export function createGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
+  // 此處不拋出錯誤，讓呼叫者自行處理
+  return new GoogleGenerativeAI(apiKey || 'dummy_key');
+}
 
-  if (!apiKey) {
-    console.error('[Gemini Client] API Key NOT FOUND');
-    throw new Error('缺少 GEMINI_API_KEY 環境變數');
-  }
-
+/**
+ * 建立 Gemini 客戶端實例 (異步版 - 支援 DB)
+ */
+export async function createGeminiClientAsync() {
+  const apiKey = await getGeminiApiKey();
   return new GoogleGenerativeAI(apiKey);
 }
 
@@ -47,10 +86,8 @@ export async function uploadFileToGemini(
   mimeType: string,
   displayName: string
 ): Promise<{ uri: string; name: string }> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('缺少 GEMINI_API_KEY 環境變數');
-  }
+  // 升級為支援 DB Key
+  const apiKey = await getGeminiApiKey();
 
   const fileManager = new GoogleAIFileManager(apiKey);
 
@@ -79,39 +116,27 @@ export async function uploadFileToGemini(
   }
 }
 
-
 /**
  * 刪除 Gemini 上的檔案
  * @param uri 檔案 URI (例如: https://generativelanguage.googleapis.com/v1beta/files/...)
  */
 export async function deleteFileFromGemini(uri: string): Promise<void> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('缺少 GEMINI_API_KEY 環境變數');
-  }
-
-  // 從 URI 提取檔案名稱 (name)
-  // URI 格式通常為: https://generativelanguage.googleapis.com/v1beta/files/NAME
-  const fileName = uri.split('/').pop();
-  if (!fileName) {
-    console.warn('無法從 URI 解析檔案名稱:', uri);
-    return;
-  }
-
-  // 完整 name 格式通常為 files/NAME，但 API 可能只需要 NAME 或 files/NAME
-  // GoogleAIFileManager deleteFile 接收 `name` (e.g. "files/abc-123")
-
-  // 如果 uri 是完整的 URL，我們嘗試提取 'files/...' 部分
-  // 假設標準格式
-  let name = `files/${fileName}`;
-
-  const fileManager = new GoogleAIFileManager(apiKey);
-
   try {
+    const apiKey = await getGeminiApiKey();
+
+    // 從 URI 提取檔案名稱 (name)
+    const fileName = uri.split('/').pop();
+    if (!fileName) {
+      return;
+    }
+
+    // 完整 name 格式通常為 files/NAME
+    let name = `files/${fileName}`;
+
+    const fileManager = new GoogleAIFileManager(apiKey);
     await fileManager.deleteFile(name);
   } catch (error) {
-    console.error('Gemini 檔案刪除失敗:', error);
-    // 不拋出錯誤，避免阻斷後續流程
+    console.warn('Gemini 檔案刪除失敗或 Key 無效:', error);
   }
 }
 
@@ -130,7 +155,8 @@ export async function chatWithGemini(
   fileData: Array<{ uri: string; mimeType: string }> = [],
   history: Array<{ role: string; content: string }> = []
 ): Promise<ReadableStream<Uint8Array>> {
-  const genAI = createGeminiClient();
+  // 使用異步客戶端
+  const genAI = await createGeminiClientAsync();
   const model = genAI.getGenerativeModel({
     model: modelVersion || 'gemini-3-flash-preview',
     systemInstruction: systemPrompt,
@@ -192,7 +218,8 @@ export async function generateContent(
   fileUri?: string,
   mimeType?: string
 ): Promise<string> {
-  const genAI = createGeminiClient();
+  // 使用異步客戶端以確保能拿到 DB 金鑰
+  const genAI = await createGeminiClientAsync();
   const model = genAI.getGenerativeModel({ model: modelName || 'gemini-3-flash-preview' });
 
   const parts: any[] = [];
@@ -210,7 +237,6 @@ export async function generateContent(
   const response = await result.response;
   return response.text();
 }
-
 
 /**
  * 重試機制輔助函式

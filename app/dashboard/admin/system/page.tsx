@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserProfile, requireSuperAdmin } from '@/lib/permissions';
 import SystemConfigClient from './SystemConfigClient';
+import ToolApiKeysConfig from './ToolApiKeysConfig';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -42,7 +43,11 @@ export default async function SystemConfigPage() {
         </div>
       </div>
 
+      {/* 系統基礎設定 (Gemini, S3, Email, 新聞, 通知, App) */}
       <SystemConfigClient dict={dict} />
+
+      {/* MCP 工具 API Key 設定 - 動態讀取需要 API Key 的工具 */}
+      <ToolApiKeysConfig dict={dict} />
     </div>
   );
 }

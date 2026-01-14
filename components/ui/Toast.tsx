@@ -113,7 +113,7 @@ function ToastContainer() {
     if (typeof window === 'undefined') return null;
 
     return createPortal(
-        <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2">
+        <div className="fixed top-24 right-4 z-[60] flex flex-col gap-2">
             {toasts.map((toast) => (
                 <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
             ))}

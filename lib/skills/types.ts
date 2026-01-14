@@ -57,6 +57,7 @@ export interface Skill {
     icon?: string;
     created_at: string;
     updated_at: string;
+    tags?: string[];
     metadata?: Record<string, any>;
 }
 
