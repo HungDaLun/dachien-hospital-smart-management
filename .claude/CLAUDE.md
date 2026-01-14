@@ -1,7 +1,7 @@
 # EAKAP 進階知識架構系統設計
 **版本：** v3.3
 **建立日期：** 2026-01-01
-**最後更新：** 2026-01-09
+**最後更新：** 2026-02-01
 **設計目標：** 建立一套極度專業、具技術與內容門檻的知識架構系統，讓 AI Agent 能精準解讀與運用企業知識
 
 ---
@@ -4103,10 +4103,93 @@ export class ScenarioSimulator {
 
 ---
 
+## 📝 Migration 管理最佳實踐
+
+**重要提醒：** 此專案已採用「接受現狀 + 未來規範」的 Migration 管理策略
+
+### 核心原則
+
+1. **後端資料庫結構為唯一真實來源（Source of Truth）**
+   - 當前資料庫結構：38 個表，RLS 已全面啟用（100%）
+   - 所有核心功能已正確實作
+   - **本地 migrations 作為歷史參考**
+
+2. **不修改歷史 Migrations**
+   - ✅ 遵循 Immutable Migrations 原則
+   - ✅ 已提交的 migrations 永不修改
+   - ✅ 保持歷史可追溯性
+
+3. **未來所有修改都建立新的 Migration**
+   - 使用 `supabase migration new your_migration_name` 建立新 migration
+   - 遵循 Migration 規範（見 `docs/MIGRATION_BEST_PRACTICES.md`）
+   - 本地測試後再應用到遠端
+
+### 當前狀態
+
+- **本地 migrations：** 66 個（歷史記錄）
+- **遠端 migrations：** 55-63 個（實際已執行）
+- **匹配度：** 約 82%（差異主要來自名稱不同或已合併，屬正常情況）
+- **後端資料庫結構：** ✅ 完整且正確
+
+### Migration 規範
+
+建立新 Migration 時的規範：
+
+1. **命名規範**
+   ```
+   格式：YYYYMMDDHHMMSS_descriptive_name.sql
+   範例：20260201120000_add_new_feature.sql
+   ```
+
+2. **內容規範**
+   - 建立資料表時，在同一 migration 中啟用 RLS
+   - 使用 `IF NOT EXISTS` 避免重複執行錯誤
+   - 建立必要的索引
+   - 加入適當的註解說明
+
+3. **驗證工具**
+   ```bash
+   # 驗證最新的 migration
+   npx tsx scripts/verify-new-migration.ts
+   
+   # 驗證指定的 migration
+   npx tsx scripts/verify-new-migration.ts your_migration.sql
+   ```
+
+4. **比對工具**
+   ```bash
+   # 比對本地與遠端的 migrations
+   npx tsx scripts/compare-migrations.ts
+   ```
+
+### 相關文件
+
+- **最佳實踐指南：** `docs/MIGRATION_BEST_PRACTICES.md`
+- **當前狀態說明：** `docs/CURRENT_MIGRATION_STATUS.md`
+- **詳細比對報告：** `docs/MIGRATIONS_DIFF_REPORT.md`
+- **一致性檢查報告：** `docs/SUPABASE_MCP_CONSISTENCY_REPORT.md`
+
+### 重要提醒
+
+⚠️ **請勿反過來修正本地 migrations 資料夾的 SQL 檔案**
+
+**理由：**
+1. Migrations 是歷史記錄，記錄「當時做了什麼」，而非「現在應該是什麼」
+2. 修改歷史 migrations 會破壞可追溯性
+3. Supabase 會記錄已執行的 migrations，修改本地檔案不會改變遠端記錄
+4. 可能造成回滾和重建問題
+
+**正確做法：**
+- ✅ 以後端資料庫結構為真實來源
+- ✅ 未來需要修正時，建立新的 migration
+- ✅ 使用 `supabase db pull` 同步結構差異
+
+---
+
 **報告結束**
 
 **文件版本**: v3.3
-**更新日期**: 2026-01-09
+**最後更新**: 2026-02-01
 **作者**: EAKAP 系統架構團隊
 
 **v3.3 更新摘要**：

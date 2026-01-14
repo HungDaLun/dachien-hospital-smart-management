@@ -210,6 +210,9 @@
         "citations": {
             "ref_count": "Referenced {{count}} sources",
             "untitled": "Untitled Document"
+        },
+        "review": {
+            "general_warning": "Manual review recommended"
         }
     },
     "admin": {

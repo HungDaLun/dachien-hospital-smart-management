@@ -5,11 +5,12 @@
  */
 'use client';
 
-import { } from 'react';
+import { useMemo } from 'react';
 import CitationList, { Citation } from './CitationList';
 import { Dictionary } from '@/lib/i18n/dictionaries';
-import { User, Brain, Copy, RotateCw } from 'lucide-react';
+import { User, Brain, Copy, RotateCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import CodeBlock from '@/components/markdown/CodeBlock';
 
 /**
  * 對話氣泡屬性
@@ -20,11 +21,60 @@ interface ChatBubbleProps {
     agentName?: string;
     citations?: Citation[];
     messageId?: string; // 用於回饋功能
+
+    // New Safegaurds Props
+    confidenceScore?: number;
+    needsReview?: boolean;
+    reviewTriggers?: string[];
+
     dict: Dictionary;
 }
 
-export default function ChatBubble({ role, content, agentName, citations, dict }: ChatBubbleProps) {
+export default function ChatBubble({
+    role,
+    content,
+    agentName,
+    citations,
+    messageId,
+    confidenceScore,
+    needsReview,
+    reviewTriggers,
+    dict
+}: ChatBubbleProps) {
     const isUser = role === 'user';
+    const isLowConfidence = confidenceScore !== undefined && confidenceScore < 0.6;
+
+    // Custom components for ReactMarkdown
+    const MemoizedCodeBlock = useMemo(() => {
+        return ({ node, inline, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline && match ? (
+                <CodeBlock
+                    language={match[1]}
+                    value={String(children).replace(/\n$/, '')}
+                    messageId={messageId}
+                    {...props}
+                />
+            ) : (
+                <code className={className} {...props}>
+                    {children}
+                </code>
+            );
+        };
+    }, [messageId]);
+
+    // Helper to format review triggers
+    const getReviewMessage = () => {
+        if (!reviewTriggers || reviewTriggers.length === 0) return dict.chat.review.general_warning || '建議人工覆核';
+        const map: Record<string, string> = {
+            'financial': '涉及金額資訊',
+            'legal': '涉及法律條款',
+            'safety': '涉及安全風險',
+            'delivery': '涉及交期承諾'
+        };
+        const reasons = reviewTriggers.map(t => map[t] || t).join('、');
+        return `此回答${reasons}，建議人工覆核`;
+    };
 
     return (
         <div className={`flex gap-5 ${isUser ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
@@ -67,9 +117,43 @@ export default function ChatBubble({ role, content, agentName, citations, dict }
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/[0.02] blur-[40px] pointer-events-none rounded-full" />
                     )}
 
+                    {/* Low Confidence Warning */}
+                    {!isUser && isLowConfidence && (
+                        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-start gap-3">
+                            <AlertCircle className="text-yellow-500 mt-0.5 flex-shrink-0" size={16} />
+                            <div>
+                                <h4 className="text-xs font-bold text-yellow-500 uppercase tracking-wider mb-1">
+                                    低信心度警告 ({Math.round(confidenceScore! * 100)}%)
+                                </h4>
+                                <p className="text-[11px] text-yellow-500/80 leading-relaxed">
+                                    此回答信心度較低，可能缺乏足夠的知識庫支援，請謹慎參考。
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Needs Review Alert */}
+                    {!isUser && needsReview && !isLowConfidence && (
+                        <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-start gap-3">
+                            <CheckCircle2 className="text-indigo-400 mt-0.5 flex-shrink-0" size={16} />
+                            <div>
+                                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">
+                                    建議人工覆核
+                                </h4>
+                                <p className="text-[11px] text-indigo-300/80 leading-relaxed">
+                                    {getReviewMessage()}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Markdown Content */}
-                    <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/5 prose-pre:rounded-2xl prose-code:text-primary-400 prose-headings:text-text-primary prose-strong:text-text-primary">
-                        <ReactMarkdown>
+                    <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-code:text-primary-400 prose-headings:text-text-primary prose-strong:text-text-primary">
+                        <ReactMarkdown
+                            components={{
+                                code: MemoizedCodeBlock
+                            }}
+                        >
                             {content}
                         </ReactMarkdown>
                     </div>

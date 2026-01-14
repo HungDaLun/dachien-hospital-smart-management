@@ -210,6 +210,9 @@
         "citations": {
             "ref_count": "參考了 {{count}} 個來源",
             "untitled": "未命名文件"
+        },
+        "review": {
+            "general_warning": "建議人工覆核"
         }
     },
     "admin": {

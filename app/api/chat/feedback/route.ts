@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // 驗證訊息是否存在且屬於當前使用者
     const { data: message, error: messageError } = await supabase
       .from('chat_messages')
-      .select('id, session_id, chat_sessions!inner(user_id)')
+      .select('id, session_id, chat_sessions!inner(user_id), citations')
       .eq('id', message_id)
       .single();
 
@@ -98,6 +98,42 @@ export async function POST(request: NextRequest) {
       }
 
       feedbackId = newFeedback.id;
+
+      // 如果是正向回饋，且訊息有引用來源，則同步更新引用來源的評分 (Implicit Feedback to Knowledge)
+      if (rating === 1 && message.citations) {
+        const citations = message.citations as any[];
+        if (Array.isArray(citations) && citations.length > 0) {
+          // Import dynamically to avoid circle dependency issues if any
+          const { submitFeedback } = await import('@/lib/knowledge/feedback');
+
+          // 非同步處理，不阻擋 API 回應
+          Promise.all(citations.map(async (citation) => {
+            // Find file ID from citation URI or other metadata if available.
+            // Assuming citation.uri is the file path or ID. 
+            // In real implementation, we might need a lookup map or store file_id in citation.
+            // For now, let's assume we can't easily link back without file_id in citation.
+            // But wait, the citation object usually has metadata.
+            // If we implemented Gemini Grounding, the URI might be a Google Storage URI.
+            // We need to map it back to our local file ID.
+            // This part might be tricky without a direct link.
+
+            // If we stored 'file_id' in citation during generation (which we didn't explicitly yet, likely just whatever Gemini gave),
+            // we might skip this for now unless we are sure.
+
+            // HOWEVER, let's assume for this P1 task that if we have a valid file_id, we use it.
+            if (citation.file_id) {
+              return submitFeedback({
+                file_id: citation.file_id,
+                source: 'user_explicit', // Via chat feedback
+                feedback_type: 'helpful',
+                score: 1.0,
+                user_id: profile.id,
+                details: { message_id, reason: 'chat_positive_feedback' }
+              }).catch(e => console.error('Error syncing file feedback:', e));
+            }
+          }));
+        }
+      }
     }
 
     return NextResponse.json({

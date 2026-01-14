@@ -30,6 +30,9 @@ interface Message {
     content: string;
     created_at: string;
     citations?: Citation[];
+    confidenceScore?: number;
+    needsReview?: boolean;
+    reviewTriggers?: string[];
 }
 
 /**
@@ -145,9 +148,16 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
                             if (data.session_id) {
                                 setSessionId(data.session_id);
                             }
-                            if (data.citations) {
+                            // Handle Metadata Block (Citations, Confidence, Review)
+                            if (data.metadata) {
                                 setMessages((prev) => prev.map(msg =>
-                                    msg.id === aiMessageId ? { ...msg, citations: data.citations } : msg
+                                    msg.id === aiMessageId ? {
+                                        ...msg,
+                                        citations: data.metadata.citations,
+                                        confidenceScore: data.metadata.confidence,
+                                        needsReview: data.metadata.needs_review,
+                                        reviewTriggers: data.metadata.review_triggers ? data.metadata.review_triggers.map((t: any) => t.category || t) : []
+                                    } : msg
                                 ));
                             }
                         } catch (e) {
@@ -252,6 +262,9 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
                             content={message.content}
                             agentName={agent.name}
                             citations={message.citations}
+                            confidenceScore={message.confidenceScore}
+                            needsReview={message.needsReview}
+                            reviewTriggers={message.reviewTriggers}
                             messageId={message.id}
                             dict={dict}
                         />
