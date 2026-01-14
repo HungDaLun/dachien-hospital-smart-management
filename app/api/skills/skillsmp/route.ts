@@ -5,6 +5,8 @@ import { getSkillsMPClient } from '@/lib/skills/skillsmp-client';
 import { toApiResponse } from '@/lib/errors';
 import { SkillMarketTranslator } from '@/lib/skills/translator';
 
+export const dynamic = 'force-dynamic';
+
 const translator = new SkillMarketTranslator();
 
 /**

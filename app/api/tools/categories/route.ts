@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { loadAllTools } from '@/lib/tools/registry';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const tools = await loadAllTools();

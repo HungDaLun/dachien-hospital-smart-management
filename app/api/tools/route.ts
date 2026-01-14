@@ -1,6 +1,7 @@
-// import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { loadAllTools } from '@/lib/tools/registry';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {

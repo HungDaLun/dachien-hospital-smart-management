@@ -11,6 +11,8 @@ import type { ApiResponse, ApiErrorResponse } from '@/lib/errors';
 import type { Agent } from '@/types';
 import { getCurrentUserProfile, requireAdmin } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/agents
  * 列出所有使用者有權限存取的 Agent

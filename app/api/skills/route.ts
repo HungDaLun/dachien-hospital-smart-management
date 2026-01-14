@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { toApiResponse } from '@/lib/errors';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/skills
  * 取得可用技能列表

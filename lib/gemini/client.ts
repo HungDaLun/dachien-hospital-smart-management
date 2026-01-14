@@ -160,6 +160,9 @@ export async function chatWithGemini(
   const model = genAI.getGenerativeModel({
     model: modelVersion || 'gemini-3-flash-preview',
     systemInstruction: systemPrompt,
+    generationConfig: {
+      maxOutputTokens: 8192,
+    }
   });
 
   // 建構對話 Session 並包含歷史
@@ -216,11 +219,18 @@ export async function generateContent(
   modelName: string,
   prompt: string,
   fileUri?: string,
-  mimeType?: string
+  mimeType?: string,
+  config: any = {}
 ): Promise<string> {
   // 使用異步客戶端以確保能拿到 DB 金鑰
   const genAI = await createGeminiClientAsync();
-  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-3-flash-preview' });
+  const model = genAI.getGenerativeModel({
+    model: modelName || 'gemini-3-flash-preview',
+    generationConfig: {
+      maxOutputTokens: 8192,
+      ...config
+    }
+  });
 
   const parts: any[] = [];
   if (fileUri && mimeType) {
