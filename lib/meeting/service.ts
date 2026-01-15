@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MeetingConfig, MeetingMessage, ParticipantType } from './types';
 import { MeetingSpeakerScheduler } from './scheduler';
 import { KnowledgeIsolator } from './knowledge-isolator';
-import { CitationValidator } from './citation-validator';
+import { CitationValidator, CitationValidationResult } from './citation-validator';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MEETINGS_TABLE = 'meetings';
@@ -21,7 +21,9 @@ export class MeetingService {
         departmentIds: string[],
         consultantAgentIds: string[],
         durationMinutes: number = 5,
-        scheduledStartTime?: string
+        scheduledStartTime?: string,
+        mode: MeetingConfig['mode'] = 'quick_sync',
+        maxTurns?: number
     ) {
         const supabase = await createClient();
 
@@ -39,7 +41,11 @@ export class MeetingService {
                 settings: {}, // Defaults
                 duration_minutes: durationMinutes,
                 status: status,
-                scheduled_start_time: scheduledStartTime || null
+                scheduled_start_time: scheduledStartTime || null,
+                mode: mode,
+                current_phase: 'diverge',
+                max_turns: maxTurns || null,
+                turn_count: 0
             })
             .select()
             .single();
@@ -101,49 +107,201 @@ export class MeetingService {
         const supabase = await createClient();
 
         // 1. Fetch meeting context
-        const { data: meeting } = await supabase.from(MEETINGS_TABLE).select('*').eq('id', meetingId).single();
+        const { data: meetingData } = await supabase.from(MEETINGS_TABLE).select('*').eq('id', meetingId).single();
+        if (!meetingData || meetingData.status !== 'in_progress') return null;
+
+        const meeting = meetingData as MeetingConfig; // Cast to config
+
         const { data: participants } = await supabase.from(PARTICIPANTS_TABLE).select('*').eq('meeting_id', meetingId);
-        const { data: messages } = await supabase.from(MESSAGES_TABLE).select('*').eq('meeting_id', meetingId).order('sequence_number', { ascending: true });
+        const { data: messagesRaw } = await supabase.from(MESSAGES_TABLE).select('*').eq('meeting_id', meetingId).order('sequence_number', { ascending: true });
+        const messages = (messagesRaw || []) as MeetingMessage[];
 
-        if (!meeting || meeting.status !== 'in_progress') return null;
-
-        // 1.5 Check Duration / Timeout
-        if (meeting.started_at && meeting.duration_minutes) {
+        // 1.5 Check Duration / Timeout (Quick Sync Rule)
+        if (meeting.started_at && meeting.duration_minutes && meeting.mode === 'quick_sync') {
             const start = new Date(meeting.started_at).getTime();
             const now = new Date().getTime();
             const elapsedMinutes = (now - start) / (1000 * 60);
 
             if (elapsedMinutes >= meeting.duration_minutes) {
-                console.log(`[MeetingService] Meeting ${meetingId} timed out (${elapsedMinutes.toFixed(1)}/${meeting.duration_minutes} mins). Ending...`);
+                console.log(`[MeetingService] Meeting ${meetingId} timed out. Soft wrap-up initiated.`);
+                // In v2, we might force a chairperson wrap-up here instead of hard stop
+                // For now, let's just trigger endMeeting for compatibility
                 await this.endMeeting(meetingId);
                 return null;
             }
         }
 
-        // 2. Scheduler decides next speaker
-        const scheduler = new MeetingSpeakerScheduler(meeting as MeetingConfig, (participants || []).map(p => ({
-            id: p.participant_id,
-            type: p.participant_type as ParticipantType,
-            name: p.name
-        })));
 
-        // Hydrate scheduler with messages
-        scheduler.setMessages((messages || []) as MeetingMessage[]);
+        // 2. Special Case: Opening (First Turn)
+        let chairpersonDecision: any = { action: 'continue' };
 
-        const nextSpeaker = scheduler.getNextSpeaker();
+        if (messages.length === 0) {
+            // Force Chairperson to open the meeting for ALL modes
+            const modeText = meeting.mode === 'quick_sync' ? '快速同步(Quick Sync)' :
+                meeting.mode === 'deep_dive' ? '深度研討(Deep Dive)' : '戰略決策(Strategic Decision)';
+
+            const openingGoal = meeting.mode === 'quick_sync' ? '效率至上，請與會者快速同步關鍵資訊。' :
+                meeting.mode === 'deep_dive' ? '廣泛發想，請大家多角度切入探討。' : '結果導向，請大家以產出具體行動方案為最終目標。';
+
+            // 建立實際參與者名單，讓主席能直接點名
+            const departmentParticipants = (participants || [])
+                .filter(p => p.participant_type === 'department')
+                .map(p => p.name);
+            const consultantParticipants = (participants || [])
+                .filter(p => p.participant_type === 'consultant')
+                .map(p => p.name);
+
+            let participantListStr = '';
+            if (departmentParticipants.length > 0) {
+                participantListStr += `\n- 部門：${departmentParticipants.join('、')}`;
+            }
+            if (consultantParticipants.length > 0) {
+                participantListStr += `\n- 顧問 Agent：${consultantParticipants.join('、')}`;
+            }
+
+            // 選擇第一位要邀請發言的參與者（優先選擇部門）
+            const firstSpeakerName = departmentParticipants[0] || consultantParticipants[0] || '第一位與會者';
+
+            const openingInstruction = `
+                這是會議的開始。
+                請開場說明會議主題：「${meeting.topic}」。
+                會議模式為：「${modeText}」。
+                請簡短說明目的：${openingGoal}
+                
+                【重要】今天參與會議的人員如下（你必須使用這些精確名稱）：${participantListStr}
+                
+                最後，請邀請「${firstSpeakerName}」先開始發言。你必須直接點名實際的參與者名稱，不可以用「相關部門」或其他模糊說辭。
+            `.trim();
+
+            chairpersonDecision = {
+                action: 'intervene',
+                instruction: openingInstruction
+            };
+        } else if (meeting.mode !== 'quick_sync') {
+            // 2. Chairperson Evaluation (The Brain) - For subsequent turns in complex modes
+            const { Chairperson } = await import('./chairperson');
+            const chair = new Chairperson();
+            const participantInfos = (participants || []).map(p => ({
+                id: p.participant_id,
+                name: p.name,
+                type: p.participant_type,
+                description: undefined
+            }));
+
+            // Time Context Calculation
+            let timeContext;
+            if (meeting.started_at && meeting.duration_minutes) {
+                const start = new Date(meeting.started_at).getTime();
+                const now = Date.now();
+                const elapsed = (now - start) / (1000 * 60);
+                const total = meeting.duration_minutes;
+                timeContext = {
+                    elapsed,
+                    total,
+                    remaining: Math.max(0, total - elapsed),
+                    progressPercentage: Math.min(100, (elapsed / total) * 100)
+                };
+            }
+
+            chairpersonDecision = await chair.evaluate(meeting, messages, participantInfos, timeContext);
+
+            // Update Phase if suggested
+            if (chairpersonDecision.suggested_phase && chairpersonDecision.suggested_phase !== meeting.current_phase) {
+                await supabase.from(MEETINGS_TABLE).update({
+                    current_phase: chairpersonDecision.suggested_phase
+                }).eq('id', meetingId);
+                meeting.current_phase = chairpersonDecision.suggested_phase; // Local update
+            }
+        }
+
+        // 3. Act on Decision
+        if (chairpersonDecision.action === 'wrap_up') {
+            await this.endMeeting(meetingId);
+            return null; // Or stream a final "Meeting Adjourned" message?
+        }
+
+        let nextSpeaker: { id: string, type: ParticipantType | 'chairperson' | 'system', name: string } | null = null;
+        let isIntervention = false;
+
+        if (chairpersonDecision.action === 'intervene' && chairpersonDecision.instruction) {
+            // Chairperson speaks!
+            nextSpeaker = {
+                id: 'chairperson-ai',
+                type: 'chairperson',
+                name: 'AI 主席'
+            };
+            isIntervention = true;
+        } else {
+            // 4. Scheduler decides next speaker (Standard Flow)
+            // Check if Chairperson targeted someone specific in 'continue'
+            if (chairpersonDecision.target_agent_id) {
+                const targetP = participants?.find(p => p.participant_id === chairpersonDecision.target_agent_id);
+                if (targetP) {
+                    nextSpeaker = {
+                        id: targetP.participant_id,
+                        type: targetP.participant_type as ParticipantType,
+                        name: targetP.name
+                    };
+                }
+            }
+
+            // Fallback to Scheduler if no target or target not found
+            if (!nextSpeaker) {
+                const scheduler = new MeetingSpeakerScheduler(meeting, (participants || []).map(p => ({
+                    id: p.participant_id,
+                    type: p.participant_type as ParticipantType,
+                    name: p.name
+                })));
+
+                // Hydrate scheduler with messages
+                scheduler.setMessages(messages);
+                nextSpeaker = scheduler.getNextSpeaker();
+            }
+        }
+
         if (!nextSpeaker) return null;
 
-        // 3. Generate Content
-        // Convert messages to string context
-        const contextStr = (messages || []).map((m: any) => `${m.speaker_name}: ${m.content}`).join('\n');
+        // Update Turn Count
+        await supabase.from(MEETINGS_TABLE).update({
+            turn_count: (meeting.turn_count || 0) + 1
+        }).eq('id', meetingId);
 
-        const isolator = new KnowledgeIsolator();
+
+        // 5. Generate Content
+        // Convert messages to string context
+        const contextStr = messages.map((m: any) => `${m.speaker_name}: ${m.content}`).join('\n');
+
         let prompt = '';
 
-        if (nextSpeaker.type === 'department') {
-            prompt = await isolator.buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
+        if (isIntervention) {
+            // Chairperson Prompt - 包含參與者資訊，確保主席能點名
+            // 建立參與者列表
+            const participantsList = (participants || []).map(p =>
+                `- ${p.name} (${p.participant_type === 'department' ? '部門' : '顧問'})`
+            ).join('\n');
+
+            prompt = `
+You are the Chairperson (AI 主席) of a strategic meeting. You have decided to intervene.
+
+**Your Internal Instruction**: "${chairpersonDecision.instruction}"
+
+**Meeting Participants** (你必須使用這些實際名稱，不可使用「相關部門」等模糊說辭):
+${participantsList}
+
+**Task**: Generate the full spoken message based on this instruction.
+**Constraints**:
+1. **Language**: STRICTLY **Traditional Chinese (Taiwan)** (繁體中文). NO English allowed.
+2. **Tone**: Professional, authoritative, yet constructive.
+3. **Length**: Keep it concise (under 100 words).
+4. **CRITICAL**: When referring to participants, you MUST use their exact names from the list above. Never use vague terms like "相關部門" or "相關人員".
+             `.trim();
         } else {
-            prompt = await isolator.buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
+            const isolator = new KnowledgeIsolator();
+            if (nextSpeaker.type === 'department') {
+                prompt = await isolator.buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
+            } else {
+                prompt = await isolator.buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
+            }
         }
 
         // Generate with Gemini (Streaming)
@@ -178,17 +336,30 @@ export class MeetingService {
                     }
 
                     // 4. Validate citations (幻覺檢測)
-                    const validator = new CitationValidator();
-                    const validationResult = await validator.validateCitations(
-                        fullText,
-                        nextSpeaker.id,
-                        nextSpeaker.type as 'department' | 'consultant'
-                    );
+                    // 注意：chairperson/system 類型沒有綁定的知識庫，跳過驗證
+                    let validationResult: CitationValidationResult = {
+                        hasSuspectedHallucinations: false,
+                        validCitations: [],
+                        invalidCitations: []
+                    };
+
+                    if (nextSpeaker.type === 'department' || nextSpeaker.type === 'consultant') {
+                        const validator = new CitationValidator();
+                        validationResult = await validator.validateCitations(
+                            fullText,
+                            nextSpeaker.id,
+                            nextSpeaker.type
+                        );
+                    }
 
                     // 5. Save Message to DB
+                    // 注意：對於 chairperson/system 類型，speaker_id 應為 null
+                    // 因為 'chairperson-ai' 等字串不是有效的 UUID
+                    const isSystemSpeaker = nextSpeaker.type === 'chairperson' || nextSpeaker.type === 'system';
+
                     const newMessage = {
                         meeting_id: meetingId,
-                        speaker_id: nextSpeaker.id,
+                        speaker_id: isSystemSpeaker ? null : nextSpeaker.id,
                         speaker_type: nextSpeaker.type,
                         speaker_name: nextSpeaker.name,
                         content: fullText,
@@ -380,10 +551,20 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
             // 決定部門歸屬：若有多個部門參與則為「跨部門」，否則歸屬該部門（若無部門則為管理部）
             const displayDepartment = departmentNames.length > 1 ? "跨部門" : (departmentNames[0] || "戰略室");
 
-            await supabase.from('files').insert({
+            const s3StoragePath = `meeting-minutes/${meetingId}.md`;
+            const fileName = `會議記錄_${meeting.title}_${new Date().toISOString().split('T')[0]}.md`;
+
+            // Check if file exists to prevent duplicates
+            const { data: existingFile } = await supabase
+                .from('files')
+                .select('id')
+                .eq('s3_storage_path', s3StoragePath)
+                .maybeSingle();
+
+            const fileData = {
                 uploaded_by: meeting.user_id,
-                filename: `會議記錄_${meeting.title}_${new Date().toISOString().split('T')[0]}.md`,
-                s3_storage_path: `meeting-minutes/${meetingId}.md`,
+                filename: fileName,
+                s3_storage_path: s3StoragePath,
                 size_bytes: Buffer.byteLength(knowledgeMarkdown, 'utf8'),
                 mime_type: 'text/markdown',
                 markdown_content: knowledgeMarkdown,
@@ -403,7 +584,15 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
                     created_from_meeting_id: meetingId,
                     last_updated: new Date().toISOString()
                 }
-            });
+            };
+
+            if (existingFile) {
+                // Update existing file
+                await supabase.from('files').update(fileData).eq('id', existingFile.id);
+            } else {
+                // Insert new file
+                await supabase.from('files').insert(fileData);
+            }
 
         } catch (err) {
             console.error('[MeetingService] Error generating minutes:', err);

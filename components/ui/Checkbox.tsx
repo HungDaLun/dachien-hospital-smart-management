@@ -15,8 +15,8 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
     label?: string;
     /** 是否半選狀態 (Indeterminate) */
     indeterminate?: boolean;
-    /** 樣式變體: 'default' | 'white-circle' */
-    variant?: 'default' | 'white-circle';
+    /** 樣式變體: 'default' | 'white-circle' | 'radio' */
+    variant?: 'default' | 'white-circle' | 'radio';
 }
 
 /**
@@ -43,7 +43,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
                         className={`
                             peer
                             h-5 w-5
-                            ${variant === 'white-circle' ? 'rounded-full' : 'rounded-md'}
+                            ${(variant === 'white-circle' || variant === 'radio') ? 'rounded-full' : 'rounded-md'}
                             ${variant === 'white-circle'
                                 ? 'bg-white/10 border-white/40 checked:bg-white checked:border-white'
                                 : 'bg-black/40 border border-white/30 checked:bg-primary-500 checked:border-primary-500'

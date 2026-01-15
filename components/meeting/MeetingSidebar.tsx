@@ -11,10 +11,13 @@ import { zhTW } from 'date-fns/locale';
 
 interface MeetingSummary {
     id: string;
+    title: string;
     topic: string;
     status: 'in_progress' | 'completed' | 'paused' | 'scheduled';
     created_at: string;
     scheduled_start_time?: string;
+    mode?: string;
+    current_phase?: string;
 }
 
 export function MeetingSidebar() {
@@ -80,7 +83,7 @@ export function MeetingSidebar() {
     const fetchMeetings = async () => {
         const { data } = await supabase
             .from('meetings')
-            .select('id, topic, status, created_at, scheduled_start_time')
+            .select('id, title, topic, status, created_at, scheduled_start_time, mode, current_phase')
             .order('created_at', { ascending: false });
 
         if (data) setMeetings(data);
@@ -95,7 +98,7 @@ export function MeetingSidebar() {
         );
 
         for (const meeting of dueMeetings) {
-            console.log(`Starting scheduled meeting: ${meeting.topic}`);
+            console.log(`Starting scheduled meeting: ${meeting.title || meeting.topic}`);
             try {
                 // Trigger start
                 await fetch(`/api/meetings/${meeting.id}`, {
@@ -182,7 +185,7 @@ export function MeetingSidebar() {
                                         "font-medium text-sm truncate w-[160px]",
                                         isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
                                     )}>
-                                        {meeting.topic || "未命名會議"}
+                                        {meeting.title || meeting.topic || "未命名會議"}
                                     </h3>
 
                                     <div className="flex items-center gap-2">
@@ -213,6 +216,16 @@ export function MeetingSidebar() {
 
                                 <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
                                     {formatDistanceToNow(new Date(meeting.created_at), { addSuffix: true, locale: zhTW })}
+                                    {meeting.mode && (
+                                        <span className={cn(
+                                            "ml-auto px-1.5 py-0.5 rounded text-[9px] font-medium border",
+                                            meeting.mode === 'deep_dive' ? "bg-purple-500/10 text-purple-600 border-purple-200" :
+                                                meeting.mode === 'result_driven' ? "bg-blue-500/10 text-blue-600 border-blue-200" :
+                                                    "bg-yellow-500/10 text-yellow-600 border-yellow-200"
+                                        )}>
+                                            {meeting.mode === 'deep_dive' ? '深度' : meeting.mode === 'result_driven' ? '戰略' : '日常'}
+                                        </span>
+                                    )}
                                 </span>
                             </div>
                         </Link>

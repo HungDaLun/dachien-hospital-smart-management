@@ -291,7 +291,7 @@ ${knowledgeContext}
 
             const toolStream = await chatWithTools(
                 process.env.GEMINI_API_KEY || '',
-                agent.model_version || 'gemini-1.5-flash',
+                agent.model_version || 'gemini-3-flash-preview',
                 fullSystemPrompt,
                 message,
                 enabledTools,
@@ -369,7 +369,7 @@ ${knowledgeContext}
             // 原有的純文字對話邏輯 (無工具) + 增強型 Metadata 解析
             // ============================================
             const model = genAI.getGenerativeModel({
-                model: agent.model_version || 'gemini-1.5-flash', // Default updated to newer model
+                model: agent.model_version || 'gemini-3-flash-preview', // Default updated to newer model
                 systemInstruction: fullSystemPrompt,
             });
 

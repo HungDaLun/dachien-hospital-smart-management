@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { title, topic, departmentIds, consultantAgentIds, durationMinutes, scheduledStartTime } = body;
+        const { title, topic, departmentIds, consultantAgentIds, durationMinutes, scheduledStartTime, mode } = body;
 
         // Topic (Agenda) is strictly required for AI context
         if (!topic) {
@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
             departmentIds || [],
             consultantAgentIds || [],
             durationMinutes,
-            scheduledStartTime
+            scheduledStartTime,
+            mode || 'quick_sync'
         );
 
         return NextResponse.json({ id: meetingId });

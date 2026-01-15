@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Checkbox, Card, CardHeader, CardTitle, CardBody as CardContent, CardFooter, Textarea, useToast, Input } from '@/components/ui';
-import { Users, User, Briefcase, Play, Clock, Settings, Calendar } from 'lucide-react';
-import { addDays, format, setHours, setMinutes, isSameDay } from 'date-fns';
+import { Button, Checkbox, Card, CardHeader, CardTitle, CardBody as CardContent, CardFooter, useToast, Input, Textarea } from '@/components/ui';
+import { Users, User, Briefcase, Play, Clock, Settings, Calendar, FileText } from 'lucide-react';
+import { addDays, format, setHours, setMinutes, isSameDay, formatDistanceToNow } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -34,8 +34,9 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
     const [creating, setCreating] = useState(false);
 
     // Form State
+    const [mode, setMode] = useState<'quick_sync' | 'deep_dive' | 'result_driven'>('quick_sync');
     const [title, setTitle] = useState('');
-    const [topic, setTopic] = useState('');
+    const [agenda, setAgenda] = useState('');
     const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
     const [selectedConsultants, setSelectedConsultants] = useState<string[]>([]);
     const [duration, setDuration] = useState([5]);
@@ -69,47 +70,6 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
         setScheduledTime(newDate.toISOString());
     };
 
-    const handleCreate = async () => {
-        if (!title.trim() && !topic.trim()) {
-            toast.error('請至少輸入會議名稱或議案');
-            return;
-        }
-
-        if (selectedDepts.length === 0 && selectedConsultants.length === 0) {
-            toast.error('請至少選擇一個參與者');
-            return;
-        }
-
-        if (isScheduled && !scheduledTime) {
-            toast.error('請選擇預定開始時間');
-            return;
-        }
-
-        setCreating(true);
-        try {
-            const res = await fetch('/api/meetings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: title || topic,
-                    topic: topic || title,
-                    departmentIds: selectedDepts,
-                    consultantAgentIds: selectedConsultants,
-                    durationMinutes: duration[0],
-                    scheduledStartTime: isScheduled ? scheduledTime : undefined
-                })
-            });
-
-            if (!res.ok) throw new Error(await res.text());
-
-            const data = await res.json();
-            router.push(`/meetings/${data.id}`);
-        } catch (error: any) {
-            toast.error('建立會議失敗: ' + error.message);
-            setCreating(false);
-        }
-    };
-
     const toggleDept = (id: string) => {
         if (selectedDepts.includes(id)) {
             setSelectedDepts(selectedDepts.filter(d => d !== id));
@@ -127,142 +87,229 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
     };
 
     const formatScheduledDate = (isoString: string) => {
-        if (!isoString) return '請選擇時間...';
-        const date = new Date(isoString);
-        return date.toLocaleString('zh-TW', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
+        if (!isoString) return '';
+        return format(new Date(isoString), 'MM/dd HH:mm');
     };
 
     const getRelativeTime = (isoString: string) => {
         if (!isoString) return '';
-        const date = new Date(isoString);
-        const now = new Date();
-        const diff = date.getTime() - now.getTime();
+        return formatDistanceToNow(new Date(isoString), { addSuffix: true, locale: zhTW });
+    };
 
-        if (diff <= 0) return '時間已過，將立即開始';
+    const handleCreate = async () => {
+        if (!title.trim()) {
+            toast.error('請輸入會議主題');
+            return;
+        }
+        if (!agenda.trim()) {
+            toast.error('請輸入會議討論內容');
+            return;
+        }
+        if (selectedDepts.length === 0 && selectedConsultants.length === 0) {
+            toast.error('請至少選擇一個參與部門或顧問');
+            return;
+        }
 
-        const minutes = Math.floor(diff / 60000);
-        if (minutes < 60) return `約 ${minutes} 分鐘後開始`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `約 ${hours} 小時 ${mins} 分鐘後開始`;
+        setCreating(true);
+        try {
+            const res = await fetch('/api/meetings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    topic: agenda, // Legacy API expects 'topic' as the content/context
+                    departmentIds: selectedDepts,
+                    consultantAgentIds: selectedConsultants,
+                    durationMinutes: duration[0],
+                    scheduledStartTime: isScheduled ? scheduledTime : undefined,
+                    mode: mode
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to create meeting');
+
+            const data = await res.json();
+            toast.success('會議已建立，正在進入會議室...');
+            router.push(`/meetings/${data.id}`);
+        } catch (error: any) {
+            toast.error('建立失敗: ' + error.message);
+            setCreating(false);
+        }
     };
 
     return (
-        <div className="h-full w-full overflow-y-auto custom-scrollbar p-6 space-y-6">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">發起戰略會議</h1>
-                <p className="text-muted-foreground">定義人、事、時，讓 Agent 團隊為您進行沙盤推演。</p>
-            </div>
-
-            <div className="grid gap-6">
-                {/* Topic Section */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Briefcase className="w-5 h-5" /> 會議主題 (事)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid w-full gap-2">
-                            <label htmlFor="title" className="text-sm font-medium leading-none">會議名稱</label>
-                            <Input
-                                id="title"
-                                placeholder="例如：2026 年度預算審查會議"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid w-full gap-2">
-                            <label htmlFor="topic" className="text-sm font-medium leading-none">討論議案 (Agent 將根據此內容發言)</label>
-                            <Textarea
-                                id="topic"
-                                placeholder="詳細描述需要討論的背景、限制條件與目標..."
-                                value={topic}
-                                onChange={(e) => setTopic(e.target.value)}
-                                rows={4}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Participants */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Departments */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" /> 參與部門 (人)</CardTitle>
-                            <p className="text-sm text-muted-foreground">選擇代表公司內部立場的部門</p>
-                        </CardHeader>
-                        <CardContent className="h-[200px] overflow-y-auto space-y-2">
-                            {loading ? <p className="text-sm text-muted-foreground">載入中...</p> :
-                                departments.length === 0 ? <p className="text-sm text-muted-foreground">無可用部門</p> :
-                                    departments.map(dept => (
-                                        <div key={dept.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={dept.id}
-                                                checked={selectedDepts.includes(dept.id)}
-                                                onChange={() => toggleDept(dept.id)}
-                                            />
-                                            <label htmlFor={dept.id} className="cursor-pointer font-medium text-sm">{dept.name}</label>
-                                        </div>
-                                    ))}
-                        </CardContent>
-                    </Card>
-
-                    {/* Consultants */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><User className="w-5 h-5" /> 顧問 Agent (人)</CardTitle>
-                            <p className="text-sm text-muted-foreground">邀請您的 AI 代理作為外部專家</p>
-                        </CardHeader>
-                        <CardContent className="h-[200px] overflow-y-auto space-y-2">
-                            {loading ? <p className="text-sm text-muted-foreground">載入中...</p> :
-                                agents.length === 0 ? <p className="text-sm text-muted-foreground">無可用 Agent。請先至「智能代理」建立。</p> :
-                                    agents.map(agent => (
-                                        <div key={agent.id} className="flex items-start space-x-2">
-                                            <Checkbox
-                                                id={agent.id}
-                                                checked={selectedConsultants.includes(agent.id)}
-                                                onChange={() => toggleConsultant(agent.id)}
-                                            />
-                                            <div className="grid gap-0.5">
-                                                <label htmlFor={agent.id} className="cursor-pointer font-medium text-sm flex items-center gap-1">
-                                                    {agent.avatar_url && <span className="text-xs">🤖</span>}
-                                                    {agent.name}
-                                                </label>
-                                                <span className="text-xs text-muted-foreground line-clamp-1">{agent.description}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                        </CardContent>
-                    </Card>
+        <div className="h-full overflow-y-auto custom-scrollbar w-full">
+            <div className="p-6 space-y-8 max-w-7xl mx-auto w-full">
+                <div className="space-y-2">
+                    <h1 className="text-2xl font-bold tracking-tight">發起新會議</h1>
+                    <p className="text-muted-foreground">配置您的 AI 戰略會議，選擇參與顧問與討論模式。</p>
                 </div>
 
-                {/* Settings */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" /> 會議設定 (時)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <label className="flex items-center gap-2 text-sm font-medium"><Clock className="w-4 h-4" /> 會議時長 (分鐘)</label>
-                                <span className="text-sm font-medium">{duration[0]} 分鐘</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="1"
-                                max="30"
-                                step="1"
-                                value={duration[0]}
-                                onChange={(e) => setDuration([parseInt(e.target.value)])}
-                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                <div className="grid gap-6">
+                    {/* Topic */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Briefcase className="w-5 h-5" /> 會議主題</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Input
+                                placeholder="例如：2024 Q1 行銷策略規劃..."
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="text-lg"
                             />
+                        </CardContent>
+                    </Card>
+
+                    {/* Agenda / Content */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> 會議內容</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea
+                                placeholder="請在此輸入會議背景資訊、討論重點或具體問題..."
+                                value={agenda}
+                                onChange={(e) => setAgenda(e.target.value)}
+                                className="min-h-[120px]"
+                                fullWidth
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Participants */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" /> 參與陣容</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Departments */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-muted-foreground">核心部門 (Knowledge Base)</label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {departments.map((dept) => (
+                                        <div
+                                            key={dept.id}
+                                            onClick={() => toggleDept(dept.id)}
+                                            className={cn(
+                                                "cursor-pointer rounded-lg border p-3 flex items-center justify-between transition-all hover:bg-muted/50",
+                                                selectedDepts.includes(dept.id) ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                                <span className="font-medium text-sm">{dept.name}</span>
+                                            </div>
+                                            <Checkbox checked={selectedDepts.includes(dept.id)} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Agents */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-muted-foreground">AI 專家顧問 (Personality)</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {agents.map((agent) => (
+                                        <div
+                                            key={agent.id}
+                                            onClick={() => toggleConsultant(agent.id)}
+                                            className={cn(
+                                                "cursor-pointer rounded-lg border p-3 flex items-start gap-3 transition-all hover:bg-muted/50",
+                                                selectedConsultants.includes(agent.id) ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
+                                            )}
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <User className="w-4 h-4 text-purple-500" />
+                                                    <span className="font-bold text-sm">{agent.name}</span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
+                                            </div>
+                                            <Checkbox checked={selectedConsultants.includes(agent.id)} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Settings */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" /> 會議設定 (時)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Mode Selection */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium">會議模式</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div
+                                        onClick={() => {
+                                            setMode('quick_sync');
+                                            setDuration([5]);
+                                        }}
+                                        className={cn(
+                                            "cursor-pointer flex items-start justify-between p-3 rounded-lg border text-left transition-all",
+                                            mode === 'quick_sync' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"
+                                        )}
+                                    >
+                                        <div className="flex-1 mr-2">
+                                            <span className="font-bold text-sm block">⚡ 快速同步</span>
+                                            <span className="text-xs text-muted-foreground mt-1 block">時間導向。適合日常資訊同步，時間到強制收斂。</span>
+                                        </div>
+                                        <Checkbox checked={mode === 'quick_sync'} className="shrink-0 mt-0.5" variant="radio" />
+                                    </div>
+                                    <div
+                                        onClick={() => {
+                                            setMode('deep_dive');
+                                            setDuration([15]);
+                                        }}
+                                        className={cn(
+                                            "cursor-pointer flex items-start justify-between p-3 rounded-lg border text-left transition-all",
+                                            mode === 'deep_dive' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"
+                                        )}
+                                    >
+                                        <div className="flex-1 mr-2">
+                                            <span className="font-bold text-sm block">🧠 深度研討</span>
+                                            <span className="text-xs text-muted-foreground mt-1 block">回合導向。適合專案檢討，主席會引導每人充分發言。</span>
+                                        </div>
+                                        <Checkbox checked={mode === 'deep_dive'} className="shrink-0 mt-0.5" variant="radio" />
+                                    </div>
+                                    <div
+                                        onClick={() => {
+                                            setMode('result_driven');
+                                            setDuration([30]);
+                                        }}
+                                        className={cn(
+                                            "cursor-pointer flex items-start justify-between p-3 rounded-lg border text-left transition-all",
+                                            mode === 'result_driven' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"
+                                        )}
+                                    >
+                                        <div className="flex-1 mr-2">
+                                            <span className="font-bold text-sm block">🎯 戰略決策</span>
+                                            <span className="text-xs text-muted-foreground mt-1 block">結果導向。無限回合，直到產出符合 SMART 的行動方案。</span>
+                                        </div>
+                                        <Checkbox checked={mode === 'result_driven'} className="shrink-0 mt-0.5" variant="radio" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-2 text-sm font-medium"><Clock className="w-4 h-4" /> 會議時長 (分鐘)</label>
+                                    <span className="text-sm font-medium">{duration[0]} 分鐘</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="60"
+                                    step="1"
+                                    value={duration[0]}
+                                    onChange={(e) => setDuration([parseInt(e.target.value)])}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                />
+                            </div>
 
                             <div className="pt-4 border-t space-y-4">
                                 <label className="text-sm font-medium flex items-center gap-2">
@@ -371,17 +418,17 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end">
-                        <Button size="lg" onClick={handleCreate} disabled={creating || loading} className="w-full md:w-auto shadow-lg shadow-primary/20">
-                            {creating ? '處理中...' :
-                                isScheduled ? <><Calendar className="w-4 h-4 mr-2" />確認預約</> :
-                                    <><Play className="w-4 h-4 mr-2" /> 安排會議</>
-                            }
-                        </Button>
-                    </CardFooter>
-                </Card>
+                        </CardContent>
+                        <CardFooter className="flex justify-end">
+                            <Button size="lg" onClick={handleCreate} disabled={creating || loading} className="w-full md:w-auto shadow-lg shadow-primary/20">
+                                {creating ? '處理中...' :
+                                    isScheduled ? <><Calendar className="w-4 h-4 mr-2" />確認預約</> :
+                                        <><Play className="w-4 h-4 mr-2" /> 安排會議</>
+                                }
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
             </div>
         </div>
     );

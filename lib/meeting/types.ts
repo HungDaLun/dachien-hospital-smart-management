@@ -1,7 +1,17 @@
 export type ParticipantType = 'department' | 'consultant';
-export type SpeakerType = 'department' | 'consultant' | 'user' | 'system';
+export type SpeakerType = 'department' | 'consultant' | 'user' | 'system' | 'chairperson';
 export type MeetingStatus = 'setup' | 'in_progress' | 'paused' | 'completed';
 export type MessageStance = 'support' | 'oppose' | 'neutral' | 'conditional';
+
+export type MeetingMode = 'quick_sync' | 'deep_dive' | 'result_driven';
+export type MeetingPhase = 'diverge' | 'debate' | 'converge' | 'audit';
+
+export interface ChairpersonDecision {
+    action: 'continue' | 'intervene' | 'wrap_up';
+    instruction?: string; // Guidance for the next agent or the room
+    target_agent_id?: string; // specific agent to address
+    suggested_phase?: MeetingPhase;
+}
 
 export interface MeetingParticipant {
     id: string;
@@ -40,6 +50,14 @@ export interface MeetingConfig {
     topic_context?: string;
     duration_minutes: number;
     status: MeetingStatus;
+
+    // New Fields for Revolution v2.0
+    mode: MeetingMode;
+    current_phase: MeetingPhase;
+    smart_score: number;
+    turn_count: number;
+    max_turns?: number;
+
     participants: {
         departments: string[];
         consultants: string[];

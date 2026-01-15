@@ -361,8 +361,8 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
                   disabled={!isEditing}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
                 >
-                  <option value="gemini-3-flash-preview">Gemini 1.5 Flash (最快)</option>
-                  <option value="gemini-3-pro-preview">Gemini 1.5 Pro (最強)</option>
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (最快)</option>
+                  <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (最強)</option>
                 </select>
               </SettingRow>
             </div>

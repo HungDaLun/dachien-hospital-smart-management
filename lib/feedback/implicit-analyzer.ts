@@ -20,7 +20,7 @@ export async function analyzeImplicitFeedback(
     if (messages.length < 2 || involvedFileIds.length === 0) return;
 
     // Use a cheap model for analysis
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const prompt = `
     擔任「對話滿意度裁判」。請分析以下使用者與 AI 的對話，判斷使用者對 AI 回答的滿意度。

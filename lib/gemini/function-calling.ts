@@ -24,7 +24,7 @@ export async function chatWithTools(
 
     // 2. Initialize Model with Tools
     const model = genAI.getGenerativeModel({
-        model: modelVersion || 'gemini-1.5-flash', // Default to a known model if version not provided
+        model: modelVersion || 'gemini-3-flash-preview', // Default to a known model if version not provided
         systemInstruction: systemPrompt,
         tools: functionDeclarations.length > 0 ? [{
             functionDeclarations: functionDeclarations
