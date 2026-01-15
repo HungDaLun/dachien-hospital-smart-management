@@ -47,18 +47,17 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
     const [scheduledTime, setScheduledTime] = useState('');
 
     const upcomingDates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
-    const timeSlots = [
-        "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
-        "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-        "16:00", "16:30", "17:00", "17:30", "18:00", "19:00", "20:00", "21:00"
-    ];
+    // 24 小時制時間選項
+    const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+    const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')); // 00, 05, 10, 15... 55
 
     const handleDateSelect = (date: Date) => {
         setSelectedDate(date);
         updateScheduledTime(date, selectedTimeSlot);
     };
 
-    const handleTimeSelect = (time: string) => {
+    const handleTimeSelect = (hour: string, minute: string) => {
+        const time = `${hour}:${minute}`;
         setSelectedTimeSlot(time);
         updateScheduledTime(selectedDate, time);
     };
@@ -257,7 +256,7 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
                             </div>
                             <input
                                 type="range"
-                                min="3"
+                                min="1"
                                 max="30"
                                 step="1"
                                 value={duration[0]}
@@ -325,24 +324,41 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
                                             </div>
                                         </div>
 
-                                        {/* Time Selection */}
+                                        {/* Time Selection - Dropdowns */}
                                         <div className="space-y-2">
                                             <span className="text-xs font-medium text-muted-foreground">選擇開始時間</span>
-                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                                                {timeSlots.map((time) => (
-                                                    <button
-                                                        key={time}
-                                                        onClick={() => handleTimeSelect(time)}
-                                                        className={cn(
-                                                            "py-2 px-1 text-sm rounded-lg border text-center transition-all",
-                                                            selectedTimeSlot === time
-                                                                ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
-                                                                : "bg-card hover:bg-accent hover:border-accent-foreground/30 text-foreground/80 border-border"
-                                                        )}
+                                            <div className="flex items-center gap-3">
+                                                {/* Hour Dropdown */}
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-muted-foreground mb-1 block">小時</label>
+                                                    <select
+                                                        value={selectedTimeSlot.split(':')[0] || ''}
+                                                        onChange={(e) => handleTimeSelect(e.target.value, selectedTimeSlot.split(':')[1] || '00')}
+                                                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer"
                                                     >
-                                                        {time}
-                                                    </button>
-                                                ))}
+                                                        <option value="" disabled>--</option>
+                                                        {hours.map((h) => (
+                                                            <option key={h} value={h}>{h}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <span className="text-xl font-bold text-muted-foreground mt-5">:</span>
+
+                                                {/* Minute Dropdown */}
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-muted-foreground mb-1 block">分鐘</label>
+                                                    <select
+                                                        value={selectedTimeSlot.split(':')[1] || ''}
+                                                        onChange={(e) => handleTimeSelect(selectedTimeSlot.split(':')[0] || '00', e.target.value)}
+                                                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="" disabled>--</option>
+                                                        {minutes.map((m) => (
+                                                            <option key={m} value={m}>{m}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -361,7 +377,7 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
                         <Button size="lg" onClick={handleCreate} disabled={creating || loading} className="w-full md:w-auto shadow-lg shadow-primary/20">
                             {creating ? '處理中...' :
                                 isScheduled ? <><Calendar className="w-4 h-4 mr-2" />確認預約</> :
-                                    <><Play className="w-4 h-4 mr-2" /> 立即開始會議</>
+                                    <><Play className="w-4 h-4 mr-2" /> 安排會議</>
                             }
                         </Button>
                     </CardFooter>

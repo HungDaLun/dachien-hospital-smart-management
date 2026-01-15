@@ -26,6 +26,10 @@ export function MeetingSidebar() {
     useEffect(() => {
         fetchMeetings();
 
+        // Listen for local updates
+        const handleLocalUpdate = () => fetchMeetings();
+        window.addEventListener('meeting-updated', handleLocalUpdate);
+
         // Realtime subscription
         const channel = supabase
             .channel('meetings-db-changes')
@@ -44,11 +48,13 @@ export function MeetingSidebar() {
             .subscribe();
 
         // Polling check for scheduled meetings every 30s
+        // (Note: The actual active interval is in the other useEffect dependent on [meetings])
         const interval = setInterval(() => {
-            checkScheduledMeetings(meetings);
+            // checkScheduledMeetings(meetings); // This captures stale empty array, but keeping interval for now to correspond with cleanup
         }, 30000);
 
         return () => {
+            window.removeEventListener('meeting-updated', handleLocalUpdate);
             supabase.removeChannel(channel);
             clearInterval(interval);
         };
@@ -221,7 +227,7 @@ export function MeetingSidebar() {
             </div>
 
             {/* User Profile / Footer area placeholder */}
-            <div className="p-4 border-t border-border/40 text-xs text-center text-muted-foreground/50">
+            <div className="h-[52px] flex items-center justify-center border-t border-border/40 text-xs text-muted-foreground/50">
                 Nexus Intelligence System v2.0
             </div>
         </div>

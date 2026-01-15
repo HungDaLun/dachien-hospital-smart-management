@@ -92,6 +92,11 @@ export interface MeetingMinutes {
             action: string;
             responsible_department?: string;
             priority: 'high' | 'medium' | 'low';
+            smart_specific: string;
+            smart_measurable: string;
+            smart_achievable: string;
+            smart_relevant: string;
+            smart_time_bound: string;
         }[];
         statistics: {
             total_messages: number;

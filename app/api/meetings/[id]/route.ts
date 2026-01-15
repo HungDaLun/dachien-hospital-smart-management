@@ -30,6 +30,10 @@ export async function PATCH(
         if (status === 'in_progress') {
             const service = new MeetingService();
             await service.startMeeting(meetingId);
+        } else if (status === 'completed') {
+            const service = new MeetingService();
+            // This will generate minutes and save to knowledge base
+            await service.endMeeting(meetingId);
         } else {
             await supabase.from('meetings').update({ status }).eq('id', meetingId);
         }
