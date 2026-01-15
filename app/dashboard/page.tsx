@@ -9,7 +9,7 @@ import { CorporateStrategyAnalyzer } from '@/lib/war-room/kpi/corporate-strategy
 import { WarRoomDataProvider } from '@/lib/war-room/kpi/war-room-data-provider';
 import KPICard from '@/components/war-room/kpi-cards/KPICard';
 import InsightRefreshButton from '@/components/war-room/InsightRefreshButton';
-import { ChevronRight, Cpu, Activity, ShieldAlert, Globe, Clock } from 'lucide-react';
+import { ChevronRight, Cpu, Activity, ShieldAlert, Globe, Clock, Users } from 'lucide-react';
 import CorporateConsultantButton from '@/components/war-room/CorporateConsultantButton';
 
 
@@ -74,6 +74,13 @@ export default async function DashboardPage() {
             <Clock size={14} />
             每日 05:00 更新
           </div>
+          <Link
+            href="/meetings"
+            className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold flex items-center gap-2 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-300 transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+          >
+            <Users size={14} className="text-purple-400" />
+            Agent 會議室
+          </Link>
           <CorporateConsultantButton />
         </div>
 

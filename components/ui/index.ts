@@ -17,7 +17,7 @@ export { Select } from './Select';
 export type { SelectProps, SelectOption } from './Select';
 
 // 容器元件
-export { Card, CardHeader, CardBody, CardFooter } from './Card';
+export { Card, CardHeader, CardBody, CardFooter, CardTitle, CardContent } from './Card';
 export type { CardProps, CardHeaderProps, CardBodyProps, CardFooterProps } from './Card';
 
 export { Modal } from './Modal';
