@@ -1,17 +1,24 @@
+/**
+ * Dashboard 頁面 - Streaming SSR with Suspense
+ * 修正：恢復資料並行獲取，避免重複查詢
+ */
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { Globe, Clock, Users, Cpu, Activity, ShieldAlert, ChevronRight } from 'lucide-react';
+import CorporateConsultantButton from '@/components/war-room/CorporateConsultantButton';
+import { PAGE_SPACING } from '@/lib/styles/design-constants';
+
+// KPI Calculators
 import { StrategyExecutionCalculator } from '@/lib/war-room/kpi/strategy-execution';
 import { OperationalHealthCalculator } from '@/lib/war-room/kpi/operational-health';
 import { FinancialStatusAnalyzer } from '@/lib/war-room/kpi/financial-status';
 import { RiskAlertSystem } from '@/lib/war-room/kpi/risk-alerts';
 import { CorporateStrategyAnalyzer } from '@/lib/war-room/kpi/corporate-strategy';
 import { WarRoomDataProvider } from '@/lib/war-room/kpi/war-room-data-provider';
+
 import KPICard from '@/components/war-room/kpi-cards/KPICard';
 import InsightRefreshButton from '@/components/war-room/InsightRefreshButton';
-import { ChevronRight, Cpu, Activity, ShieldAlert, Globe, Clock, Users } from 'lucide-react';
-import CorporateConsultantButton from '@/components/war-room/CorporateConsultantButton';
-
 
 import dynamic from 'next/dynamic';
 
@@ -19,8 +26,6 @@ const DashboardCharts = dynamic(() => import('@/components/war-room/charts/Dashb
   loading: () => <div className="w-full h-96 flex items-center justify-center text-white/50">載入圖表數據中...</div>,
   ssr: false
 });
-
-import { PAGE_SPACING } from '@/lib/styles/design-constants';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -30,7 +35,7 @@ export default async function DashboardPage() {
     return <div className="p-10 text-center">拒絕訪問。請先登入。</div>;
   }
 
-  // Instantiate Calculators
+  // 實例化計算器
   const strategyCalc = new StrategyExecutionCalculator();
   const opsCalc = new OperationalHealthCalculator();
   const financeCalc = new FinancialStatusAnalyzer();
@@ -38,13 +43,13 @@ export default async function DashboardPage() {
   const strategyAnalyzer = new CorporateStrategyAnalyzer();
   const dataProvider = new WarRoomDataProvider();
 
-  // Fetch Data Parallelly - 使用快取版本的 AI 分析
+  // 並行獲取所有資料（避免重複查詢，這是效能關鍵）
   const [strategy, ops, finance, risks, aiInsight, dashboardData] = await Promise.all([
     strategyCalc.calculateExecutionRate(user.id),
     opsCalc.calculateHealthScore(user.id),
     financeCalc.analyzeFinancials(user.id),
     riskCalc.detectRisks(user.id),
-    strategyAnalyzer.getLatestInsight(user.id),  // 從快取讀取，不即時呼叫 AI
+    strategyAnalyzer.getLatestInsight(user.id),
     dataProvider.fetchAllData(user.id)
   ]);
 
@@ -85,7 +90,6 @@ export default async function DashboardPage() {
           </Link>
           <CorporateConsultantButton />
         </div>
-
 
         {/* KPI Grid - Layer 1 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -155,7 +159,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* 部門營運矩陣 + 全域風險監控牆 - 調整至 AI 分析下方 */}
+        {/* 部門營運矩陣 + 全域風險監控牆 */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <div className="glass-card p-8 rounded-3xl">
             <div className="flex justify-between items-center mb-8">
@@ -221,7 +225,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {/* 全維度數據可視化中心 - 移至最後 */}
+        {/* 全維度數據可視化中心 */}
         <div className="space-y-6">
           <div className="flex items-center gap-3 px-2">
             <Activity size={20} className="text-primary-400" />

@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { ToastProvider } from '@/components/ui/Toast';
 import UserMenu from '@/components/layout/UserMenu';
+import { PrefetchManager } from '@/components/layout/PrefetchManager';
 import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
@@ -63,6 +64,7 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
+      <PrefetchManager />
       <div className="min-h-screen bg-background-primary text-text-primary flex flex-col">
         {/* 頂部導航列 - 採用更明確的分隔與高品質玻璃效果 */}
         <nav className="bg-background-tertiary/90 backdrop-blur-xl border-b border-white/10 px-6 py-4 sticky top-0 z-40 shrink-0 shadow-2xl shadow-black/40">

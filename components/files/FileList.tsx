@@ -258,29 +258,97 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [refreshTrigger]); // Only depend on refreshTrigger, not fetchFiles
 
-    // Polling for active states - using ref to prevent interval churn
+    // Realtime 訂閱替代輪詢：監聯檔案狀態變更
+    // 當有檔案處於 PENDING/PROCESSING 狀態時，訂閱 Supabase Realtime
+    const realtimeChannelRef = useRef<ReturnType<ReturnType<typeof import('@/lib/supabase/client').createClient>['channel']> | null>(null);
+    // 輪詢備援計時器（僅在 Realtime 訂閱失敗時使用）
     const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const hasTransientFiles = files.some(f => ['PENDING', 'PROCESSING'].includes(f.gemini_state));
 
-        if (hasTransientFiles && !pollTimerRef.current) {
-            // Start polling only if not already polling
-            pollTimerRef.current = setInterval(() => fetchFiles(true), 3000);
-        } else if (!hasTransientFiles && pollTimerRef.current) {
-            // Stop polling if no transient files
-            clearInterval(pollTimerRef.current);
-            pollTimerRef.current = null;
-        }
+        // 動態載入 Supabase client 以避免 SSR 問題
+        const setupRealtime = async () => {
+            if (!hasTransientFiles) {
+                // 清理現有訂閱
+                if (realtimeChannelRef.current) {
+                    const { createClient } = await import('@/lib/supabase/client');
+                    const supabase = createClient();
+                    supabase.removeChannel(realtimeChannelRef.current);
+                    realtimeChannelRef.current = null;
+                }
+                return;
+            }
+
+            // 如果已有訂閱則跳過
+            if (realtimeChannelRef.current) return;
+
+            try {
+                const { createClient } = await import('@/lib/supabase/client');
+                const supabase = createClient();
+
+                // 建立 Realtime 訂閱
+                const channel = supabase
+                    .channel('file-status-updates')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'files',
+                        },
+                        (payload) => {
+                            // 當檔案狀態更新時，更新本地狀態
+                            setFiles(prev => prev.map(f =>
+                                f.id === payload.new.id
+                                    ? { ...f, ...payload.new as Partial<FileData> }
+                                    : f
+                            ));
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('[Realtime] 已訂閱檔案狀態更新');
+                        } else if (status === 'CHANNEL_ERROR') {
+                            console.warn('[Realtime] 訂閱失敗，回退到輪詢模式');
+                            // 訂閱失敗時回退到較長間隔的輪詢 (10 秒)
+                            if (!pollTimerRef.current) {
+                                pollTimerRef.current = setInterval(() => fetchFiles(true), 10000);
+                            }
+                        }
+                    });
+
+                realtimeChannelRef.current = channel;
+            } catch (error) {
+                console.error('[Realtime] 設定失敗:', error);
+                // 回退到輪詢
+                if (!pollTimerRef.current && hasTransientFiles) {
+                    pollTimerRef.current = setInterval(() => fetchFiles(true), 10000);
+                }
+            }
+        };
+
+        setupRealtime();
 
         return () => {
+            // 清理訂閱
+            if (realtimeChannelRef.current) {
+                import('@/lib/supabase/client').then(({ createClient }) => {
+                    const supabase = createClient();
+                    if (realtimeChannelRef.current) {
+                        supabase.removeChannel(realtimeChannelRef.current);
+                        realtimeChannelRef.current = null;
+                    }
+                });
+            }
+            // 清理輪詢備援
             if (pollTimerRef.current) {
                 clearInterval(pollTimerRef.current);
                 pollTimerRef.current = null;
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [files]); // Only depend on files array, not fetchFiles function
+    }, [files]); // 依賴 files 陣列以偵測狀態變化
 
     // Search Debounce
     const [searchInput, setSearchInput] = useState('');
