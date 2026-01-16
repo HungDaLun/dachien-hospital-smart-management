@@ -14,16 +14,24 @@ export default async function MeetingPage() {
     const { data: departments } = await supabase.from('departments').select('id, name');
 
     // Load Agents (All active agents)
-    const { data: agents, error: agentsError } = await supabase
+    const { data: agents } = await supabase
         .from('agents')
         .select('id, name, description, avatar_url')
         .eq('is_active', true);
 
-    // Debug logging
-    console.log('[MeetingPage] Agents query result:', { agents, agentsError, count: agents?.length });
+    // Load User Profile with Department
+    const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('display_name, department_id, departments(name)')
+        .eq('id', user.id)
+        .single();
 
     return <MeetingSetup
         initialDepartments={departments || []}
         initialAgents={agents || []}
+        currentUser={{
+            name: userProfile?.display_name || user.email || 'Unknown User',
+            department: (userProfile as any)?.departments?.name || '管理部'
+        }}
     />;
 }

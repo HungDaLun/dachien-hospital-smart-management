@@ -23,9 +23,13 @@ interface Agent {
 interface MeetingSetupProps {
     initialDepartments: Department[];
     initialAgents: Agent[];
+    currentUser?: {
+        name: string;
+        department: string;
+    };
 }
 
-export default function MeetingSetup({ initialDepartments, initialAgents }: MeetingSetupProps) {
+export default function MeetingSetup({ initialDepartments, initialAgents, currentUser }: MeetingSetupProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [departments] = useState<Department[]>(initialDepartments);
@@ -183,6 +187,28 @@ export default function MeetingSetup({ initialDepartments, initialAgents }: Meet
                             <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" /> 參與陣容</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {/* Meeting Organizer */}
+                            {currentUser && (
+                                <div className="space-y-3 pb-4 border-b border-border/50">
+                                    <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        會議主辦人 (Organizer)
+                                    </label>
+                                    <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-black text-emerald-400 text-lg">{currentUser.name}</span>
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">Chairperson</span>
+                                            </div>
+                                            <p className="text-sm text-text-tertiary font-medium">所屬單位：{currentUser.department}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Departments */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-muted-foreground">核心部門 (Knowledge Base)</label>

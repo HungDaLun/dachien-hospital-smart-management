@@ -425,18 +425,22 @@ ${participantsList}
         // 為了解決「部門歸屬」問題，我們直接查詢會議發起人的所屬部門
         let ownerDepartmentId = null;
         let ownerDepartmentName = "管理部"; // Default Fallback
+        let ownerDisplayName = "會議發起人";
 
         if (meeting.user_id) {
             const { data: userProfile } = await supabase
                 .from('user_profiles')
-                .select('department_id, departments(name)')
+                .select('display_name, department_id, departments(name)')
                 .eq('id', meeting.user_id)
                 .single();
 
-            if (userProfile && userProfile.department_id) {
-                ownerDepartmentId = userProfile.department_id;
-                // @ts-ignore - supabase query types alignment
-                ownerDepartmentName = userProfile.departments?.name || "管理部";
+            if (userProfile) {
+                ownerDisplayName = userProfile.display_name || "會議發起人";
+                if (userProfile.department_id) {
+                    ownerDepartmentId = userProfile.department_id;
+                    // @ts-ignore - supabase query types alignment
+                    ownerDepartmentName = userProfile.departments?.name || "管理部";
+                }
             }
         }
 
@@ -464,6 +468,7 @@ ${participantsList}
 **會議詳情**:
 會議標題: ${meeting.title}
 會議議程: ${meeting.topic}
+會議發起人: ${ownerDisplayName} (${ownerDepartmentName})
 
 **會議逐字稿**:
 ${contextStr}
@@ -478,6 +483,7 @@ JSON Schema:
     "executive_summary": "A concise executive summary (approx 200 words)",
     "content": {
         "participants": {
+             "organizer": { "name": "${ownerDisplayName}", "department": "${ownerDepartmentName}" },
              "departments": [{ "id": "id_if_known", "name": "Department Name", "message_count": 0 }],
              "consultants": [{ "id": "id_if_known", "name": "Agent Name", "message_count": 0 }]
         },
@@ -544,6 +550,10 @@ JSON Schema:
             // Create a markdown version for the knowledge base
             const knowledgeMarkdown = `
 # 會議記錄：${meeting.title}
+
+## 基本資訊
+- **會議發起人**: ${ownerDisplayName} (${ownerDepartmentName})
+- **日期**: ${new Date().toLocaleDateString('zh-TW')}
 
 ## 執行摘要
 ${minutesData.executive_summary}
