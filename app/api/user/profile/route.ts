@@ -13,11 +13,12 @@ const EDITABLE_FIELDS = [
   'display_name',
   'phone',
   'mobile',
-  'bio',
-  'skills',
-  'expertise_areas',
-  'linkedin_url',
   'preferences',
+  'job_title',
+  'employee_id',
+  'location',
+  'extension',
+  'department_id',
 ] as const;
 
 /**
@@ -36,18 +37,10 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // 取得使用者資料，包含主管資訊
+    // 取得使用者資料
     const { data: profile, error } = await supabase
       .from('user_profiles')
-      .select(`
-        *,
-        manager:manager_id (
-          id,
-          display_name,
-          email,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('id', user.id)
       .single();
 
@@ -72,6 +65,7 @@ export async function GET(_request: NextRequest) {
 /**
  * PUT - 更新當前使用者的個人資料
  * 使用者只能更新白名單內的欄位，不能修改 role、department_id 或其他管理員欄位
+ * (已放寬 department_id 可由使用者修改)
  */
 export async function PUT(request: NextRequest) {
   try {
@@ -110,14 +104,15 @@ export async function PUT(request: NextRequest) {
 
           case 'phone':
           case 'mobile':
+          case 'extension':
             if (value !== null && typeof value !== 'string') {
               return NextResponse.json(
                 { success: false, error: `${field} 格式錯誤` },
                 { status: 400 }
               );
             }
-            // 簡單的電話格式驗證（允許數字、+、-、空格、括號）
-            if (value && !/^[\d\s\-+()]+$/.test(value)) {
+            // 簡單的電話格式驗證（允許數字、+、-、空格、括號、#）
+            if (value && !/^[\d\s\-+()#]+$/.test(value)) {
               return NextResponse.json(
                 { success: false, error: `${field} 包含無效字元` },
                 { status: 400 }
@@ -126,56 +121,33 @@ export async function PUT(request: NextRequest) {
             updateData[field] = value?.trim() || null;
             break;
 
-          case 'bio':
+          case 'job_title':
+          case 'employee_id':
+          case 'location':
             if (value !== null && typeof value !== 'string') {
               return NextResponse.json(
-                { success: false, error: '個人簡介格式錯誤' },
-                { status: 400 }
-              );
-            }
-            // 限制個人簡介長度
-            if (value && value.length > 1000) {
-              return NextResponse.json(
-                { success: false, error: '個人簡介不可超過 1000 字元' },
+                { success: false, error: `${field} 格式錯誤` },
                 { status: 400 }
               );
             }
             updateData[field] = value?.trim() || null;
             break;
 
-          case 'skills':
-          case 'expertise_areas':
-            if (value !== null && !Array.isArray(value)) {
-              return NextResponse.json(
-                { success: false, error: `${field} 必須為陣列格式` },
-                { status: 400 }
-              );
-            }
-            // 驗證陣列內容都是字串
-            if (value && !value.every((item: unknown) => typeof item === 'string')) {
-              return NextResponse.json(
-                { success: false, error: `${field} 內容必須都是字串` },
-                { status: 400 }
-              );
-            }
-            updateData[field] = value || [];
-            break;
-
-          case 'linkedin_url':
+          case 'department_id':
             if (value !== null && typeof value !== 'string') {
               return NextResponse.json(
-                { success: false, error: 'LinkedIn 連結格式錯誤' },
+                { success: false, error: '部門 ID 格式錯誤' },
                 { status: 400 }
               );
             }
-            // 驗證 LinkedIn URL 格式
-            if (value && !value.includes('linkedin.com')) {
+            // 簡單驗證 UUID 格式 (如果不為 null)
+            if (value && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
               return NextResponse.json(
-                { success: false, error: '請輸入有效的 LinkedIn 連結' },
+                { success: false, error: '無效的部門 ID' },
                 { status: 400 }
               );
             }
-            updateData[field] = value?.trim() || null;
+            updateData[field] = value || null;
             break;
 
           case 'preferences':

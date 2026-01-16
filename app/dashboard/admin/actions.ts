@@ -173,6 +173,26 @@ export async function updateUserProfile(userId: string, role: string, department
         details: { role, departmentId }
     });
 
+
     revalidatePath('/dashboard/admin/users');
     return { success: true };
+}
+
+/**
+ * 取得使用者的所有檔案
+ */
+export async function getUserFiles(userId: string) {
+    const supabase = await createClient();
+
+    const { data: files, error } = await supabase
+        .from('files')
+        .select('id, filename, created_at, size_bytes, mime_type, s3_storage_path')
+        .eq('uploaded_by', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { files };
 }

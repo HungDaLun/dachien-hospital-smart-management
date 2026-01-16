@@ -421,6 +421,37 @@ ${participantsList}
 
         if (!messages || messages.length === 0) return;
 
+        // 2.5 Fetch Owner's Department & System Taxonomy
+        // 為了解決「部門歸屬」問題，我們直接查詢會議發起人的所屬部門
+        let ownerDepartmentId = null;
+        let ownerDepartmentName = "管理部"; // Default Fallback
+
+        if (meeting.user_id) {
+            const { data: userProfile } = await supabase
+                .from('user_profiles')
+                .select('department_id, departments(name)')
+                .eq('id', meeting.user_id)
+                .single();
+
+            if (userProfile && userProfile.department_id) {
+                ownerDepartmentId = userProfile.department_id;
+                // @ts-ignore - supabase query types alignment
+                ownerDepartmentName = userProfile.departments?.name || "管理部";
+            }
+        }
+
+        // 為了解決「分類脫節」問題，我們動態查詢「會議記錄」的 Category ID
+        let meetingCategoryId = null;
+        const { data: categoryData } = await supabase
+            .from('document_categories')
+            .select('id')
+            .eq('name', '會議記錄')
+            .maybeSingle();
+
+        if (categoryData) {
+            meetingCategoryId = categoryData.id;
+        }
+
         // 3. Generate SMART Minutes using Gemini
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) return;
@@ -545,11 +576,10 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
 
             // 準備 Metadata
             const participantNames = participants?.map(p => p.name) || [];
-            const departmentNames = participants?.filter(p => p.participant_type === 'department').map(p => p.name) || [];
             const keywords = minutesData.content.statistics?.discussion_keywords || [];
 
-            // 決定部門歸屬：若有多個部門參與則為「跨部門」，否則歸屬該部門（若無部門則為管理部）
-            const displayDepartment = departmentNames.length > 1 ? "跨部門" : (departmentNames[0] || "戰略室");
+            // 決定顯示部門：使用發起人部門，或 Action Items 中最主要的負責單位
+            const displayDepartment = ownerDepartmentName;
 
             const s3StoragePath = `meeting-minutes/${meetingId}.md`;
             const fileName = `會議記錄_${meeting.title}_${new Date().toISOString().split('T')[0]}.md`;
@@ -561,6 +591,14 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
                 .eq('s3_storage_path', s3StoragePath)
                 .maybeSingle();
 
+            // 為了解決「缺乏治理標籤」問題，我們注入標準 Governance 物件
+            const governanceMetadata = {
+                sensitivity: "internal", // 預設內部機密
+                retention_policy: "7_years", // 企業標準保存年限
+                access_control: "department_internal", // 預設部門內可見
+                is_official_record: true
+            };
+
             const fileData = {
                 uploaded_by: meeting.user_id,
                 filename: fileName,
@@ -570,6 +608,8 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
                 markdown_content: knowledgeMarkdown,
                 gemini_state: 'SYNCED', // Already processed
                 dikw_level: 'wisdom', // Minutes are high value
+                department_id: ownerDepartmentId, // [Fix] 正確歸屬部門 ID
+                category_id: meetingCategoryId,   // [Fix] 正確歸屬分類 ID
                 metadata_analysis: {
                     title: meeting.title || meeting.topic,
                     summary: minutesData.executive_summary,
@@ -582,7 +622,8 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
                     sensitivity: "internal",
                     language: "zh-TW",
                     created_from_meeting_id: meetingId,
-                    last_updated: new Date().toISOString()
+                    last_updated: new Date().toISOString(),
+                    governance: governanceMetadata // [Fix] 注入治理資料
                 }
             };
 

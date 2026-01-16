@@ -43,6 +43,12 @@ export default async function SettingsPage() {
     departmentName = department?.name || null;
   }
 
+  // 取得所有部門列表供選擇
+  const { data: departments } = await supabase
+    .from('departments')
+    .select('id, name')
+    .order('name');
+
   return (
     <div className="w-full p-4 md:p-6 bg-background-primary text-text-primary min-h-screen">
 
@@ -54,6 +60,8 @@ export default async function SettingsPage() {
             email={user.email || ''}
             departmentName={departmentName}
             dict={dict}
+            lastLoginAt={user.last_sign_in_at}
+            departments={departments || []}
           />
         </div>
       </Card>

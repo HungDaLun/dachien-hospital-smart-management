@@ -25,7 +25,13 @@ function LoginFormContent({ dict }: LoginFormProps) {
             setRegistered(true);
             setTimeout(() => setRegistered(false), 3000);
         }
-        // 注意：session 清除已在 Server Component 中處理，這裡不需要重複清除
+
+        // 在 Client 端 Mount 時清除 session，確保是全新的登入狀態
+        const clearSession = async () => {
+            const supabase = createClient();
+            await supabase.auth.signOut();
+        };
+        clearSession();
     }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -1,17 +1,12 @@
 'use client';
 
-import { useState, FormEvent, useRef, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, FormEvent, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/client';
 
-interface ManagerInfo {
-  id: string;
-  display_name: string | null;
-  email: string;
-  avatar_url: string | null;
-}
+
 
 interface SettingsFormProps {
   profile: {
@@ -28,85 +23,20 @@ interface SettingsFormProps {
     phone?: string | null;
     mobile?: string | null;
     extension?: string | null;
-    manager_id?: string | null;
-    manager?: ManagerInfo | null;
-    hire_date?: string | null;
     location?: string | null;
-    bio?: string | null;
-    skills?: string[];
-    expertise_areas?: string[];
-    linkedin_url?: string | null;
     is_active?: boolean;
     last_login_at?: string | null;
   };
   email: string;
   departmentName: string | null;
   dict: Dictionary;
+  lastLoginAt?: string;
+  departments: { id: string; name: string }[];
 }
 
-// 標籤輸入元件
-function TagInput({
-  tags,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  tags: string[];
-  onChange: (tags: string[]) => void;
-  placeholder: string;
-  disabled?: boolean;
-}) {
-  const [inputValue, setInputValue] = useState('');
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
-      e.preventDefault();
-      if (!tags.includes(inputValue.trim())) {
-        onChange([...tags, inputValue.trim()]);
-      }
-      setInputValue('');
-    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
-      onChange(tags.slice(0, -1));
-    }
-  };
 
-  const removeTag = (index: number) => {
-    onChange(tags.filter((_, i) => i !== index));
-  };
-
-  return (
-    <div className="flex flex-wrap gap-2 p-3 border border-white/10 rounded-xl focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 bg-white/5 backdrop-blur-sm transition-all">
-      {tags.map((tag, index) => (
-        <span
-          key={index}
-          className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-500/20 text-white rounded-lg text-sm font-bold border border-primary-500/40 uppercase tracking-widest shadow-glow-cyan/10"
-        >
-          {tag}
-          {!disabled && (
-            <button
-              type="button"
-              onClick={() => removeTag(index)}
-              className="hover:text-primary-300 transition-colors focus:outline-none"
-            >
-              ×
-            </button>
-          )}
-        </span>
-      ))}
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={tags.length === 0 ? placeholder : ''}
-        disabled={disabled}
-        className="flex-1 min-w-[120px] outline-none bg-transparent text-base text-white placeholder:text-white/30"
-      />
-    </div>
-  );
-}
-
-export default function SettingsForm({ profile, email, departmentName, dict }: SettingsFormProps) {
+export default function SettingsForm({ profile, email, dict, lastLoginAt, departments }: SettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -117,14 +47,13 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
   // 聯絡資訊
   const [phone, setPhone] = useState(profile.phone || '');
   const [mobile, setMobile] = useState(profile.mobile || '');
+  const [extension, setExtension] = useState(profile.extension || '');
+  const [departmentId, setDepartmentId] = useState(profile.department_id || '');
+  const [jobTitle, setJobTitle] = useState(profile.job_title || '');
+  const [employeeId, setEmployeeId] = useState(profile.employee_id || '');
+  const [location, setLocation] = useState(profile.location || '');
 
-  // 專業資訊
-  const [bio, setBio] = useState(profile.bio || '');
-  const [skills, setSkills] = useState<string[]>(profile.skills || []);
-  const [expertiseAreas, setExpertiseAreas] = useState<string[]>(profile.expertise_areas || []);
 
-  // 社群連結
-  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '');
 
   // 狀態
   const [isLoading, setIsLoading] = useState(false);
@@ -197,10 +126,11 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
           display_name: displayName.trim() || null,
           phone: phone.trim() || null,
           mobile: mobile.trim() || null,
-          bio: bio.trim() || null,
-          skills,
-          expertise_areas: expertiseAreas,
-          linkedin_url: linkedinUrl.trim() || null,
+          extension: extension.trim() || null,
+          job_title: jobTitle.trim() || null,
+          employee_id: employeeId.trim() || null,
+          location: location.trim() || null,
+          department_id: departmentId || null,
         }),
       });
 
@@ -228,10 +158,11 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
     displayName !== (profile.display_name || '') ||
     phone !== (profile.phone || '') ||
     mobile !== (profile.mobile || '') ||
-    bio !== (profile.bio || '') ||
-    JSON.stringify(skills) !== JSON.stringify(profile.skills || []) ||
-    JSON.stringify(expertiseAreas) !== JSON.stringify(profile.expertise_areas || []) ||
-    linkedinUrl !== (profile.linkedin_url || '');
+    extension !== (profile.extension || '') ||
+    jobTitle !== (profile.job_title || '') ||
+    employeeId !== (profile.employee_id || '') ||
+    location !== (profile.location || '') ||
+    departmentId !== (profile.department_id || '');
 
   // 角色顯示名稱對照
   const roleLabels: Record<string, string> = {
@@ -242,14 +173,7 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
   };
 
   // 格式化日期
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('zh-TW', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  };
+
 
   const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
@@ -331,46 +255,43 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             />
           </div>
 
-          {/* 職稱（唯讀） */}
+          {/* 職稱 */}
           <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.job_title_label || '職稱'}
-            </label>
-            <input
+            <Input
+              label={dict.settings.job_title_label || '職稱'}
               type="text"
-              value={profile.job_title || '-'}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder={(dict.settings as any).job_title_placeholder || '例如：資深工程師'}
+              disabled={isLoading}
+              fullWidth
             />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
-          {/* 員工編號（唯讀） */}
+          {/* 員工編號 */}
           <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.employee_id_label || '員工編號'}
-            </label>
-            <input
+            <Input
+              label={dict.settings.employee_id_label || '員工編號'}
               type="text"
-              value={profile.employee_id || '-'}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              placeholder={(dict.settings as any).employee_id_placeholder || '例如：EMP-001'}
+              disabled={isLoading}
+              fullWidth
             />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
-          {/* 工作地點（唯讀） */}
+          {/* 工作地點 */}
           <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.location_label || '工作地點'}
-            </label>
-            <input
+            <Input
+              label={dict.settings.location_label || '工作地點'}
               type="text"
-              value={profile.location || '-'}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder={(dict.settings as any).location_placeholder || '例如：台北總部'}
+              disabled={isLoading}
+              fullWidth
             />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
         </div>
       </div>
@@ -394,18 +315,17 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             />
           </div>
 
-          {/* 分機號碼（唯讀） */}
+          {/* 分機號碼 */}
           <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.extension_label || '分機號碼'}
-            </label>
-            <input
+            <Input
+              label={dict.settings.extension_label || '分機號碼'}
               type="text"
-              value={profile.extension || '-'}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
+              value={extension}
+              onChange={(e) => setExtension(e.target.value)}
+              placeholder={(dict.settings as any).extension_placeholder || '例如：#1234'}
+              disabled={isLoading}
+              fullWidth
             />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
           {/* 辦公室電話 */}
@@ -415,7 +335,7 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder={dict.settings.phone_placeholder || '例如：02-1234-5678'}
+              placeholder={dict.settings.phone_placeholder || '例如：0212345678'}
               disabled={isLoading}
               fullWidth
             />
@@ -428,7 +348,7 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
               type="tel"
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
-              placeholder={dict.settings.mobile_placeholder || '例如：0912-345-678'}
+              placeholder={dict.settings.mobile_placeholder || '例如：0912345678'}
               disabled={isLoading}
               fullWidth
             />
@@ -436,85 +356,7 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
         </div>
       </div>
 
-      {/* ===== 專業資訊區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/10">
-        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.professional_section || '專業資訊'}
-        </h3>
 
-        {/* 個人簡介 */}
-        <div>
-          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-            {dict.settings.bio_label || '個人簡介'}
-          </label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder={dict.settings.bio_placeholder || '簡單介紹您的專業背景 and 專長...'}
-            disabled={isLoading}
-            rows={4}
-            maxLength={1000}
-            className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 focus:bg-white/[0.08] transition-all resize-none shadow-inner text-base"
-          />
-          <p className="mt-2 text-[13px] text-white/50 font-mono">
-            {bio.length}/1000 {dict.settings.bio_hint || '字元'}
-          </p>
-        </div>
-
-        {/* 技能標籤 */}
-        <div>
-          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-            {dict.settings.skills_label || '技能標籤'}
-          </label>
-          <TagInput
-            tags={skills}
-            onChange={setSkills}
-            placeholder={dict.settings.skills_placeholder || '輸入技能並按 Enter 新增'}
-            disabled={isLoading}
-          />
-          <p className="mt-2 text-[13px] text-white/60 font-medium">
-            {dict.settings.skills_hint || '加入您擅長的技能，例如：Python、資料分析、專案管理'}
-          </p>
-        </div>
-
-        {/* 專業領域 */}
-        <div>
-          <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-            {dict.settings.expertise_areas_label || '專業領域'}
-          </label>
-          <TagInput
-            tags={expertiseAreas}
-            onChange={setExpertiseAreas}
-            placeholder={dict.settings.expertise_areas_placeholder || '輸入專業領域並按 Enter 新增'}
-            disabled={isLoading}
-          />
-          <p className="mt-2 text-[13px] text-white/60 font-medium">
-            {dict.settings.expertise_areas_hint || '加入您的專業領域，例如：財務會計、人力資源、軟體開發'}
-          </p>
-        </div>
-      </div>
-
-      {/* ===== 社群連結區 ===== */}
-      <div className="space-y-6 pt-8 border-t border-white/10">
-        <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
-          <span className="w-10 h-px bg-primary-500/40" /> {dict.settings.social_section || '社群連結'}
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* LinkedIn */}
-          <div>
-            <Input
-              label={dict.settings.linkedin_url_label || 'LinkedIn'}
-              type="url"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-              placeholder={dict.settings.linkedin_url_placeholder || 'https://linkedin.com/in/...'}
-              disabled={isLoading}
-              fullWidth
-            />
-          </div>
-        </div>
-      </div>
 
       {/* ===== 帳戶資訊區 ===== */}
       <div className="space-y-6 pt-8 border-t border-white/10">
@@ -537,46 +379,31 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
           </div>
 
-          {/* 部門（唯讀） */}
+          {/* 部門 */}
           <div>
             <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
               {dict.settings.department_label}
             </label>
-            <input
-              type="text"
-              value={departmentName || dict.settings.no_department}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
-            />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
-          </div>
-
-          {/* 直屬主管（唯讀） */}
-          <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.manager_label || '直屬主管'}
-            </label>
-            <input
-              type="text"
-              value={profile.manager?.display_name || profile.manager?.email || dict.settings.no_manager || '(未指定)'}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
-            />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
-          </div>
-
-          {/* 入職日期（唯讀） */}
-          <div>
-            <label className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest">
-              {dict.settings.hire_date_label || '入職日期'}
-            </label>
-            <input
-              type="text"
-              value={formatDate(profile.hire_date)}
-              disabled
-              className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
-            />
-            <p className="mt-2 text-[13px] text-primary-400 font-bold uppercase tracking-wide">{dict.settings.admin_only_hint || '此欄位需由管理員修改'}</p>
+            <div className="relative">
+              <select
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 focus:bg-white/[0.08] transition-all shadow-inner appearance-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" className="bg-background-tertiary text-text-secondary">
+                  {dict.settings.no_department || '(未選取)'}
+                </option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id} className="bg-background-tertiary text-text-primary">
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+                ▼
+              </div>
+            </div>
           </div>
 
           {/* 建立時間（唯讀） */}
@@ -599,7 +426,7 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
             </label>
             <input
               type="text"
-              value={formatDateTime(profile.last_login_at)}
+              value={formatDateTime(lastLoginAt || profile.last_login_at)}
               disabled
               className="w-full px-4 py-3 border border-white/10 rounded-xl bg-white/[0.05] text-white cursor-not-allowed font-medium text-base shadow-inner"
             />
@@ -607,19 +434,24 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
         </div>
       </div>
 
+
       {/* 錯誤訊息 */}
-      {error && (
-        <div className="bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-          <span className="mr-2">⚠️</span> {error}
-        </div>
-      )}
+      {
+        error && (
+          <div className="bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+            <span className="mr-2">⚠️</span> {error}
+          </div>
+        )
+      }
 
       {/* 成功訊息 */}
-      {success && (
-        <div className="bg-semantic-success/10 border border-semantic-success/20 text-semantic-success px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-          <span className="mr-2">🎉</span> {dict.settings.save_success}
-        </div>
-      )}
+      {
+        success && (
+          <div className="bg-semantic-success/10 border border-semantic-success/20 text-semantic-success px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+            <span className="mr-2">🎉</span> {dict.settings.save_success}
+          </div>
+        )
+      }
 
       {/* 儲存按鈕 */}
       <div className="flex justify-end gap-3 pt-8 border-t border-white/5">
@@ -634,6 +466,6 @@ export default function SettingsForm({ profile, email, departmentName, dict }: S
           {isLoading ? dict.settings.updating : dict.common.save}
         </Button>
       </div>
-    </form>
+    </form >
   );
 }

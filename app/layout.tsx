@@ -63,14 +63,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           dangerouslySetInnerHTML={{
             __html: `
               window.addEventListener('error', (e) => {
-                const message = e.message || '';
-                const isChunkError = message.toLowerCase().includes('chunkloaderror') || 
-                                    message.toLowerCase().includes('loading chunk') ||
-                                    e.target?.src?.includes('_next/static/chunks/');
+                // 只處理真正的 ChunkLoadError，避免 Safari 誤判
+                const message = (e.message || '').toLowerCase();
+                const errorName = (e.error?.name || '').toLowerCase();
+                
+                // 更嚴格的判斷：必須是 ChunkLoadError 或明確的 chunk 載入失敗
+                const isChunkError = errorName === 'chunkloaderror' ||
+                                    message.includes('chunkloaderror') || 
+                                    (message.includes('loading chunk') && message.includes('failed'));
                 
                 if (isChunkError) {
                   console.log('偵測到版本不一致，正在自動修復與重新整理...');
-                  window.location.reload();
+                  // 使用延遲避免無限循環
+                  if (!window.__chunkErrorReloading) {
+                    window.__chunkErrorReloading = true;
+                    setTimeout(() => window.location.reload(), 100);
+                  }
                 }
               }, true);
             `,

@@ -1,7 +1,7 @@
 'use client';
 
 import { createDepartment } from '../actions';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { useFormStatus } from 'react-dom';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
@@ -20,24 +20,30 @@ export default function CreateDepartmentForm({ dict }: { dict: Dictionary }) {
     };
 
     return (
-        <form action={handleSubmit} className="flex gap-2">
-            <input
-                name="name"
-                placeholder={dict.admin.departments.dept_name}
-                className="border rounded px-3 py-2 text-sm"
-                required
-            />
-            <input
-                name="code"
-                placeholder={dict.admin.departments.dept_code}
-                className="border rounded px-3 py-2 text-sm w-24"
-                required
-            />
-            <input
-                name="description"
-                placeholder={dict.admin.departments.description}
-                className="border rounded px-3 py-2 text-sm"
-            />
+        <form action={handleSubmit} className="flex gap-2 items-center">
+            <div className="w-48">
+                <Input
+                    name="name"
+                    placeholder={dict.admin.departments.dept_name}
+                    inputSize="sm"
+                    required
+                />
+            </div>
+            <div className="w-24">
+                <Input
+                    name="code"
+                    placeholder={dict.admin.departments.dept_code}
+                    inputSize="sm"
+                    required
+                />
+            </div>
+            <div className="w-64">
+                <Input
+                    name="description"
+                    placeholder={dict.admin.departments.description}
+                    inputSize="sm"
+                />
+            </div>
             <SubmitButton dict={dict} />
         </form>
     );

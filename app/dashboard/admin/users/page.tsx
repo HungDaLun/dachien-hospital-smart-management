@@ -127,9 +127,11 @@ export default async function UsersPage() {
                             <table className="w-full text-left">
                                 <thead className="bg-semantic-warning/5 border-b border-white/5">
                                     <tr>
-                                        <TableHeader className="w-1/3">姓名</TableHeader>
-                                        <TableHeader>角色權限</TableHeader>
-                                        <TableHeader>部門</TableHeader>
+                                        <TableHeader className="w-[20%]">姓名</TableHeader>
+                                        <TableHeader className="w-[15%]">職稱/工號</TableHeader>
+                                        <TableHeader className="w-[15%]">聯絡資訊</TableHeader>
+                                        <TableHeader className="w-[15%]">部門</TableHeader>
+                                        <TableHeader className="w-[20%]">角色權限</TableHeader>
                                         <TableHeader className="text-right">操作</TableHeader>
                                     </tr>
                                 </thead>
@@ -144,17 +146,7 @@ export default async function UsersPage() {
                 </div>
             )}
 
-            {/* 除錯資訊（僅在開發環境顯示） */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="mb-6 p-4 bg-primary-500/5 border border-primary-500/10 rounded-xl text-[10px] font-mono text-text-tertiary uppercase tracking-wider">
-                    <p className="font-black text-primary-400 mb-1">DEBUG SYSTEM INFORMATION:</p>
-                    <div className="flex gap-6">
-                        <p>USERS: {users?.length || 0}</p>
-                        <p>CURRENT: {user.email}</p>
-                        <p>ROLE: {profile.role}</p>
-                    </div>
-                </div>
-            )}
+
 
             {/* 已審核使用者區塊 */}
             <div className="animate-fade-in">
@@ -167,9 +159,11 @@ export default async function UsersPage() {
                         <table className="w-full text-left">
                             <thead className="bg-white/[0.02] border-b border-white/5">
                                 <tr>
-                                    <TableHeader className="w-1/3">{dict.admin.users.name}</TableHeader>
-                                    <TableHeader>{dict.admin.users.role_permission}</TableHeader>
-                                    <TableHeader>{dict.admin.users.department}</TableHeader>
+                                    <TableHeader className="w-[20%]">{dict.admin.users.name}</TableHeader>
+                                    <TableHeader className="w-[15%]">職稱/工號</TableHeader>
+                                    <TableHeader className="w-[15%]">聯絡資訊</TableHeader>
+                                    <TableHeader className="w-[15%]">{dict.admin.users.department}</TableHeader>
+                                    <TableHeader className="w-[20%]">{dict.admin.users.role_permission}</TableHeader>
                                     <TableHeader className="text-right">{dict.common.actions}</TableHeader>
                                 </tr>
                             </thead>

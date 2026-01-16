@@ -144,7 +144,7 @@ export default function HierarchicalCategorySelect({
 
         return createPortal(
             <div
-                className="fixed w-56 bg-background-tertiary/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-floating shadow-black/80 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-left-2 duration-200"
+                className="fixed w-56 bg-slate-800 border border-white/10 rounded-xl shadow-xl shadow-black/80 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-left-2 duration-200"
                 style={{
                     top: `${submenuPosition.top}px`,
                     left: `${submenuPosition.left}px`,
@@ -214,7 +214,7 @@ export default function HierarchicalCategorySelect({
 
                 {/* 下拉選單 */}
                 {isOpen && (
-                    <div className="absolute z-50 w-64 mt-2 bg-background-tertiary/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-floating shadow-black/80 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="absolute z-50 w-64 mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-xl shadow-black/80 animate-in fade-in slide-in-from-top-2 duration-200">
                         {/* 所有類型選項 */}
                         <div className="p-1.5 border-b border-white/5">
                             <button
