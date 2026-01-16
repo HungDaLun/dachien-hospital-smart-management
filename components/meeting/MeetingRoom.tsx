@@ -84,15 +84,43 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
         scrollToBottom();
     }, [messages]);
 
-    // 倒數計時每秒更新（預約等待 + 會議進行中剩餘時間）
+    // 【核心修復】倒數計時器 - 永遠每秒更新 currentTime（只要會議存在且未結束）
     useEffect(() => {
-        if (meeting?.status !== 'scheduled' && meeting?.status !== 'in_progress') return;
-        // 如果暫停中 (paused)，也不要更新時間
-        if (meeting?.status === 'paused' || !isPlaying) return;
+        // 只有在會議存在且處於預約中或進行中時才需要計時
+        if (!meeting || (meeting.status !== 'scheduled' && meeting.status !== 'in_progress')) {
+            return;
+        }
 
-        const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
-        return () => clearInterval(interval);
-    }, [meeting?.status, isPlaying]);
+        // 立即更新一次
+        setCurrentTime(Date.now());
+
+        // 建立穩定的每秒更新計時器
+        const timerId = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
+
+        return () => clearInterval(timerId);
+    }, [meeting?.status]); // 只依賴 status，減少不必要的重建
+
+    // 【獨立】自動啟動檢查 - 依賴 currentTime 變化來觸發
+    useEffect(() => {
+        if (meeting?.status !== 'scheduled' || !meeting?.scheduled_start_time) return;
+
+        const scheduledTime = new Date(meeting.scheduled_start_time).getTime();
+
+        if (currentTime >= scheduledTime) {
+            console.log('[MeetingRoom] 預約時間已到，觸發自動啟動...');
+            handleForceStart();
+        }
+    }, [currentTime, meeting?.status, meeting?.scheduled_start_time]);
+
+    // 自動播放邏輯：當會議變為進行中且尚無訊息時，自動開啟對談
+    useEffect(() => {
+        if (meeting?.status === 'in_progress' && !isPlaying && !processingRef.current && messages.length === 0) {
+            console.log('[MeetingRoom] 會議已啟動且無訊息，自動開始 AI 對話...');
+            setIsPlaying(true);
+        }
+    }, [meeting?.status, messages.length]);
 
     // Auto-play logic - 使用 ref 來避免 closure 問題
     useEffect(() => {
@@ -139,8 +167,9 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                 hasShownEndToast.current = true;
 
                 console.log('[MeetingRoom] 會議時間已到，自動結束會議...');
-                toast.info('會議時間已到，正在生成會議記錄...');
                 setIsPlaying(false);
+                setIsEnding(true); // 設置結束狀態，顯示進度條
+                toast.info('會議時間已到，正在生成會議記錄...');
 
                 try {
                     const res = await fetch(`/api/meetings/${meetingId}`, {
@@ -151,12 +180,14 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
                     if (res.ok) {
                         setMeeting((prev: any) => ({ ...prev, status: 'completed', ended_at: new Date().toISOString() }));
-                        toast.success('會議已結束，正在生成會議記錄...');
+                        toast.success('會議記錄已生成完成！');
                         window.dispatchEvent(new Event('meeting-updated'));
                         loadMeeting(true); // 會議結束，強制重新載入訊息
+                        setIsEnding(false); // 結束後關閉進度條
                     }
                 } catch (error) {
                     console.error('自動結束會議失敗:', error);
+                    setIsEnding(false);
                 }
             }
         };
@@ -169,49 +200,6 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
         return () => clearInterval(interval);
     }, [meeting?.id, meeting?.status, meeting?.started_at, meeting?.duration_minutes, meetingId]);
-
-    // 預約會議自動啟動邏輯
-    useEffect(() => {
-        if (!meeting || meeting.status !== 'scheduled' || !meeting.scheduled_start_time) return;
-
-        const checkAndStartMeeting = async () => {
-            const scheduledTime = new Date(meeting.scheduled_start_time).getTime();
-            const now = Date.now();
-
-            if (now >= scheduledTime) {
-                // 時間到了，自動啟動會議
-                console.log('[MeetingRoom] 預約時間已到，自動啟動會議...');
-                toast.info('預約時間已到，正在啟動會議...');
-
-                try {
-                    const res = await fetch(`/api/meetings/${meetingId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'in_progress' })
-                    });
-
-                    if (res.ok) {
-                        // 更新本地狀態
-                        setMeeting((prev: any) => ({ ...prev, status: 'in_progress', started_at: new Date().toISOString() }));
-                        setIsPlaying(true); // 自動開始對談
-                        window.dispatchEvent(new Event('meeting-updated'));
-                        toast.success('會議已自動啟動！');
-                    }
-                } catch (error) {
-                    console.error('自動啟動會議失敗:', error);
-                    toast.error('自動啟動失敗，請手動點擊「立即開始會議」');
-                }
-            }
-        };
-
-        // 立即檢查一次
-        checkAndStartMeeting();
-
-        // 每 5 秒檢查一次（用戶停留在頁面時）
-        const interval = setInterval(checkAndStartMeeting, 5000);
-
-        return () => clearInterval(interval);
-    }, [meeting?.id, meeting?.status, meeting?.scheduled_start_time, meetingId]);
 
     const loadMeeting = async (forceReloadMessages = false) => {
         const { data: m } = await supabase.from('meetings').select('*').eq('id', meetingId).single();
@@ -437,7 +425,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
         const secs = totalSeconds % 60;
 
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-8 p-10 bg-card/30 rounded-xl border border-border/50">
+            <div className="flex flex-col items-center justify-center h-full gap-8 p-10 bg-background-secondary/30 rounded-xl border border-border/50">
                 <div className="text-center space-y-4">
                     <div className={`inline-flex p-4 rounded-full mb-4 ${isTimeUp ? 'bg-green-500/10' : 'bg-yellow-500/10 animate-pulse'}`}>
                         <Clock className={`w-12 h-12 ${isTimeUp ? 'text-green-500' : 'text-yellow-500'}`} />
@@ -504,7 +492,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex flex-col gap-3 bg-card p-4 rounded-xl border shadow-sm mb-4 shrink-0">
+            <div className="flex flex-col gap-3 bg-background-secondary p-4 rounded-xl border shadow-sm mb-4 shrink-0">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
@@ -549,12 +537,16 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
                     <div className="flex items-center gap-2">
                         {isEnding ? (
-                            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border">
-                                <span className="relative flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                                </span>
-                                <span className="text-sm font-medium animate-pulse">正在生成會議記錄...</span>
+                            <div className="flex items-center gap-3 bg-primary/10 px-4 py-2 rounded-xl border border-primary/30">
+                                {/* 旋轉的載入圖示 */}
+                                <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-primary">正在生成會議記錄</span>
+                                    <span className="text-xs text-muted-foreground">AI 正在分析對話並提取 SMART 行動計畫...</span>
+                                </div>
                             </div>
                         ) : (
                             <>
@@ -757,7 +749,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                                     </h2>
                                     <div className="grid gap-4">
                                         {(minutesData.content.recommended_actions || []).map((action: any, idx: number) => (
-                                            <div key={idx} className="border rounded-xl p-5 bg-card hover:border-primary/50 transition-colors shadow-sm">
+                                            <div key={idx} className="border rounded-xl p-5 bg-background-secondary hover:border-primary/50 transition-colors shadow-sm">
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div>
                                                         <h3 className="font-bold text-lg">{action.action}</h3>

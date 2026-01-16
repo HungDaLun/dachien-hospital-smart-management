@@ -66,6 +66,7 @@ export class CitationValidator {
 
         // 根據發言者類型獲取可用的知識庫文件
         let availableFilenames: string[] = [];
+        let availableSummaries: string[] = []; // 新增：用於比對摘要關鍵字
 
         if (speakerType === 'department') {
             // 部門：獲取該部門的所有文件
@@ -76,8 +77,15 @@ export class CitationValidator {
 
             availableFilenames = (files || []).flatMap((f: any) => [
                 f.filename,
-                f.metadata_analysis?.title
+                f.metadata_analysis?.title,
+                // 新增：支持不帶副檔名的文件名比對
+                f.filename?.replace(/\.[^.]+$/, ''),
+                f.metadata_analysis?.title?.replace(/\.[^.]+$/, '')
             ].filter(Boolean));
+
+            availableSummaries = (files || []).map((f: any) =>
+                f.metadata_analysis?.summary || ''
+            ).filter(Boolean);
         } else {
             // 顧問：獲取綁定的文件
             const { data: agentFiles } = await supabase
@@ -87,8 +95,14 @@ export class CitationValidator {
 
             availableFilenames = (agentFiles || []).flatMap((af: any) => [
                 af.file?.filename,
-                af.file?.metadata_analysis?.title
+                af.file?.metadata_analysis?.title,
+                af.file?.filename?.replace(/\.[^.]+$/, ''),
+                af.file?.metadata_analysis?.title?.replace(/\.[^.]+$/, '')
             ].filter(Boolean));
+
+            availableSummaries = (agentFiles || []).map((af: any) =>
+                af.file?.metadata_analysis?.summary || ''
+            ).filter(Boolean);
         }
 
         // 比對引用的文件
@@ -96,12 +110,31 @@ export class CitationValidator {
         const invalidCitations: string[] = [];
 
         for (const citation of citations) {
-            // 模糊匹配：檢查引用是否與任何已知文件相似
-            const isValid = availableFilenames.some(filename =>
-                filename.includes(citation) ||
-                citation.includes(filename) ||
-                this.fuzzyMatch(citation, filename)
+            // 多層次驗證邏輯
+            let isValid = false;
+
+            // 層次 1: 精確或包含比對
+            isValid = availableFilenames.some(filename =>
+                filename.toLowerCase().includes(citation.toLowerCase()) ||
+                citation.toLowerCase().includes(filename.toLowerCase())
             );
+
+            // 層次 2: 模糊匹配（提取關鍵詞比對）
+            if (!isValid) {
+                isValid = availableFilenames.some(filename =>
+                    this.fuzzyMatch(citation, filename)
+                );
+            }
+
+            // 層次 3: 檢查引用是否與摘要內容相關（表示 AI 可能從摘要中提取了正確資訊）
+            if (!isValid) {
+                const citationKeywords = this.extractKeywords(citation);
+                isValid = availableSummaries.some(summary =>
+                    citationKeywords.some(keyword =>
+                        summary.toLowerCase().includes(keyword.toLowerCase())
+                    )
+                );
+            }
 
             if (isValid) {
                 validCitations.push(citation);
@@ -123,28 +156,52 @@ export class CitationValidator {
     }
 
     /**
-     * 簡單的模糊匹配
+     * 提取關鍵詞（用於摘要比對）
+     */
+    private extractKeywords(text: string): string[] {
+        // 移除常見的前綴後綴和符號
+        const cleaned = text
+            .replace(/[《》「」\[\]【】()（）]/g, '')
+            .replace(/\.(md|pdf|docx?|xlsx?)$/i, '')
+            .replace(/-v\d+\.?\d*$/i, '');
+
+        // 分割並過濾
+        return cleaned
+            .split(/[-_\s/\\]+/)
+            .filter(w => w.length > 1)
+            .filter(w => !['報告', '分析', '文件', '部門', '年度', 'FQ', 'Q'].includes(w));
+    }
+
+    /**
+     * 改進的模糊匹配
      */
     private fuzzyMatch(citation: string, filename: string): boolean {
-        // 移除常見的前綴和後綴
-        const cleanCitation = citation
+        // 標準化處理
+        const normalize = (str: string) => str
+            .toLowerCase()
+            .replace(/[《》「」\[\]【】()（）]/g, '')
+            .replace(/\.(md|pdf|docx?|xlsx?)$/i, '')
+            .replace(/-v\d+\.?\d*$/i, '')
             .replace(/^(部門|報告|分析|文件|年度)/, '')
             .replace(/(部門|報告|分析|文件|年度)$/, '');
 
-        const cleanFilename = filename
-            .replace(/^(部門|報告|分析|文件|年度)/, '')
-            .replace(/(部門|報告|分析|文件|年度)$/, '')
-            .replace(/\.md$/, '')
-            .replace(/-v\d+\.?\d*$/, '');
+        const cleanCitation = normalize(citation);
+        const cleanFilename = normalize(filename);
 
-        // 檢查是否有足夠的重疊
-        const words1 = cleanCitation.split(/[-_\s]/);
-        const words2 = cleanFilename.split(/[-_\s]/);
+        // 直接包含比對
+        if (cleanCitation.includes(cleanFilename) || cleanFilename.includes(cleanCitation)) {
+            return true;
+        }
+
+        // 關鍵詞重疊比對（更寬鬆）
+        const words1 = cleanCitation.split(/[-_\s/\\]+/).filter(w => w.length > 1);
+        const words2 = cleanFilename.split(/[-_\s/\\]+/).filter(w => w.length > 1);
 
         const commonWords = words1.filter(w =>
-            w.length > 1 && words2.some(w2 => w2.includes(w) || w.includes(w2))
+            words2.some(w2 => w2.includes(w) || w.includes(w2))
         );
 
-        return commonWords.length >= 2;
+        // 只需要 1 個以上的共同關鍵詞（原本是 2 個，過於嚴格）
+        return commonWords.length >= 1;
     }
 }

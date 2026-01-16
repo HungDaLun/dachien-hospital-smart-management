@@ -3,6 +3,10 @@
         {
             "path": "/api/cron/knowledge-decay",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/meetings-scheduler",
+            "schedule": "* * * * *"
         }
     ]
 }

@@ -13,6 +13,58 @@ import ReactMarkdown from 'react-markdown';
 import CodeBlock from '@/components/markdown/CodeBlock';
 
 /**
+ * 從 AI 回應中提取純文字內容
+ * 處理可能的 JSON 格式回應，只提取 answer 欄位
+ */
+function extractCleanContent(text: string): string {
+    if (!text) return text;
+
+    try {
+        // 1. 嘗試直接解析（如果整個內容就是 JSON）
+        const parsed = JSON.parse(text);
+        if (parsed.answer) {
+            return parsed.answer;
+        }
+    } catch {
+        // 不是純 JSON，繼續處理
+    }
+
+    try {
+        // 2. 嘗試從 markdown code block 中提取 JSON
+        const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```\s*$/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1]);
+            if (parsed.answer) {
+                // 移除 JSON 區塊，只保留前面的文字（如果有的話）
+                const beforeJson = text.substring(0, text.lastIndexOf('```json')).trim();
+                return beforeJson || parsed.answer;
+            }
+        }
+    } catch {
+        // 不是有效的 JSON，繼續處理
+    }
+
+    try {
+        // 3. 嘗試找最後一個 { ... } 並提取
+        const lastBrace = text.lastIndexOf('{');
+        if (lastBrace !== -1 && text.includes('"answer"')) {
+            const jsonPart = text.substring(lastBrace);
+            const parsed = JSON.parse(jsonPart);
+            if (parsed.answer) {
+                // 返回 JSON 之前的內容或 answer
+                const beforeJson = text.substring(0, lastBrace).trim();
+                return beforeJson || parsed.answer;
+            }
+        }
+    } catch {
+        // 解析失敗，返回原始內容
+    }
+
+    // 4. 移除可能殘留的 JSON 區塊標示
+    return text.replace(/```json\s*\{[\s\S]*\}\s*```$/, '').trim();
+}
+
+/**
  * 對話氣泡屬性
  */
 interface ChatBubbleProps {
@@ -44,9 +96,15 @@ export default function ChatBubble({
     const isUser = role === 'user';
     const isLowConfidence = confidenceScore !== undefined && confidenceScore < 0.6;
 
+    // 清理 AI 回應中可能的 JSON 格式，只保留純文字
+    const cleanedContent = useMemo(() => {
+        if (isUser) return content; // 使用者訊息不需要清理
+        return extractCleanContent(content);
+    }, [content, isUser]);
+
     // Custom components for ReactMarkdown
     const MemoizedCodeBlock = useMemo(() => {
-        return ({ node, inline, className, children, ...props }: any) => {
+        const CodeBlockComponent = ({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: React.ReactNode }) => {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
                 <CodeBlock
@@ -61,6 +119,8 @@ export default function ChatBubble({
                 </code>
             );
         };
+        CodeBlockComponent.displayName = 'MemoizedCodeBlock';
+        return CodeBlockComponent;
     }, [messageId]);
 
     // Helper to format review triggers
@@ -154,15 +214,13 @@ export default function ChatBubble({
                                 code: MemoizedCodeBlock
                             }}
                         >
-                            {content}
+                            {cleanedContent}
                         </ReactMarkdown>
                     </div>
 
                     {/* Citations Matrix */}
                     {!isUser && citations && citations.length > 0 && (
-                        <div className="mt-8 pt-6 border-t border-white/5">
-                            <CitationList citations={citations} dict={dict} />
-                        </div>
+                        <CitationList citations={citations} dict={dict} />
                     )}
 
                     {/* Action Bar (Hover only) */}

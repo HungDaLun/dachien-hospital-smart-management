@@ -14,16 +14,7 @@ interface KnowledgeDetailSidebarProps {
 }
 
 export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: KnowledgeDetailSidebarProps) {
-    if (!node) return null;
-
-    // 注意：GalaxyGraph 將所有節點的 type 設為 'default'，實際類型在 data.nodeType 中
-    const nodeType = node.data?.nodeType || node.type;
-    const isFramework = nodeType === 'framework_instance';
-    const isFile = nodeType === 'file' || nodeType === 'input';
-
-    const { data } = node;
-
-    // 文件內容狀態
+    // 文件內容狀態 - Hooks 必須在所有條件式 return 之前
     const [fileContent, setFileContent] = useState<string | null>(null);
     const [fileLoading, setFileLoading] = useState(false);
     const [fileError, setFileError] = useState<string | null>(null);
@@ -33,30 +24,18 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
 
-    const handleDeleteConfirm = async () => {
-        setIsDeleting(true);
-        try {
-            const res = await fetch(`/api/knowledge/instances/${node.id}`, {
-                method: 'DELETE',
-            });
-            if (res.ok) {
-                toast.success('分析結果已刪除');
-                onClose();
-                window.location.reload();
-            } else {
-                const err = await res.json();
-                toast.error(`刪除失敗: ${err.error || '未知錯誤'}`);
-            }
-        } catch (e) {
-            toast.error('刪除時發生錯誤');
-        } finally {
-            setIsDeleting(false);
-            setDeleteConfirmOpen(false);
-        }
-    };
-
     // 當文件節點打開時，獲取文件完整內容
     useEffect(() => {
+        // Early exit if no node
+        if (!node) {
+            setFileContent(null);
+            setFileError(null);
+            return;
+        }
+
+        const nodeType = node.data?.nodeType || node.type;
+        const isFile = nodeType === 'file' || nodeType === 'input';
+
         if (isOpen && isFile && node.id) {
             setFileLoading(true);
             setFileError(null);
@@ -88,7 +67,40 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
             setFileContent(null);
             setFileError(null);
         }
-    }, [isOpen, isFile, node.id]);
+    }, [isOpen, node]);
+
+    // Early return after all hooks
+    if (!node) return null;
+
+    // 注意：GalaxyGraph 將所有節點的 type 設為 'default'，實際類型在 data.nodeType 中
+    const nodeType = node.data?.nodeType || node.type;
+    const isFramework = nodeType === 'framework_instance';
+    const isFile = nodeType === 'file' || nodeType === 'input';
+
+    const { data } = node;
+
+    const handleDeleteConfirm = async () => {
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/knowledge/instances/${node.id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                toast.success('分析結果已刪除');
+                onClose();
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                toast.error(`刪除失敗: ${err.error || '未知錯誤'}`);
+            }
+        } catch (_e) {
+            toast.error('刪除時發生錯誤');
+        } finally {
+            setIsDeleting(false);
+            setDeleteConfirmOpen(false);
+        }
+    };
+
 
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-[100]">

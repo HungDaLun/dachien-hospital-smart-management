@@ -77,7 +77,7 @@ export function MeetingSidebar() {
     useEffect(() => {
         const interval = setInterval(() => {
             checkScheduledMeetings(meetings);
-        }, 30000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [meetings]);
 
@@ -151,7 +151,7 @@ export function MeetingSidebar() {
     };
 
     return (
-        <div className="w-80 border-r border-border/40 bg-card/30 flex flex-col h-full">
+        <div className="w-80 border-r border-border/40 bg-background-secondary/30 flex flex-col h-full">
             {/* Back to Dashboard */}
             <div className="p-4 pb-0">
                 <Link href="/dashboard">
@@ -217,10 +217,10 @@ export function MeetingSidebar() {
                                             <Clock size={12} className="text-yellow-500" />
                                         )}
 
-                                        {/* Delete Action (Hover only) */}
+                                        {/* Delete Action - 常態顯示 */}
                                         <div
                                             onClick={(e) => handleDeleteClick(e, meeting.id)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 hover:text-destructive rounded"
+                                            className="p-1 text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive rounded transition-colors cursor-pointer"
                                             title="刪除會議"
                                         >
                                             <Trash2 size={14} />

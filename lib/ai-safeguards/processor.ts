@@ -21,6 +21,7 @@ export class SafeguardProcessor {
 
     /**
      * 處理 AI 回應，提取品質防護資訊
+     * 優先處理純文字格式的來源標註，向下相容 JSON 格式
      */
     async process(rawContent: string): Promise<SafeguardResult> {
         const result: SafeguardResult = {
@@ -31,27 +32,51 @@ export class SafeguardProcessor {
             selectedForAudit: Math.random() < this.config.auditSampleRate,
         };
 
-        // 嘗試解析 JSON 格式的回應（有些回應可能包含 JSON markdown 區塊）
+        // 1. 先嘗試解析 JSON 格式（向下相容舊格式）
         const parsed = this.tryParseJsonResponse(rawContent);
 
-        if (parsed) {
-            // 提取核心內容（如果是結構化回答）
-            result.cleanContent = parsed.answer || parsed.content || parsed.response || rawContent;
+        if (parsed && parsed.answer) {
+            // 如果有 JSON 格式，提取核心內容
+            result.cleanContent = parsed.answer;
 
-            // Layer 1: 引用來源
-            if (this.config.enableCitation) {
+            // 從 JSON 中提取引用
+            if (this.config.enableCitation && parsed.citations) {
                 result.citations = extractCitations(parsed.citations);
             }
 
-            // Layer 2: 信心度評分
-            if (this.config.enableConfidence) {
+            // 從 JSON 中提取信心度
+            if (this.config.enableConfidence && parsed.confidence !== undefined) {
                 const { score, reasoning } = extractConfidence(parsed.confidence, parsed.reasoning);
                 result.confidenceScore = score;
                 result.confidenceReasoning = reasoning;
             }
         } else {
-            // 即使沒有 JSON，也要清理可能的餘留 JSON 區塊標示
-            result.cleanContent = rawContent.replace(/```json\s*\{[\s\S]*\}\s*```$/, '').trim();
+            // 2. 純文字處理：清理可能殘留的 JSON 區塊
+            result.cleanContent = rawContent
+                .replace(/```json\s*\{[\s\S]*\}\s*```/g, '')
+                .replace(/\{[\s\S]*"answer"[\s\S]*\}/g, '')
+                .trim();
+
+            // 3. 從純文字中提取「來源：《文件名稱》」格式的引用
+            if (this.config.enableCitation) {
+                const sourceMatches = rawContent.matchAll(/來源[：:]\s*[《「]([^》」\n]+)[》」]/g);
+                const extractedCitations: Array<{ fileName: string; reason: string; excerpt: string }> = [];
+
+                for (const match of sourceMatches) {
+                    const fileName = match[1].trim();
+                    if (fileName && !extractedCitations.some(c => c.fileName === fileName)) {
+                        extractedCitations.push({
+                            fileName,
+                            reason: '文件引用',
+                            excerpt: ''
+                        });
+                    }
+                }
+
+                if (extractedCitations.length > 0) {
+                    result.citations = extractCitations(extractedCitations);
+                }
+            }
         }
 
         // Layer 3: 覆核提示（基於內容檢測）
@@ -66,33 +91,30 @@ export class SafeguardProcessor {
 
     /**
      * 取得用於注入 System Prompt 的格式要求
+     * 注意：不再要求 JSON 格式輸出，以避免串流過程中顯示 JSON 給用戶
+     * 改為要求 AI 在回答中自然地標註來源
      */
     getSystemPromptSuffix(): string {
-        const requirements: string[] = [];
+        const guidelines: string[] = [];
 
         if (this.config.enableCitation) {
-            requirements.push('"citations": [{"fileName": "檔案名稱", "reason": "引用的章節或理由", "excerpt": "核心原文"}]');
+            guidelines.push('在引用知識庫內容時，請在相關段落末尾以「來源：《文件名稱》」的格式標註');
         }
 
         if (this.config.enableConfidence) {
-            requirements.push('"confidence": 0.0-1.0 的信心評分數字');
-            requirements.push('"reasoning": "對於此信心評分的理由"');
+            // 不再要求在回覆中顯示信心度，改由後端分析
+            // 這樣可以保持回覆的自然性
         }
 
-        if (requirements.length === 0) {
+        if (guidelines.length === 0) {
             return '';
         }
 
         return `
 
-【回應格式要求】
-為了確保回答品質，請在回答內容結束後，附帶一個符合以下結構的 JSON 區塊：
-\`\`\`json
-{
-  "answer": "這裡放置你的回答主體內容",
-  ${requirements.join(',\n  ')}
-}
-\`\`\`
+【回答格式建議】
+${guidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+請以自然流暢的繁體中文回答，不要使用 JSON 格式。
 `;
     }
 

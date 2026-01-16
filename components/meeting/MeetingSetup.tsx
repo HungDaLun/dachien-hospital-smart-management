@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Checkbox, Card, CardHeader, CardTitle, CardBody as CardContent, CardFooter, useToast, Input, Textarea } from '@/components/ui';
+import { Button, Checkbox, Card, CardHeader, CardTitle, CardBody as CardContent, CardFooter, useToast, Input, Textarea, Select } from '@/components/ui';
 import { Users, User, Briefcase, Play, Clock, Settings, Calendar, FileText } from 'lucide-react';
 import { addDays, format, setHours, setMinutes, isSameDay, formatDistanceToNow } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
@@ -385,8 +385,8 @@ export default function MeetingSetup({ initialDepartments, initialAgents, curren
                                                             className={cn(
                                                                 "flex flex-col items-center justify-center min-w-[72px] h-[80px] rounded-xl border transition-all snap-start flex-shrink-0",
                                                                 isSelected
-                                                                    ? "bg-primary text-primary-foreground border-primary ring-2 ring-primary/20 scale-100"
-                                                                    : "bg-card border-border hover:border-primary/50 text-muted-foreground hover:bg-accent/50 scale-95 opacity-80 hover:opacity-100"
+                                                                    ? "bg-primary-500 text-white border-primary-500 ring-4 ring-primary-500/20 scale-100 shadow-glow-cyan"
+                                                                    : "bg-white/[0.03] border-white/10 hover:border-white/20 text-text-secondary hover:bg-white/[0.08] scale-95 opacity-80 hover:opacity-100"
                                                             )}
                                                         >
                                                             <span className="text-xs font-medium mb-1">{format(date, 'EEE', { locale: zhTW })}</span>
@@ -401,36 +401,30 @@ export default function MeetingSetup({ initialDepartments, initialAgents, curren
                                         <div className="space-y-2">
                                             <span className="text-xs font-medium text-muted-foreground">選擇開始時間</span>
                                             <div className="flex items-center gap-3">
-                                                {/* Hour Dropdown */}
+                                                {/* Hour Selector */}
                                                 <div className="flex-1">
-                                                    <label className="text-xs text-muted-foreground mb-1 block">小時</label>
-                                                    <select
+                                                    <label className="text-xs text-text-tertiary mb-1.5 block uppercase tracking-wider font-bold">小時</label>
+                                                    <Select
                                                         value={selectedTimeSlot.split(':')[0] || ''}
                                                         onChange={(e) => handleTimeSelect(e.target.value, selectedTimeSlot.split(':')[1] || '00')}
-                                                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer"
-                                                    >
-                                                        <option value="" disabled>--</option>
-                                                        {hours.map((h) => (
-                                                            <option key={h} value={h}>{h}</option>
-                                                        ))}
-                                                    </select>
+                                                        options={hours.map(h => ({ value: h, label: h }))}
+                                                        placeholder="--"
+                                                        className="w-full"
+                                                    />
                                                 </div>
 
-                                                <span className="text-xl font-bold text-muted-foreground mt-5">:</span>
+                                                <span className="text-xl font-bold text-text-tertiary mt-8">:</span>
 
-                                                {/* Minute Dropdown */}
+                                                {/* Minute Selector */}
                                                 <div className="flex-1">
-                                                    <label className="text-xs text-muted-foreground mb-1 block">分鐘</label>
-                                                    <select
+                                                    <label className="text-xs text-text-tertiary mb-1.5 block uppercase tracking-wider font-bold">分鐘</label>
+                                                    <Select
                                                         value={selectedTimeSlot.split(':')[1] || ''}
                                                         onChange={(e) => handleTimeSelect(selectedTimeSlot.split(':')[0] || '00', e.target.value)}
-                                                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer"
-                                                    >
-                                                        <option value="" disabled>--</option>
-                                                        {minutes.map((m) => (
-                                                            <option key={m} value={m}>{m}</option>
-                                                        ))}
-                                                    </select>
+                                                        options={minutes.map(m => ({ value: m, label: m }))}
+                                                        placeholder="--"
+                                                        className="w-full"
+                                                    />
                                                 </div>
                                             </div>
                                         </div>

@@ -117,16 +117,15 @@ export class MeetingService {
         const { data: messagesRaw } = await supabase.from(MESSAGES_TABLE).select('*').eq('meeting_id', meetingId).order('sequence_number', { ascending: true });
         const messages = (messagesRaw || []) as MeetingMessage[];
 
-        // 1.5 Check Duration / Timeout (Quick Sync Rule)
-        if (meeting.started_at && meeting.duration_minutes && meeting.mode === 'quick_sync') {
+        // 1.5 Check Duration / Timeout (適用所有模式)
+        // [修正] 原本只針對 quick_sync 模式，現在所有模式都會在時間到時自動結束
+        if (meeting.started_at && meeting.duration_minutes) {
             const start = new Date(meeting.started_at).getTime();
             const now = new Date().getTime();
             const elapsedMinutes = (now - start) / (1000 * 60);
 
             if (elapsedMinutes >= meeting.duration_minutes) {
-                console.log(`[MeetingService] Meeting ${meetingId} timed out. Soft wrap-up initiated.`);
-                // In v2, we might force a chairperson wrap-up here instead of hard stop
-                // For now, let's just trigger endMeeting for compatibility
+                console.log(`[MeetingService] Meeting ${meetingId} timed out (mode: ${meeting.mode}). Auto-ending and generating report...`);
                 await this.endMeeting(meetingId);
                 return null;
             }
@@ -333,12 +332,44 @@ ${safeguardProcessor.getSystemPromptSuffix()}
                 })}\n\n`));
 
                 try {
+                    // 避免將 JSON 中繼格式串流到前端顯示
+                    let pendingVisibleText = '';
+                    let suppressJsonBlock = false;
+                    const jsonMarker = '```json';
+                    const jsonMarkerLength = jsonMarker.length;
+                    const jsonTailLength = jsonMarkerLength - 1;
+
+                    const enqueueVisibleText = (text: string) => {
+                        if (!text) return;
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`));
+                    };
+
                     for await (const chunk of result.stream) {
                         const text = chunk.text();
                         if (text) {
                             fullText += text;
-                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`));
+
+                            if (!suppressJsonBlock) {
+                                const combined = pendingVisibleText + text;
+                                const markerIndex = combined.toLowerCase().indexOf(jsonMarker);
+
+                                if (markerIndex !== -1) {
+                                    enqueueVisibleText(combined.slice(0, markerIndex));
+                                    suppressJsonBlock = true;
+                                    pendingVisibleText = '';
+                                } else {
+                                    const safeCutoff = Math.max(0, combined.length - jsonTailLength);
+                                    if (safeCutoff > 0) {
+                                        enqueueVisibleText(combined.slice(0, safeCutoff));
+                                    }
+                                    pendingVisibleText = combined.slice(safeCutoff);
+                                }
+                            }
                         }
+                    }
+
+                    if (!suppressJsonBlock && pendingVisibleText) {
+                        enqueueVisibleText(pendingVisibleText);
                     }
 
                     // 4. Validate citations (幻覺檢測)
@@ -614,7 +645,15 @@ ${minutesData.content.consultant_insights.map((cons: any) => `
                 .maybeSingle();
 
             // 為了解決「缺乏治理標籤」問題，我們注入標準 Governance 物件
+            // [Fix] 確保結構符合前端預期 (domain, version, artifact, owner)
             const governanceMetadata = {
+                // 前端顯示欄位
+                domain: ownerDepartmentName || "Management",
+                version: "v1.0",
+                owner: ownerDisplayName || "System",
+                artifact: "Meeting Minutes",
+
+                // 真實治理屬性
                 sensitivity: "internal", // 預設內部機密
                 retention_policy: "7_years", // 企業標準保存年限
                 access_control: "department_internal", // 預設部門內可見

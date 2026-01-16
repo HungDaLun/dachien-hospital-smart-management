@@ -38,8 +38,13 @@ export default function CitationList({ citations, dict }: CitationListProps) {
         ))
     );
 
+    // 如果過濾後沒有引用來源，則不顯示
+    if (uniqueCitations.length === 0) {
+        return null;
+    }
+
     return (
-        <div className="mt-4 pt-4 border-t border-white/5">
+        <div className="mt-8 pt-6 border-t border-white/5">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="group/btn flex items-center gap-3 text-[10px] font-black text-text-tertiary hover:text-primary-400 transition-all uppercase tracking-widest"

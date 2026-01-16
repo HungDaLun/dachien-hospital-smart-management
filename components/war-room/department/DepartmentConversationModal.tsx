@@ -11,6 +11,58 @@ interface DepartmentConversationModalProps {
 
 import ReactMarkdown from 'react-markdown';
 
+/**
+ * 從 AI 回應中提取純文字內容
+ * 處理可能的 JSON 格式回應，只提取 answer 欄位
+ */
+function extractCleanContent(text: string): string {
+    if (!text) return text;
+
+    try {
+        // 1. 嘗試直接解析（如果整個內容就是 JSON）
+        const parsed = JSON.parse(text);
+        if (parsed.answer) {
+            return parsed.answer;
+        }
+    } catch {
+        // 不是純 JSON，繼續處理
+    }
+
+    try {
+        // 2. 嘗試從 markdown code block 中提取 JSON
+        const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```\s*$/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1]);
+            if (parsed.answer) {
+                // 移除 JSON 區塊，只保留前面的文字（如果有的話）
+                const beforeJson = text.substring(0, text.lastIndexOf('```json')).trim();
+                return beforeJson || parsed.answer;
+            }
+        }
+    } catch {
+        // 不是有效的 JSON，繼續處理
+    }
+
+    try {
+        // 3. 嘗試找最後一個 { ... } 並提取
+        const lastBrace = text.lastIndexOf('{');
+        if (lastBrace !== -1 && text.includes('"answer"')) {
+            const jsonPart = text.substring(lastBrace);
+            const parsed = JSON.parse(jsonPart);
+            if (parsed.answer) {
+                // 返回 JSON 之前的內容或 answer
+                const beforeJson = text.substring(0, lastBrace).trim();
+                return beforeJson || parsed.answer;
+            }
+        }
+    } catch {
+        // 解析失敗，返回原始內容
+    }
+
+    // 4. 移除可能殘留的 JSON 區塊標示
+    return text.replace(/```json\s*\{[\s\S]*\}\s*```$/, '').trim();
+}
+
 export default function DepartmentConversationModal({
     departmentId,
     departmentName,
@@ -56,7 +108,7 @@ export default function DepartmentConversationModal({
                 const chunkValue = decoder.decode(value);
                 fullText += chunkValue;
 
-                // Update the last AI message with the accumulated text
+                // Update the last AI message with the accumulated text (during streaming, show raw)
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const lastIndex = newMessages.length - 1;
@@ -66,6 +118,17 @@ export default function DepartmentConversationModal({
                     return newMessages;
                 });
             }
+
+            // 串流完成後，清理 JSON 格式，只保留純文字回答
+            const cleanedText = extractCleanContent(fullText);
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const lastIndex = newMessages.length - 1;
+                if (newMessages[lastIndex].role === 'ai') {
+                    newMessages[lastIndex] = { ...newMessages[lastIndex], text: cleanedText };
+                }
+                return newMessages;
+            });
 
         } catch (error) {
             console.error('Chat error:', error);
