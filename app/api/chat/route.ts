@@ -17,6 +17,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+import { createHighRiskProcessor } from '@/lib/ai-safeguards';
+
 /**
  * POST /api/chat
  * 發送訊息並取得 AI 回應
@@ -238,7 +240,10 @@ export async function POST(request: NextRequest) {
             .order('created_at', { ascending: true })
             .limit(10);
 
-        // 建構完整的系統提示詞
+        // 初始化品質防護處理器 (部門 Agent 視為高風險或中風險，此處採高風險配置控管)
+        const safeguardProcessor = createHighRiskProcessor();
+
+        // 建構完整的系統提示詞，注入防護格式要求
         const fullSystemPrompt = `${agent.system_prompt}
 
 ${knowledgeContext ? `
@@ -249,35 +254,12 @@ ${knowledgeContext}
 1. **優先引用**：你必須優先使用上述知識庫中的資訊回答。
 2. **標註來源**：在提及具體事實時，請在文末標註來源文件名。
 3. **信心評估**：請客觀評估你對回答的信心程度 (0.0 - 1.0)。
-4. *結構化輸出**：為了讓系統能解析你的信心度與引用來源，**你必須在回答的最後面**（回答結束後），附上一個 JSON 區塊。
-
-【JSON 輸出格式規範】
-請嚴格遵守以下 JSON 格式並放在回答的最後一行：
-\`\`\`json
-{
-  "confidence": 0.95,
-  "reasoning": "知識庫中包含 2024 年最新的完整規章，可以直接回答。",
-  "citations": [
-    { "title": "員工手冊_v3.pdf", "reason": "第 3 章第 2 節" },
-    { "title": "請假管理辦法.docx", "reason": "第 5 條" }
-  ]
-}
-\`\`\`
+${safeguardProcessor.getSystemPromptSuffix()}
 ` : `
 【系統提示：知識庫未掛載】
 目前此 Agent 尚未掛載特定的「靜態資產」或找不到相關的知識預選。
 請直接根據您的內部專業知識 (Persona) 回答使用者的問題。
-即便如此，若您對回答感到不確定，請在 JSON 中反映較低的信心度。
-
-【JSON 輸出格式規範】
-請在回答結束後附上：
-\`\`\`json
-{
-  "confidence": 0.5,
-  "reasoning": "無內部知識庫支援，僅基於一般常識回答。",
-  "citations": []
-}
-\`\`\`
+${safeguardProcessor.getSystemPromptSuffix()}
 `}`;
 
         // ============================================
@@ -339,15 +321,23 @@ ${knowledgeContext}
                         }
                     }
 
-                    // 儲存最終回應
+                    // 儲存最終回應 (整合品質防護)
                     if (fullAiResponse) {
+                        const safeguardResult = await safeguardProcessor.process(fullAiResponse);
+
                         await supabase
                             .from('chat_messages')
                             .insert({
                                 session_id: currentSessionId,
                                 agent_id: agent.id,
                                 role: 'assistant',
-                                content: fullAiResponse,
+                                content: safeguardResult.cleanContent,
+                                citations: safeguardResult.citations,
+                                confidence_score: safeguardResult.confidenceScore,
+                                confidence_reasoning: safeguardResult.confidenceReasoning,
+                                needs_review: safeguardResult.needsReview,
+                                review_triggers: safeguardResult.reviewTriggers,
+                                selected_for_audit: safeguardResult.selectedForAudit,
                             });
                     }
 
@@ -398,40 +388,17 @@ ${knowledgeContext}
                             }
                         }
 
-                        // --- Post-Processing AI Response ---
-
-                        // 1. Extract Metadata (JSON)
-                        let metadata: any = { confidence: 0.7, reasoning: null, citations: [] };
-                        const jsonMatch = fullAiResponse.match(/```json\s*(\{[\s\S]*\})\s*```/);
-
-                        if (jsonMatch) {
-                            try {
-                                metadata = JSON.parse(jsonMatch[1]);
-                                // Remove JSON from the content stored in DB (optional, but cleaner)
-                                // fullAiResponse = fullAiResponse.replace(jsonMatch[0], '').trim();
-                            } catch (e) {
-                                console.error('Failed to parse AI metadata JSON:', e);
-                            }
-                        } else {
-                            // Fallback calculation if no JSON
-                            // Logic: If we retrieved files, slightly higher confidence
-                            metadata.confidence = retrievedFiles.length > 0 ? 0.7 : 0.4;
-                            metadata.reasoning = retrievedFiles.length > 0 ? "基於檢索內容回答" : "基於模型知識回答";
-                        }
-
-                        // 2. Review Detection
-                        const { detectReviewTriggers } = await import('@/lib/chat/review-detector');
-                        const reviewTriggers = detectReviewTriggers(fullAiResponse);
-                        const needsReview = reviewTriggers.length > 0 || metadata.confidence < 0.6;
+                        // --- Post-Processing AI Response (Unified Safeguards) ---
+                        const safeguardResult = await safeguardProcessor.process(fullAiResponse);
 
                         // 3. Send Metadata to Frontend (Last event)
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                             metadata: {
-                                confidence: metadata.confidence,
-                                reasoning: metadata.reasoning,
-                                citations: metadata.citations,
-                                needs_review: needsReview,
-                                review_triggers: reviewTriggers
+                                confidence: safeguardResult.confidenceScore,
+                                reasoning: safeguardResult.confidenceReasoning,
+                                citations: safeguardResult.citations,
+                                needs_review: safeguardResult.needsReview,
+                                review_triggers: safeguardResult.reviewTriggers
                             }
                         })}\n\n`));
 
@@ -444,12 +411,13 @@ ${knowledgeContext}
                                 session_id: currentSessionId,
                                 agent_id: agent.id,
                                 role: 'assistant',
-                                content: fullAiResponse.replace(/```json\s*\{[\s\S]*\}\s*```$/, '').trim(), // Clean content
-                                citations: metadata.citations || [],
-                                confidence_score: metadata.confidence,
-                                confidence_reasoning: metadata.reasoning,
-                                needs_review: needsReview,
-                                review_triggers: reviewTriggers.map(t => t.category),
+                                content: safeguardResult.cleanContent,
+                                citations: safeguardResult.citations,
+                                confidence_score: safeguardResult.confidenceScore,
+                                confidence_reasoning: safeguardResult.confidenceReasoning,
+                                needs_review: safeguardResult.needsReview,
+                                review_triggers: safeguardResult.reviewTriggers,
+                                selected_for_audit: safeguardResult.selectedForAudit,
                             });
 
                         // New session ID return

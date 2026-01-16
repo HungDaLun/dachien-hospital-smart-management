@@ -4,6 +4,7 @@ import { MeetingSpeakerScheduler } from './scheduler';
 import { KnowledgeIsolator } from './knowledge-isolator';
 import { CitationValidator, CitationValidationResult } from './citation-validator';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createMediumRiskProcessor } from '@/lib/ai-safeguards';
 
 const MEETINGS_TABLE = 'meetings';
 const PARTICIPANTS_TABLE = 'meeting_participants';
@@ -267,6 +268,9 @@ export class MeetingService {
         }).eq('id', meetingId);
 
 
+        // 初始化次高風險品質防護 (會議模式)
+        const safeguardProcessor = createMediumRiskProcessor();
+
         // 5. Generate Content
         // Convert messages to string context
         const contextStr = messages.map((m: any) => `${m.speaker_name}: ${m.content}`).join('\n');
@@ -294,21 +298,23 @@ ${participantsList}
 2. **Tone**: Professional, authoritative, yet constructive.
 3. **Length**: Keep it concise (under 100 words).
 4. **CRITICAL**: When referring to participants, you MUST use their exact names from the list above. Never use vague terms like "相關部門" or "相關人員".
-             `.trim();
+${safeguardProcessor.getSystemPromptSuffix()}
+            `.trim();
         } else {
             const isolator = new KnowledgeIsolator();
             if (nextSpeaker.type === 'department') {
-                prompt = await isolator.buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
+                prompt = await (isolator as any).buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
             } else {
-                prompt = await isolator.buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
+                prompt = await (isolator as any).buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
             }
+            prompt += safeguardProcessor.getSystemPromptSuffix();
         }
 
         // Generate with Gemini (Streaming)
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const result = await model.generateContentStream(prompt);
 
@@ -352,7 +358,10 @@ ${participantsList}
                         );
                     }
 
-                    // 5. Save Message to DB
+                    // 5. 品質防護後處理
+                    const safeguardResult = await safeguardProcessor.process(fullText);
+
+                    // 6. Save Message to DB
                     // 注意：對於 chairperson/system 類型，speaker_id 應為 null
                     // 因為 'chairperson-ai' 等字串不是有效的 UUID
                     const isSystemSpeaker = nextSpeaker.type === 'chairperson' || nextSpeaker.type === 'system';
@@ -362,16 +371,19 @@ ${participantsList}
                         speaker_id: isSystemSpeaker ? null : nextSpeaker.id,
                         speaker_type: nextSpeaker.type,
                         speaker_name: nextSpeaker.name,
-                        content: fullText,
+                        content: safeguardResult.cleanContent,
                         sequence_number: (messages?.length || 0) + 1,
-                        citations: validationResult.validCitations,
-                        // 如果有疑似幻覺引用，在 metadata 中標記
+                        citations: safeguardResult.citations,
+                        confidence_score: safeguardResult.confidenceScore,
+                        confidence_reasoning: safeguardResult.confidenceReasoning,
+                        selected_for_audit: safeguardResult.selectedForAudit,
                         metadata: validationResult.hasSuspectedHallucinations
                             ? {
                                 suspected_hallucinations: validationResult.invalidCitations,
-                                warning: validationResult.warningMessage
+                                warning: validationResult.warningMessage,
+                                ...safeguardResult.reviewTriggers.length > 0 ? { review_triggers: safeguardResult.reviewTriggers } : {}
                             }
-                            : null
+                            : (safeguardResult.reviewTriggers.length > 0 ? { review_triggers: safeguardResult.reviewTriggers } : null)
                     };
 
                     const { data: savedMsg, error } = await supabase.from(MESSAGES_TABLE).insert(newMessage).select().single();

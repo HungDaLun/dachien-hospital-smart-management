@@ -2,15 +2,19 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateEmbedding } from '@/lib/knowledge/embedding';
+import { createMediumRiskProcessor } from '@/lib/ai-safeguards';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: NextRequest) {
     try {
-        const { departmentId, message } = await req.json();
+        const { departmentId, message, session_id } = await req.json();
 
         const supabase = await createClient();
+
+        // 取得使用者資料
+        const { data: { user } } = await supabase.auth.getUser();
 
         // 1. Fetch Department Details
         const { data: dept } = await supabase
@@ -23,7 +27,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ reply: "找不到部門資訊。" }, { status: 404 });
         }
 
-        // 2. Perform Knowledge Retrieval (RAG - Option B with Fallback)
+        // 2. Perform Knowledge Retrieval
         let knowledgeContext = "";
         let vectorSearchHadResults = false;
 
@@ -63,7 +67,10 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 3. Construct System Prompt
+        // 3. 初始化品質防護 (部門對話視為中風險)
+        const processor = createMediumRiskProcessor();
+
+        // 4. Construct System Prompt
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const prompt = `
 你現在是【${dept.name}】的專屬 AI 戰略顧問 (Department Brain)。
@@ -76,25 +83,64 @@ ${knowledgeContext}
 1. 優先引用上述搜尋結果中的具體事實。
 2. 標註來源文件名稱。
 3. 以繁體中文回答，語氣專業、精準。
+${processor.getSystemPromptSuffix()}
 
 使用者提問：
 ${message}
 `;
 
-        // 4. Generate Streamed Response
+        // 5. Generate Streamed Response
         const result = await model.generateContentStream(prompt);
+        const encoder = new TextEncoder();
+        let fullAiResponse = '';
 
-        // Construct a ReadableStream to stream chunks to the client
         const stream = new ReadableStream({
             async start(controller) {
-                const encoder = new TextEncoder();
                 try {
                     for await (const chunk of result.stream) {
                         const chunkText = chunk.text();
                         if (chunkText) {
+                            fullAiResponse += chunkText;
                             controller.enqueue(encoder.encode(chunkText));
                         }
                     }
+
+                    // 6. 品質防護後處理
+                    const safeguardResult = await processor.process(fullAiResponse);
+
+                    // 7. 儲存訊息記錄
+                    if (user) {
+                        let currentSessionId = session_id;
+                        if (!currentSessionId) {
+                            const { data: session } = await supabase
+                                .from('chat_sessions')
+                                .insert({
+                                    user_id: user.id,
+                                    agent_id: null, // 部門對話非特定 Agent
+                                    department_id: departmentId,
+                                    title: message.slice(0, 50)
+                                })
+                                .select()
+                                .single();
+                            currentSessionId = session?.id;
+                        }
+
+                        if (currentSessionId) {
+                            await supabase.from('chat_messages').insert([
+                                { session_id: currentSessionId, role: 'user', content: message },
+                                {
+                                    session_id: currentSessionId,
+                                    role: 'assistant',
+                                    content: safeguardResult.cleanContent,
+                                    citations: safeguardResult.citations,
+                                    confidence_score: safeguardResult.confidenceScore,
+                                    confidence_reasoning: safeguardResult.confidenceReasoning,
+                                    selected_for_audit: safeguardResult.selectedForAudit
+                                }
+                            ]);
+                        }
+                    }
+
                     controller.close();
                 } catch (e) {
                     controller.error(e);
