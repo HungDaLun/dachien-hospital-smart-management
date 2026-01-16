@@ -5,7 +5,7 @@
  */
 // ...existing code...
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Input, Select, Button, Card, Spinner, Progress, Checkbox, Badge, Modal } from '@/components/ui';
+import { Input, Select, Button, Card, Spinner, Progress, Checkbox, Badge, Modal, TableHeader, ConfirmDialog } from '@/components/ui';
 import { Trash2, Sparkles, Download, FileText, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -149,6 +149,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
     const [analysisProgress, setAnalysisProgress] = useState(0);
     const [analysisTotal, setAnalysisTotal] = useState(0);
     const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+    const [confirmBatchDeleteOpen, setConfirmBatchDeleteOpen] = useState(false);
 
     // Review Modal State
     const [reviewFile, setReviewFile] = useState<FileData | null>(null);
@@ -330,10 +331,12 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
     // --- Batch Actions ---
 
-    const handleBatchDelete = async () => {
+    const handleBatchDeleteClick = () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(dict.knowledge.delete_confirm?.replace('{{filename}}', `selected ${selectedIds.size} files`) || `Delete ${selectedIds.size} files?`)) return;
+        setConfirmBatchDeleteOpen(true);
+    };
 
+    const handleBatchDeleteConfirm = async () => {
         setIsBatchDeleting(true);
         try {
             // Parallel delete requests with proper error handling
@@ -380,6 +383,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
             toast.error(dict.common.error);
         } finally {
             setIsBatchDeleting(false);
+            setConfirmBatchDeleteOpen(false);
         }
     };
 
@@ -585,7 +589,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                     <Button
                                         size="sm"
                                         variant="danger"
-                                        onClick={handleBatchDelete}
+                                        onClick={handleBatchDeleteClick}
                                         loading={isBatchDeleting}
                                         className="h-8 px-2 shadow-sm border border-red-600/20"
                                     >
@@ -641,8 +645,9 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                     </div>
                 ) : (
                     <table className="w-full text-left border-collapse">
+
                         <thead>
-                            <tr className="bg-white/[0.02] border-b border-white/5 text-xs font-black text-text-primary uppercase tracking-[0.2em]">
+                            <tr className="bg-white/[0.02] border-b border-white/5">
                                 <th className="px-4 py-4 w-10">
                                     <Checkbox
                                         variant="white-circle"
@@ -651,21 +656,21 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                         onChange={(e) => handleSelectAll(e.target.checked)}
                                     />
                                 </th>
-                                <th
-                                    className="p-4 cursor-pointer hover:text-primary-400 transition-colors group w-[25%]"
+                                <TableHeader
+                                    className="cursor-pointer hover:text-primary-400 transition-colors group w-[25%]"
                                     onClick={() => setSortByExt(!sortByExt)}
                                 >
-                                    <div className="flex items-center justify-center gap-1">
+                                    <div className="flex items-center gap-1">
                                         檔案名稱 / 時效性
                                         {sortByExt && <span className="text-[10px] text-primary-400 font-mono mt-1">(按副檔名歸類)</span>}
                                         <span className="opacity-0 group-hover:opacity-100 text-[10px] ml-1">⇅</span>
                                     </div>
-                                </th>
-                                <th className="p-4 w-20 text-center">部門</th>
-                                <th className="p-4 w-20 text-center">型態</th>
-                                <th className="p-4 hidden md:table-cell w-[35%] text-center">AI 智能摘要</th>
-                                <th className="p-4 hidden lg:table-cell w-[20%] text-center">治理標籤/元數據</th>
-                                <th className="p-4 w-24 text-center">狀態</th>
+                                </TableHeader>
+                                <TableHeader className="w-20 text-center">部門</TableHeader>
+                                <TableHeader className="w-20 text-center">型態</TableHeader>
+                                <TableHeader className="hidden md:table-cell w-[35%] text-center">AI 智能摘要</TableHeader>
+                                <TableHeader className="hidden lg:table-cell w-[20%] text-center">治理標籤/元數據</TableHeader>
+                                <TableHeader className="w-24 text-center">狀態</TableHeader>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.02] bg-transparent">
@@ -940,6 +945,17 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                     dict={dict}
                 />
             )}
+
+            <ConfirmDialog
+                open={confirmBatchDeleteOpen}
+                title="批量刪除檔案"
+                description={dict.knowledge.delete_confirm?.replace('{{filename}}', `selected ${selectedIds.size} files`) || `Delete ${selectedIds.size} files?`}
+                onConfirm={handleBatchDeleteConfirm}
+                onCancel={() => setConfirmBatchDeleteOpen(false)}
+                confirmText="確認刪除"
+                variant="danger"
+                loading={isBatchDeleting}
+            />
         </Card>
     );
 }

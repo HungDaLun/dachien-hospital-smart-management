@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, Button, Spinner } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Skill } from '@/lib/skills/types';
 import { Check, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -24,6 +25,7 @@ export function SkillInstallModal({ isOpen, onClose, skill }: SkillInstallModalP
     const [loading, setLoading] = useState(true);
     const [installing, setInstalling] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const { toast } = useToast();
 
     useEffect(() => {
         if (isOpen) {
@@ -70,11 +72,11 @@ export function SkillInstallModal({ isOpen, onClose, skill }: SkillInstallModalP
                 ));
             } else {
                 console.error('Failed to install skill');
-                alert('安裝失敗，請稍後再試');
+                toast.error('安裝失敗，請稍後再試');
             }
         } catch (e) {
             console.error(e);
-            alert('安裝發生錯誤');
+            toast.error('安裝發生錯誤');
         } finally {
             setInstalling(null);
         }

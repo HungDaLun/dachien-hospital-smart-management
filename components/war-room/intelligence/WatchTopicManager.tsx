@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { WatchTopic } from '@/lib/war-room/types';
 import { createClient } from '@/lib/supabase/client';
-import { Button, Card, Input } from '@/components/ui';
+import { Button, Card, Input, ConfirmDialog } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Trash2, Edit2, X } from 'lucide-react';
 import { logAudit } from '@/lib/actions/audit';
 
@@ -16,6 +17,10 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
     const [topics, setTopics] = useState<WatchTopic[]>(initialTopics);
     const [isAdding, setIsAdding] = useState(false);
     const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
+    const { toast } = useToast();
+
+    // Delete Confirmation
+    const [topicToDelete, setTopicToDelete] = useState<string | null>(null);
 
     // Form State
     const [newTopicName, setNewTopicName] = useState('');
@@ -118,28 +123,41 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
         setNewSyncUnit('hours');
     };
 
-    const handleDeleteTopic = async (id: string) => {
-        if (!confirm('確定要刪除此監控主題嗎？這將停止接收相關情報。')) return;
+    const handleDeleteClick = (id: string) => {
+        setTopicToDelete(id);
+    };
 
-        const updatedTopics = topics.filter(t => t.id !== id);
-        setTopics(updatedTopics);
+    const handleDeleteConfirm = async () => {
+        if (!topicToDelete) return;
 
-        const supabase = createClient();
-        await supabase
-            .from('war_room_config')
-            .update({ watch_topics: updatedTopics })
-            .eq('user_id', userId);
+        try {
+            const updatedTopics = topics.filter(t => t.id !== topicToDelete);
 
-        // Log Activity
-        await logAudit({
-            action: 'UPDATE_WATCH_TOPICS',
-            resourceType: 'department' as any,
-            details: {
-                action: 'DELETE',
-                id: id,
-                total_topics: updatedTopics.length
-            }
-        });
+            const supabase = createClient();
+            await supabase
+                .from('war_room_config')
+                .update({ watch_topics: updatedTopics })
+                .eq('user_id', userId);
+
+            // Log Activity
+            await logAudit({
+                action: 'UPDATE_WATCH_TOPICS',
+                resourceType: 'department' as any,
+                details: {
+                    action: 'DELETE',
+                    id: topicToDelete,
+                    total_topics: updatedTopics.length
+                }
+            });
+
+            setTopics(updatedTopics);
+            toast.success('監控主題已刪除');
+        } catch (error) {
+            console.error(error);
+            toast.error('刪除失敗');
+        } finally {
+            setTopicToDelete(null);
+        }
     };
 
     const getRiskLabel = (threshold: string) => {
@@ -207,7 +225,7 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDeleteTopic(topic.id);
+                                                handleDeleteClick(topic.id);
                                             }}
                                             className="p-1.5 rounded-lg bg-semantic-danger/10 text-semantic-danger hover:bg-semantic-danger/20 transition-all"
                                             title="刪除"
@@ -374,6 +392,16 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                         </Card>
                     </div>
                 )}
+
+            <ConfirmDialog
+                open={!!topicToDelete}
+                title="刪除監控主題"
+                description="確定要刪除此監控主題嗎？這將停止接收相關情報。"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setTopicToDelete(null)}
+                confirmText="確認刪除"
+                variant="danger"
+            />
         </>
     );
 }

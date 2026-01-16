@@ -1,6 +1,7 @@
 'use client';
 
 import { Modal, Button, Input, Badge } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Sparkles, X, RotateCcw, Activity, Tag, FileEdit, Database } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -59,6 +60,7 @@ export default function ReviewMetadataModal({
     const [categoryId, setCategoryId] = useState<string>('');
     const [categories, setCategories] = useState<DocumentCategory[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
 
     // Governance fields state
     const [govDomain, setGovDomain] = useState('');
@@ -123,9 +125,10 @@ export default function ReviewMetadataModal({
                 }
             });
             onClose();
+            onClose();
         } catch (error) {
             console.error(error);
-            alert(dict.common.error);
+            toast.error(dict.common.error);
         } finally {
             setIsSubmitting(false);
         }

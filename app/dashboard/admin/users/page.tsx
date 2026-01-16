@@ -6,6 +6,8 @@ import UserRow from './UserRow';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getCachedUserProfile } from '@/lib/cache/user-profile';
+import { PAGE_SPACING } from '@/lib/styles/design-constants';
+import TableHeader from '@/components/ui/TableHeader';
 
 
 export const dynamic = 'force-dynamic';
@@ -99,7 +101,7 @@ export default async function UsersPage() {
     const deptList = departments || [];
 
     return (
-        <div className="p-6 w-full text-text-primary">
+        <div className={`w-full text-text-primary ${PAGE_SPACING.container}`}>
             {/* 返回按鈕 */}
             <div className="mb-6">
                 <Link
@@ -125,10 +127,10 @@ export default async function UsersPage() {
                             <table className="w-full text-left">
                                 <thead className="bg-semantic-warning/5 border-b border-white/5">
                                     <tr>
-                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest w-1/3">姓名</th>
-                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">角色權限</th>
-                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">部門</th>
-                                        <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest text-right">操作</th>
+                                        <TableHeader className="w-1/3">姓名</TableHeader>
+                                        <TableHeader>角色權限</TableHeader>
+                                        <TableHeader>部門</TableHeader>
+                                        <TableHeader className="text-right">操作</TableHeader>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/[0.02]">
@@ -165,10 +167,10 @@ export default async function UsersPage() {
                         <table className="w-full text-left">
                             <thead className="bg-white/[0.02] border-b border-white/5">
                                 <tr>
-                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest w-1/3">{dict.admin.users.name}</th>
-                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">{dict.admin.users.role_permission}</th>
-                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest">{dict.admin.users.department}</th>
-                                    <th className="py-4 px-6 font-bold text-[10px] text-text-tertiary uppercase tracking-widest text-right">{dict.common.actions}</th>
+                                    <TableHeader className="w-1/3">{dict.admin.users.name}</TableHeader>
+                                    <TableHeader>{dict.admin.users.role_permission}</TableHeader>
+                                    <TableHeader>{dict.admin.users.department}</TableHeader>
+                                    <TableHeader className="text-right">{dict.common.actions}</TableHeader>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.02]">

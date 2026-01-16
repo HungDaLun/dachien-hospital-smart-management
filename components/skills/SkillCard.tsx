@@ -1,6 +1,7 @@
 'use client';
 
-import { Card, Button, Badge } from '@/components/ui';
+import { Card, Button, Badge, ConfirmDialog } from '@/components/ui';
+import { useState } from 'react';
 import { Star, Download, Check, Trash2 } from 'lucide-react';
 import { Skill } from '@/lib/skills/types';
 
@@ -31,6 +32,7 @@ const categoryMap: Record<string, string> = {
 
 export function SkillCard({ skill, onInstall, isInstalled = false, onClick, isSuperAdmin, onDelete }: SkillCardProps) {
     const categoryName = categoryMap[skill.category.toLowerCase()] || skill.category;
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     return (
         <Card
@@ -109,9 +111,7 @@ export function SkillCard({ skill, onInstall, isInstalled = false, onClick, isSu
                             className="h-8 px-3 text-xs font-bold rounded-lg transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('確定要刪除此技能嗎？此操作無法復原。')) {
-                                    onDelete?.(skill);
-                                }
+                                setShowDeleteConfirm(true);
                             }}
                         >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -119,6 +119,19 @@ export function SkillCard({ skill, onInstall, isInstalled = false, onClick, isSu
                     )}
                 </div>
             </div>
+            {/* Local Confirm Dialog */}
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                title="刪除技能"
+                description="確定要刪除此技能嗎？此操作無法復原。"
+                onConfirm={() => {
+                    onDelete?.(skill);
+                    setShowDeleteConfirm(false);
+                }}
+                onCancel={() => setShowDeleteConfirm(false)}
+                confirmText="確認刪除"
+                variant="danger"
+            />
         </Card>
     );
 }

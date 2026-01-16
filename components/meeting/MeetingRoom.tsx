@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card, useToast } from '@/components/ui';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Play, Pause, Square, Users, MessageSquare, Clock, FileText, X, CheckCircle, Target, ListTodo } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -33,6 +34,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     const [processing, setProcessing] = useState(false);
     const processingRef = useRef(false); // 用 ref 追蹤 processing 狀態，避免 closure 問題
     const [isEnding, setIsEnding] = useState(false); // 新增：正在結束會議的狀態
+    const [endConfirmOpen, setEndConfirmOpen] = useState(false);
     const hasShownEndToast = useRef(false); // Ref to prevent duplicate toasts
     // 串流相關 state
     const [streamingMessage, setStreamingMessage] = useState<string>('');
@@ -378,8 +380,11 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
     const handleStop = async () => {
         setIsPlaying(false);
-        const confirm = window.confirm('確定要結束會議嗎？');
-        if (!confirm) return;
+        setEndConfirmOpen(true);
+    };
+
+    const confirmStop = async () => {
+        setEndConfirmOpen(false);
 
         setIsEnding(true); // 開始結束流程
         // Optimistic update to prevent auto-end timer from firing
@@ -798,7 +803,8 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                                             </div>
                                         ))}
                                     </div>
-                                </section>
+
+                                </section >
 
                                 <div className="grid md:grid-cols-2 gap-8">
                                     {/* Consensus */}
@@ -833,36 +839,49 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                                 </div>
 
                                 {/* Consultant Insights */}
-                                {minutesData.content.consultant_insights?.length > 0 && (
-                                    <section className="space-y-3 pt-4 border-t">
-                                        <h2 className="text-lg font-semibold flex items-center gap-2 text-primary">
-                                            <MessageSquare className="w-5 h-5" /> 專家觀點摘要
-                                        </h2>
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            {minutesData.content.consultant_insights.map((cons: any, i: number) => (
-                                                <div key={i} className="p-4 border rounded-lg bg-card text-sm">
-                                                    <div className="font-bold mb-2 flex items-center gap-2">
-                                                        🤖 {cons.consultant_name}
-                                                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                                                            {cons.role_perspective}
-                                                        </span>
+                                {
+                                    minutesData.content.consultant_insights?.length > 0 && (
+                                        <section className="space-y-3 pt-4 border-t">
+                                            <h2 className="text-lg font-semibold flex items-center gap-2 text-primary">
+                                                <MessageSquare className="w-5 h-5" /> 專家觀點摘要
+                                            </h2>
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {minutesData.content.consultant_insights.map((cons: any, i: number) => (
+                                                    <div key={i} className="p-4 border rounded-lg bg-card text-sm">
+                                                        <div className="font-bold mb-2 flex items-center gap-2">
+                                                            🤖 {cons.consultant_name}
+                                                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                                                {cons.role_perspective}
+                                                            </span>
+                                                        </div>
+                                                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                                            {cons.key_insights.slice(0, 3).map((insight: string, j: number) => (
+                                                                <li key={j}>{insight}</li>
+                                                            ))}
+                                                        </ul>
                                                     </div>
-                                                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                                        {cons.key_insights.slice(0, 3).map((insight: string, j: number) => (
-                                                            <li key={j}>{insight}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )
+                                }
 
-                            </div>
-                        </Card>
-                    </div>
+                            </div >
+                        </Card >
+                    </div >
                 )
             }
+
+            <ConfirmDialog
+                open={endConfirmOpen}
+                title="結束會議"
+                description="確定要結束會議嗎？這將會停止所有討論並生成會議記錄。"
+                onConfirm={confirmStop}
+                onCancel={() => setEndConfirmOpen(false)}
+                confirmText="結束會議"
+                variant="danger"
+                loading={isEnding}
+            />
         </div >
     );
 }

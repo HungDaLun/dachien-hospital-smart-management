@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { Sparkles, Folder, Search, CheckCircle2, RefreshCw, Database, Brain, Network } from 'lucide-react';
 
@@ -44,11 +45,12 @@ export default function KnowledgeSelector({
   const [recommendedFiles, setRecommendedFiles] = useState<FileItem[]>([]);
   const [allFiles, setAllFiles] = useState<FileItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
 
   // AI 推薦檔案
   const fetchRecommendations = async () => {
     if (!agentDescription.trim()) {
-      alert('請先填寫 Agent 描述，AI 才能推薦相關知識來源');
+      toast.error('請先填寫 Agent 描述，AI 才能推薦相關知識來源');
       return;
     }
 
@@ -74,7 +76,7 @@ export default function KnowledgeSelector({
       }
     } catch (error) {
       console.error('Failed to fetch recommendations:', error);
-      alert('AI 推薦失敗，請稍後再試');
+      toast.error('AI 推薦失敗，請稍後再試');
     } finally {
       setLoading(false);
     }
@@ -134,8 +136,8 @@ export default function KnowledgeSelector({
       <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
         <div
           className={`h-full transition-all duration-1000 shadow-glow-cyan/20 ${score > 0.8 ? 'bg-primary-500' :
-              score > 0.6 ? 'bg-secondary-400' :
-                'bg-semantic-warning'
+            score > 0.6 ? 'bg-secondary-400' :
+              'bg-semantic-warning'
             }`}
           style={{ width: `${score * 100}%` }}
         />
@@ -161,8 +163,8 @@ export default function KnowledgeSelector({
               type="button"
               onClick={() => setMode('recommended')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${mode === 'recommended'
-                  ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
-                  : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
                 }`}
             >
               <Brain size={14} />
@@ -172,8 +174,8 @@ export default function KnowledgeSelector({
               type="button"
               onClick={() => setMode('manual')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${mode === 'manual'
-                  ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
-                  : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
+                ? 'bg-primary-500/20 text-primary-400 shadow-glow-cyan/10'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-white/5'
                 }`}
             >
               <Folder size={14} />
@@ -237,8 +239,8 @@ export default function KnowledgeSelector({
                       <div
                         key={file.id}
                         className={`group/item relative p-6 rounded-2xl border transition-all duration-500 cursor-pointer overflow-hidden ${isSelected
-                            ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
-                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
+                          ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
+                          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
                           }`}
                         onClick={() => toggleFile(file.id)}
                       >
@@ -316,8 +318,8 @@ export default function KnowledgeSelector({
                     <div
                       key={file.id}
                       className={`group/item p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${isSelected
-                          ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
-                          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
+                        ? 'bg-primary-500/10 border-primary-500/30 shadow-glow-cyan/5'
+                        : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
                         }`}
                       onClick={() => toggleFile(file.id)}
                     >

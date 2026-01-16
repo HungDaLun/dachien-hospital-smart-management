@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, CheckSquare, Square } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui';
 
 interface IntelligenceListProps {
     items: any[];
@@ -11,6 +13,8 @@ interface IntelligenceListProps {
 export default function IntelligenceList({ items }: IntelligenceListProps) {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const { toast } = useToast();
     const router = useRouter();
 
     const toggleSelect = (id: string) => {
@@ -27,9 +31,12 @@ export default function IntelligenceList({ items }: IntelligenceListProps) {
         }
     };
 
-    const handleDeleteBatch = async () => {
+    const handleDeleteBatchClick = () => {
         if (selectedIds.length === 0) return;
-        if (!confirm(`確定要刪除選中的 ${selectedIds.length} 則情報嗎？此操作不可恢復。`)) return;
+        setConfirmOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
 
         setIsDeleting(true);
         try {
@@ -41,16 +48,18 @@ export default function IntelligenceList({ items }: IntelligenceListProps) {
 
             const data = await response.json();
             if (data.success) {
+                toast.success('刪除成功');
                 setSelectedIds([]);
                 router.refresh();
             } else {
-                alert('刪除失敗：' + data.error);
+                toast.error('刪除失敗：' + data.error);
             }
         } catch (error) {
             console.error('Batch delete failed:', error);
-            alert('刪除過程中發生錯誤');
+            toast.error('刪除過程中發生錯誤');
         } finally {
             setIsDeleting(false);
+            setConfirmOpen(false);
         }
     };
 
@@ -69,7 +78,7 @@ export default function IntelligenceList({ items }: IntelligenceListProps) {
                     </div>
                     {selectedIds.length > 0 && (
                         <button
-                            onClick={handleDeleteBatch}
+                            onClick={handleDeleteBatchClick}
                             disabled={isDeleting}
                             className="flex items-center gap-2 text-xs font-black text-semantic-danger hover:text-white transition-all bg-semantic-danger/10 hover:bg-semantic-danger px-3 py-1.5 rounded-lg border border-semantic-danger/20 disabled:opacity-50"
                         >
@@ -159,6 +168,16 @@ export default function IntelligenceList({ items }: IntelligenceListProps) {
                     </div>
                 )}
             </div>
+            <ConfirmDialog
+                open={confirmOpen}
+                title="批量刪除情報"
+                description={`確定要刪除選中的 ${selectedIds.length} 則情報嗎？此操作不可恢復。`}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmOpen(false)}
+                confirmText="確認刪除"
+                variant="danger"
+                loading={isDeleting}
+            />
         </div>
     );
 }

@@ -93,10 +93,10 @@ const buttonVariants = cva(
       },
 
       size: {
-        sm: 'text-sm px-4 py-2 gap-1.5 rounded-lg',
-        md: 'text-base px-6 py-3 gap-2 rounded-lg',
-        lg: 'text-lg px-8 py-4 gap-2.5 rounded-xl',
-        icon: 'p-2 rounded-full',
+        sm: 'px-3 py-2 text-sm gap-1.5 rounded-lg',
+        md: 'px-4 py-3 text-base gap-2 rounded-xl',
+        lg: 'px-6 py-4 text-lg gap-2 rounded-xl',
+        icon: 'p-2 rounded-full aspect-square',
       },
     },
 

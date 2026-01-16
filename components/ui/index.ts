@@ -41,4 +41,8 @@ export type { CheckboxProps } from './Checkbox';
 
 export * from './tooltip';
 
+export { TableHeader } from './TableHeader';
+export type { TableHeaderProps } from './TableHeader';
 
+export { ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';

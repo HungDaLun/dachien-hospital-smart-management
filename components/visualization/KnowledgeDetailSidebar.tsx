@@ -4,6 +4,8 @@ import { Fragment, useState, useEffect } from 'react';
 import { Transition } from '@headlessui/react';
 import { Node } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui';
 
 interface KnowledgeDetailSidebarProps {
     isOpen: boolean;
@@ -25,6 +27,33 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
     const [fileContent, setFileContent] = useState<string | null>(null);
     const [fileLoading, setFileLoading] = useState(false);
     const [fileError, setFileError] = useState<string | null>(null);
+
+    // Delete Confirmation State
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { toast } = useToast();
+
+    const handleDeleteConfirm = async () => {
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/knowledge/instances/${node.id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                toast.success('分析結果已刪除');
+                onClose();
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                toast.error(`刪除失敗: ${err.error || '未知錯誤'}`);
+            }
+        } catch (e) {
+            toast.error('刪除時發生錯誤');
+        } finally {
+            setIsDeleting(false);
+            setDeleteConfirmOpen(false);
+        }
+    };
 
     // 當文件節點打開時，獲取文件完整內容
     useEffect(() => {
@@ -102,24 +131,7 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                                                     type="button"
                                                     className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-text-tertiary hover:text-semantic-danger hover:bg-semantic-danger/10 border border-white/10 transition-all"
                                                     title="刪除此知識實例"
-                                                    onClick={async () => {
-                                                        if (confirm('確定要永久刪除此分析結果嗎？此動作無法復原。')) {
-                                                            try {
-                                                                const res = await fetch(`/api/knowledge/instances/${node.id}`, {
-                                                                    method: 'DELETE',
-                                                                });
-                                                                if (res.ok) {
-                                                                    onClose();
-                                                                    window.location.reload();
-                                                                } else {
-                                                                    const err = await res.json();
-                                                                    alert(`刪除失敗: ${err.error || '未知錯誤'}`);
-                                                                }
-                                                            } catch (e) {
-                                                                alert('刪除時發生錯誤');
-                                                            }
-                                                        }
-                                                    }}
+                                                    onClick={() => setDeleteConfirmOpen(true)}
                                                 >
                                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -409,6 +421,17 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                     </Transition>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                title="刪除分析結果"
+                description="確定要永久刪除此分析結果嗎？此動作無法復原。"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setDeleteConfirmOpen(false)}
+                confirmText="確認刪除"
+                variant="danger"
+                loading={isDeleting}
+            />
         </div>
     );
 }

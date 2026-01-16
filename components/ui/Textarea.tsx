@@ -7,6 +7,7 @@
 
 import { forwardRef, TextareaHTMLAttributes, useId } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { FORM_STYLES } from '../../lib/styles/design-constants';
 
 /**
  * Textarea 屬性介面
@@ -58,7 +59,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 {label && (
                     <label
                         htmlFor={textareaId}
-                        className="block text-sm font-black text-white uppercase tracking-[0.2em] ml-1 mb-2"
+                        className={FORM_STYLES.label}
                     >
                         {label}
                     </label>
@@ -75,10 +76,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                         className={`
                             w-full
                             px-5 py-4
-                            bg-black/20
-                            backdrop-blur-sm
-                            border
-                            rounded-2xl
+                            rounded-xl
                             transition-all duration-300
                             resize-y
                             font-medium
@@ -87,8 +85,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                             placeholder:text-text-tertiary/20
                             outline-none
                             ${hasError
-                                ? 'border-semantic-danger/50 focus:ring-4 focus:ring-semantic-danger/5 focus:border-semantic-danger shadow-glow-red/5'
-                                : 'border-white/10 focus:ring-4 focus:ring-primary-500/5 focus:border-primary-500/30'
+                                ? 'bg-semantic-danger/10 border border-semantic-danger focus:ring-4 focus:ring-semantic-danger/10 shadow-glow-danger'
+                                : 'bg-white/[0.03] border border-white/10 focus:border-primary-500/50 focus:ring-4 focus:ring-primary-500/10 shadow-glow-cyan/5'
                             }
                             ${disabled
                                 ? 'bg-white/[0.02] text-text-tertiary cursor-not-allowed border-white/5 opacity-50'
@@ -103,7 +101,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
                     {/* 裝飾性內陰影/邊框 (僅在非禁用狀態) */}
                     {!disabled && (
-                        <div className="absolute inset-0 rounded-2xl pointer-events-none ring-1 ring-inset ring-white/[0.02] group-hover:ring-white/[0.05] transition-all" />
+                        <div className="absolute inset-0 rounded-xl pointer-events-none ring-1 ring-inset ring-white/[0.02] group-hover:ring-white/[0.05] transition-all" />
                     )}
                 </div>
 
@@ -115,7 +113,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                         role="alert"
                     >
                         <AlertCircle size={14} className="text-semantic-danger shrink-0" />
-                        <span className="text-xs font-bold text-semantic-danger uppercase tracking-wider">
+                        <span className={FORM_STYLES.error.replace('mt-2 ', '')}>
                             {error}
                         </span>
                     </div>
@@ -125,7 +123,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 {hint && !error && (
                     <p
                         id={`${textareaId}-hint`}
-                        className="mt-2 px-1 text-[13px] font-bold text-white/80 uppercase tracking-widest leading-relaxed"
+                        className={FORM_STYLES.hint}
                     >
                         {hint}
                     </p>

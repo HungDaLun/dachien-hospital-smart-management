@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, Button, Spinner, Badge, Input, Select } from '@/components/ui';
+import { Card, Button, Spinner, Badge, Input, Select, ConfirmDialog } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import ArchitectChat from './ArchitectModal';
 import FilePickerModal from './FilePickerModal';
@@ -107,6 +107,10 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     const [newDept, setNewDept] = useState('');
     const [showFilePicker, setShowFilePicker] = useState(false);
 
+    // Confirm Dialog States
+    const [restorePrompt, setRestorePrompt] = useState<string | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
     useEffect(() => {
         fetch('/api/departments')
             .then(res => res.json())
@@ -194,10 +198,15 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         setShowHistory(!showHistory);
     };
 
-    const handleRestore = (prompt: string) => {
-        if (confirm('Are you sure you want to restore this version?')) {
-            setFormData(prev => ({ ...prev, system_prompt: prompt }));
+    const handleRestoreClick = (prompt: string) => {
+        setRestorePrompt(prompt);
+    };
+
+    const handleRestoreConfirm = () => {
+        if (restorePrompt) {
+            setFormData(prev => ({ ...prev, system_prompt: restorePrompt }));
             setShowHistory(false);
+            setRestorePrompt(null);
         }
     };
 
@@ -300,10 +309,11 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         }));
     };
 
-    const handleDelete = async () => {
-        const confirmMsg = '確定要刪除此 Agent 嗎？此動作無法復原。';
-        if (!confirm(confirmMsg)) return;
+    const handleDeleteClick = () => {
+        setDeleteConfirmOpen(true);
+    };
 
+    const handleDeleteConfirm = async () => {
         setLoading(true);
         try {
             const res = await fetch(`/api/agents/${formData.id}`, {
@@ -320,6 +330,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         } catch (err) {
             setError(err instanceof Error ? err.message : dict.common.error);
             setLoading(false);
+        } finally {
+            setDeleteConfirmOpen(false);
         }
     };
 
@@ -528,7 +540,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                                 <Button
                                                     size="sm"
                                                     variant="primary"
-                                                    onClick={() => handleRestore(ver.system_prompt)}
+                                                    onClick={() => handleRestoreClick(ver.system_prompt)}
                                                     className="h-8 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl"
                                                 >
                                                     回溯應用
@@ -785,7 +797,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={handleDelete}
+                            onClick={handleDeleteClick}
                             disabled={loading}
                             className="border-semantic-danger/30 text-semantic-danger hover:bg-semantic-danger/10 px-8 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
                         >
@@ -838,6 +850,25 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 onConfirm={(fileIds) => {
                     setFormData(prev => ({ ...prev, knowledge_files: fileIds }));
                 }}
+            />
+
+            <ConfirmDialog
+                open={!!restorePrompt}
+                title="回溯 Prompt 版本"
+                description="確定要回溯到此版本嗎？當前的編輯內容將會被覆蓋。"
+                onConfirm={handleRestoreConfirm}
+                onCancel={() => setRestorePrompt(null)}
+                confirmText="確認回溯"
+            />
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                title="刪除 Agent"
+                description="確定要刪除此 Agent 嗎？此動作無法復原。"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setDeleteConfirmOpen(false)}
+                confirmText="確認刪除"
+                variant="danger"
             />
         </div>
     );

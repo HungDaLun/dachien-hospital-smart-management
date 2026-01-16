@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, Button, Badge } from '@/components/ui';
+import { Modal, Button, Badge, ConfirmDialog } from '@/components/ui';
 import { Skill } from '@/lib/skills/types';
 import { Terminal, Copy, Check, Star, Users, Clock } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ interface SkillDetailModalProps {
 
 export function SkillDetailModal({ isOpen, onClose, skill, onInstall, isInstalled, isSuperAdmin, onDelete }: SkillDetailModalProps) {
     const [copied, setCopied] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     if (!skill) return null;
 
@@ -88,12 +89,7 @@ export function SkillDetailModal({ isOpen, onClose, skill, onInstall, isInstalle
                                 variant="danger"
                                 size="sm" // Use small size for delete
                                 className="w-full font-black uppercase tracking-widest bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20"
-                                onClick={() => {
-                                    if (confirm('確定要刪除此技能嗎？此操作無法復原。')) {
-                                        onDelete?.();
-                                        onClose();
-                                    }
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
                             >
                                 刪除技能
                             </Button>
@@ -163,6 +159,20 @@ export function SkillDetailModal({ isOpen, onClose, skill, onInstall, isInstalle
                     </div>
                 </div>
             </div>
-        </Modal>
+
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                title="刪除技能"
+                description="確定要刪除此技能嗎？此操作無法復原。"
+                onConfirm={() => {
+                    onDelete?.();
+                    onClose();
+                    setShowDeleteConfirm(false);
+                }}
+                onCancel={() => setShowDeleteConfirm(false)}
+                confirmText="確認刪除"
+                variant="danger"
+            />
+        </Modal >
     );
 }

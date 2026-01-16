@@ -2,7 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Checkbox, Badge, Button } from '@/components/ui';
+import { ConfirmDialog, Checkbox, Badge, Button } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Skill } from '@/lib/skills/types';
 import { Trash2 } from 'lucide-react';
 
@@ -41,6 +42,8 @@ export default function SkillList({
     isSuperAdmin
 }: SkillListProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const { toast } = useToast();
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -57,12 +60,22 @@ export default function SkillList({
         onSelectionChange(newSet);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!onDelete) return;
-        if (!confirm('確定要刪除此技能嗎？')) return;
-        setDeletingId(id);
-        await onDelete(id);
-        setDeletingId(null);
+    const handleDeleteClick = (id: string) => {
+        setConfirmDeleteId(id);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!onDelete || !confirmDeleteId) return;
+        setDeletingId(confirmDeleteId);
+        try {
+            await onDelete(confirmDeleteId);
+            toast.success('技能已刪除');
+        } catch (error) {
+            toast.error('刪除失敗');
+        } finally {
+            setDeletingId(null);
+            setConfirmDeleteId(null);
+        }
     };
 
     return (
@@ -169,7 +182,7 @@ export default function SkillList({
                                                         className="text-text-tertiary hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDelete(skill.id);
+                                                            handleDeleteClick(skill.id);
                                                         }}
                                                         loading={deletingId === skill.id}
                                                     >
@@ -192,6 +205,16 @@ export default function SkillList({
                     </tbody>
                 </table>
             </div>
+            <ConfirmDialog
+                open={!!confirmDeleteId}
+                title="刪除技能"
+                description="確定要刪除此技能嗎？"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDeleteId(null)}
+                confirmText="確認刪除"
+                variant="danger"
+                loading={!!deletingId}
+            />
         </div>
     );
 }

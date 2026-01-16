@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function SyncIntelligenceButton() {
     const [isSyncing, setIsSyncing] = useState(false);
+    const { toast } = useToast();
     const router = useRouter();
 
     const handleSync = async () => {
@@ -18,14 +20,14 @@ export default function SyncIntelligenceButton() {
             const data = await response.json();
 
             if (data.success) {
-                alert(data.message || '同步完成');
+                toast.success(data.message || '同步完成');
                 router.refresh();
             } else {
-                alert(`同步失敗：${data.error || '不明錯誤'}${data.details ? '\n詳情：' + data.details : ''}`);
+                toast.error(`同步失敗：${data.error || '不明錯誤'}`);
             }
         } catch (error) {
             console.error('Sync failed:', error);
-            alert('連線失敗，請稍後再試。');
+            toast.error('連線失敗，請稍後再試。');
         } finally {
             setIsSyncing(false);
         }

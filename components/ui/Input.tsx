@@ -6,6 +6,7 @@
 'use client';
 
 import { forwardRef, InputHTMLAttributes, ReactNode } from 'react';
+import { FORM_STYLES } from '../../lib/styles/design-constants';
 
 /**
  * Input 屬性介面
@@ -67,7 +68,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {label && (
                     <label
                         htmlFor={inputId}
-                        className="block text-sm font-black text-white mb-2.5 uppercase tracking-widest"
+                        className={FORM_STYLES.label}
                     >
                         {label}
                     </label>
@@ -91,9 +92,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                         aria-describedby={hasError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
                         className={`
                             w-full
-                            bg-white/[0.03]
-                            backdrop-blur-sm
-                            border
                             rounded-xl
                             text-white
                             font-medium
@@ -102,8 +100,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                             ${leftElement ? 'pl-11' : ''}
                             ${rightElement ? 'pr-11' : ''}
                             ${hasError
-                                ? 'border-semantic-danger/50 focus:ring-4 focus:ring-semantic-danger/10 focus:border-semantic-danger shadow-glow-red/5'
-                                : 'border-white/10 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 shadow-glow-cyan/5'
+                                ? 'bg-semantic-danger/10 border border-semantic-danger focus:ring-4 focus:ring-semantic-danger/10 shadow-glow-danger'
+                                : 'bg-white/[0.03] border border-white/10 focus:border-primary-500/50 focus:ring-4 focus:ring-primary-500/10 shadow-glow-cyan/5' // Reverted to valid shadows or kept generic
                             }
                             ${disabled ? 'opacity-30 cursor-not-allowed bg-white/[0.01]' : 'hover:border-white/20'}
                             placeholder:text-text-tertiary/50
@@ -123,11 +121,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
                 {/* 錯誤訊息 */}
                 {error && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                        <span className="w-1 h-1 rounded-full bg-semantic-danger" />
+                    <div className="flex items-center gap-1.5">
                         <p
                             id={`${inputId}-error`}
-                            className="text-xs font-bold text-semantic-danger/90 uppercase tracking-tight"
+                            className={FORM_STYLES.error}
                             role="alert"
                         >
                             {error}
@@ -139,7 +136,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {hint && !error && (
                     <p
                         id={`${inputId}-hint`}
-                        className="mt-2.5 text-[13px] font-bold text-white/80 uppercase tracking-wide"
+                        className={FORM_STYLES.hint}
                     >
                         {hint}
                     </p>

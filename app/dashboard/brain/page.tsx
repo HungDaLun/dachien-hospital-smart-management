@@ -36,7 +36,7 @@ export default async function BrainPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-65px)] -m-6 flex flex-col overflow-hidden bg-background-primary">
+        <div className="h-full w-full flex flex-col overflow-hidden bg-background-primary">
             <div className="border-b border-white/5 px-8 py-4 bg-background-secondary/80 backdrop-blur-md flex justify-between items-center z-10">
                 <div>
                     <h2 className="text-xl font-black text-text-primary flex items-center gap-3 uppercase tracking-tight">

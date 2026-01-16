@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { updateUserProfile } from '../actions';
 import { Button, Spinner } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface Department {
@@ -29,11 +30,12 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
     const [deptId, setDeptId] = useState(user.department_id || '');
     const [isLoading, setIsLoading] = useState(false);
     const isPending = user.status === 'PENDING';
+    const { toast } = useToast();
 
     // 處理審核（通過或拒絕）
     const handleApprove = async (approve: boolean) => {
         if (!approve) {
-            // 拒絕
+            // 拒絕 - 使用確認對話框 (待實作 ConfirmDialog，暫用 confirm)
             if (!confirm('確定要拒絕此使用者的申請嗎？')) {
                 return;
             }
@@ -57,17 +59,18 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
             const data = await response.json();
 
             if (!response.ok) {
-                alert(`${dict.common.error}: ${data.error?.message || '操作失敗'}`);
+                toast.error(`${dict.common.error}: ${data.error?.message || '操作失敗'}`);
                 return;
             }
 
             if (data.success) {
-                alert(approve ? '使用者已審核通過' : '使用者已拒絕');
-                window.location.reload();
+                toast.success(approve ? '使用者已審核通過' : '使用者已拒絕');
+                // Allow toast to show before reload
+                setTimeout(() => window.location.reload(), 1000);
             }
         } catch (e) {
             console.error(e);
-            alert(dict.common.error);
+            toast.error(dict.common.error);
         } finally {
             setIsLoading(false);
         }
@@ -80,13 +83,13 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
             const actualDeptId = deptId === '' ? null : deptId;
             const res = await updateUserProfile(user.id, role, actualDeptId);
             if (res?.error) {
-                alert(`${dict.common.error}: ${res.error}`);
+                toast.error(`${dict.common.error}: ${res.error}`);
             } else {
-                // Success feedback
+                toast.success(dict.common.success || 'Update successful');
             }
         } catch (e) {
             console.error(e);
-            alert(dict.common.error);
+            toast.error(dict.common.error);
         } finally {
             setIsLoading(false);
         }

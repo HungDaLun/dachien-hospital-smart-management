@@ -20,6 +20,8 @@ const DashboardCharts = dynamic(() => import('@/components/war-room/charts/Dashb
   ssr: false
 });
 
+import { PAGE_SPACING } from '@/lib/styles/design-constants';
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -48,7 +50,7 @@ export default async function DashboardPage() {
 
   return (
     <div
-      className="min-h-screen p-6 xl:p-10 font-body bg-background-primary"
+      className={`min-h-screen font-body bg-background-primary ${PAGE_SPACING.container}`}
       style={{
         backgroundImage: `
           radial-gradient(circle at 50% 0%, rgba(0, 217, 255, 0.08) 0%, transparent 50%),

@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Clock, CheckCircle2, ArrowLeft, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatDistanceToNow } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 
@@ -22,9 +24,13 @@ interface MeetingSummary {
 
 export function MeetingSidebar() {
     const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
+    const { toast } = useToast();
 
     useEffect(() => {
         fetchMeetings();
@@ -113,26 +119,34 @@ export function MeetingSidebar() {
         }
     };
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation();
+        setDeleteId(id);
+    };
 
-        if (!window.confirm('確定要刪除此會議記錄嗎？此動作無法復原。')) return;
+    const handleConfirmDelete = async () => {
+        if (!deleteId) return;
+        setIsDeleting(true);
 
         try {
-            const res = await fetch(`/api/meetings/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/meetings/${deleteId}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Delete failed');
 
             // Optimistic update
-            setMeetings(prev => prev.filter(m => m.id !== id));
+            setMeetings(prev => prev.filter(m => m.id !== deleteId));
 
             // If deleting current meeting, redirect to new meeting
-            if (pathname === `/meetings/${id}`) {
+            if (pathname === `/meetings/${deleteId}`) {
                 router.push('/meetings');
             }
+            toast.success('會議已刪除');
         } catch (error) {
             console.error(error);
-            alert('刪除失敗');
+            toast.error('刪除失敗');
+        } finally {
+            setIsDeleting(false);
+            setDeleteId(null);
         }
     };
 
@@ -205,7 +219,7 @@ export function MeetingSidebar() {
 
                                         {/* Delete Action (Hover only) */}
                                         <div
-                                            onClick={(e) => handleDelete(e, meeting.id)}
+                                            onClick={(e) => handleDeleteClick(e, meeting.id)}
                                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 hover:text-destructive rounded"
                                             title="刪除會議"
                                         >
@@ -243,6 +257,17 @@ export function MeetingSidebar() {
             <div className="h-[52px] flex items-center justify-center border-t border-border/40 text-xs text-muted-foreground/50">
                 Nexus Intelligence System v2.0
             </div>
+
+            <ConfirmDialog
+                open={!!deleteId}
+                title="刪除會議記錄"
+                description="確定要刪除此會議記錄嗎？此動作無法復原。"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeleteId(null)}
+                confirmText="刪除"
+                variant="danger"
+                loading={isDeleting}
+            />
         </div>
     );
 }

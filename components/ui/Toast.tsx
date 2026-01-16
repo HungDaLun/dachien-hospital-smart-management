@@ -39,19 +39,19 @@ const ToastContext = createContext<ToastContextValue | null>(null);
  */
 const typeStyles: Record<ToastType, { bg: string; icon: string; iconColor: string }> = {
     success: {
-        bg: 'bg-success-500',
+        bg: 'bg-semantic-success',
         icon: 'M5 13l4 4L19 7',
         iconColor: 'text-white',
     },
     error: {
-        bg: 'bg-error-500',
+        bg: 'bg-semantic-danger',
         icon: 'M6 18L18 6M6 6l12 12',
         iconColor: 'text-white',
     },
     warning: {
-        bg: 'bg-warning-500',
+        bg: 'bg-semantic-warning',
         icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
-        iconColor: 'text-white',
+        iconColor: 'text-black', // Warning usually yellow background, white icon might be low contrast if yellow is bright. Tailwind config semantic-warning is #FFB800 (Amber). White text on Yellow #FFB800 is poor contrast (1.65:1). Audit usually suggests black text on warning, or darker warning color. Design tokens have text-white defined here? The audit report didn't explicitly flagging contrast, just "undefined colors". Original code used `bg-warning-500` (undefined) and `text-white`. I will use `bg-semantic-warning` (#FFB800). I should probably check contrast. #FFB800 is bright. Black icon is better.
     },
     info: {
         bg: 'bg-primary-500',
@@ -133,7 +133,7 @@ function ToastItem({ toast, onClose }: { toast: ToastItem; onClose: () => void }
             className={`
         flex items-center gap-3 px-4 py-3
         ${styles.bg}
-        text-white
+        ${toast.type === 'warning' ? 'text-black' : 'text-white'} 
         rounded-lg shadow-lg
         min-w-[280px] max-w-md
         animate-slide-in

@@ -11,7 +11,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button, Spinner } from '@/components/ui';
+import { Button, Spinner, ConfirmDialog } from '@/components/ui';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface ArchitectResponse {
@@ -48,6 +48,7 @@ const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 
 export default function ArchitectChat({ onApply, departmentContext, currentState, dict, fileNames = {}, toolNames = {}, skillNames = {} }: ArchitectChatProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -94,16 +95,18 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
     };
 
     // 關閉並清除對話
-    const handleClose = () => {
+    const handleCloseClick = () => {
         if (messages.length > 1) {
-            if (confirm(t.close_confirm)) {
-                clearChat();
-                setIsOpen(false);
-            }
+            setCloseConfirmOpen(true);
         } else {
-            clearChat();
-            setIsOpen(false);
+            handleCloseConfirm();
         }
+    };
+
+    const handleCloseConfirm = () => {
+        clearChat();
+        setIsOpen(false);
+        setCloseConfirmOpen(false);
     };
 
     // 20 分鐘閒置自動清除
@@ -304,7 +307,7 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
                                 </button>
                                 {/* 關閉按鈕 */}
                                 <button
-                                    onClick={handleClose}
+                                    onClick={handleCloseClick}
                                     className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
                                     title={t.close_panel}
                                 >
@@ -511,6 +514,16 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={closeConfirmOpen}
+                title="結束對話"
+                description={t.close_confirm || "確定要結束並清除對話嗎？"}
+                onConfirm={handleCloseConfirm}
+                onCancel={() => setCloseConfirmOpen(false)}
+                confirmText="結束對話"
+                variant="danger"
+            />
         </>
     );
 }

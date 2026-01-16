@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Badge, Spinner, Input } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FileText, Sparkles, X, CheckCircle2, AlertCircle, Database, Tag, ArrowLeft } from 'lucide-react';
 
 interface ReviewWorkspaceProps {
@@ -23,9 +25,20 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
     const [tags, setTags] = useState<string[]>(metadata.tags || []);
     const [newTag, setNewTag] = useState('');
 
-    const handleApprove = async () => {
-        if (!confirm('Approve this document for the Knowledge Base?')) return;
+    // Confirm Dialog State
+    const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+    const { toast } = useToast();
 
+    const handleConfirmAction = async () => {
+        if (confirmAction === 'approve') {
+            await performApprove();
+        } else if (confirmAction === 'reject') {
+            await performReject();
+        }
+        setConfirmAction(null);
+    };
+
+    const performApprove = async () => {
         setLoading(true);
         try {
             const res = await fetch(`/api/files/${file.id}/review`, {
@@ -43,20 +56,20 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
             });
 
             if (res.ok) {
+                toast.success('Document approved successfully');
                 router.push('/dashboard/knowledge');
             } else {
-                alert('Approval failed');
+                toast.error('Approval failed');
             }
         } catch (e) {
             console.error(e);
-            alert('Error submitting review');
+            toast.error('Error submitting review');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleReject = async () => {
-        if (!confirm('Reject and delete this document?')) return;
+    const performReject = async () => {
         setLoading(true);
         try {
             const res = await fetch(`/api/files/${file.id}/review`, {
@@ -65,14 +78,18 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
                 body: JSON.stringify({ action: 'REJECT' })
             });
             if (res.ok) {
+                toast.success('Document rejected');
                 router.push('/dashboard/knowledge/review');
             }
         } catch (e) {
-            alert('Error rejecting');
+            toast.error('Error rejecting');
         } finally {
             setLoading(false);
         }
     };
+
+    const handleApproveClick = () => setConfirmAction('approve');
+    const handleRejectClick = () => setConfirmAction('reject');
 
     const handleAddTag = () => {
         const tag = newTag.trim();
@@ -252,7 +269,7 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
                 <div className="sticky bottom-0 left-0 w-full p-8 border-t border-white/10 bg-background-secondary/80 backdrop-blur-2xl flex justify-between items-center z-[20] shadow-floating">
                     <Button
                         variant="outline"
-                        onClick={handleReject}
+                        onClick={handleRejectClick}
                         disabled={loading}
                         className="border-semantic-danger/30 text-semantic-danger hover:bg-semantic-danger/10 px-8 h-12 rounded-2xl"
                     >
@@ -270,7 +287,7 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
                             BACK
                         </Button>
                         <Button
-                            onClick={handleApprove}
+                            onClick={handleApproveClick}
                             disabled={loading}
                             className="bg-primary-500 hover:bg-primary-600 text-black font-black px-10 h-12 rounded-2xl shadow-glow-cyan/20 min-w-[200px]"
                         >
@@ -284,6 +301,19 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={!!confirmAction}
+                title={confirmAction === 'approve' ? 'Approve Document' : 'Reject Document'}
+                description={confirmAction === 'approve'
+                    ? 'Approve this document for the Knowledge Base?'
+                    : 'Reject and delete this document?'}
+                onConfirm={handleConfirmAction}
+                onCancel={() => setConfirmAction(null)}
+                confirmText={confirmAction === 'approve' ? 'Approve' : 'Reject'}
+                variant={confirmAction === 'approve' ? 'success' : 'danger'}
+                loading={loading}
+            />
         </div>
     );
 }

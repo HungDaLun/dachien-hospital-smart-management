@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { ThumbsUp, ThumbsDown, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button, Spinner } from '@/components/ui';
+import { useToast } from '@/components/ui/Toast';
 
 interface ChatFeedbackProps {
   messageId: string;
@@ -23,6 +24,8 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
     { code: 'outdated', label: dict.chat.feedback.reason_outdated },
     { code: 'other', label: dict.chat.feedback.reason_other },
   ];
+
+  const { toast } = useToast();
 
   const [rating, setRating] = useState<1 | -1 | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -48,7 +51,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
       onFeedbackSubmitted?.();
     } catch (error) {
       console.error('提交回饋失敗:', error);
-      alert(error instanceof Error ? error.message : '提交回饋失敗');
+      toast.error(error instanceof Error ? error.message : '提交回饋失敗');
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
 
   const handleSubmitNegativeFeedback = async () => {
     if (!reasonCode && !comment.trim()) {
-      alert(dict.chat.feedback.select_reason);
+      toast.error(dict.chat.feedback.select_reason);
       return;
     }
 
@@ -88,7 +91,7 @@ export default function ChatFeedback({ messageId, onFeedbackSubmitted, dict }: C
       onFeedbackSubmitted?.();
     } catch (error) {
       console.error('提交回饋失敗:', error);
-      alert(error instanceof Error ? error.message : '提交回饋失敗');
+      toast.error(error instanceof Error ? error.message : '提交回饋失敗');
     } finally {
       setLoading(false);
     }

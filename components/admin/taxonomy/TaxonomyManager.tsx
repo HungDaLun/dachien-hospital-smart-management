@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { DocumentCategory } from '@/types';
 import { createCategory, updateCategory, deleteCategory } from '@/lib/actions/taxonomy';
-import { Button, Input, Textarea, Modal, Card, Badge } from '@/components/ui';
+import { Button, Input, Textarea, Modal, Card, Badge, ConfirmDialog } from '@/components/ui';
 import {
     Plus,
     Edit2,
@@ -35,6 +35,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
     const [parentId, setParentId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', description: '' });
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -100,12 +101,17 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
         handleCloseModal();
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('確定要刪除此分類嗎？此動作將會影響所有關聯文件的語義連結。')) return;
-        const res = await deleteCategory(id);
+    const handleDeleteClick = (id: string) => {
+        setDeleteConfirmId(id);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteConfirmId) return;
+        const res = await deleteCategory(deleteConfirmId);
         if (res.success) {
             router.refresh();
         }
+        setDeleteConfirmId(null);
     };
 
     const toggleExpand = (id: string) => {
@@ -178,7 +184,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
                             size="sm"
                             variant="ghost"
                             className="h-9 w-9 p-0 rounded-xl bg-white/5 border-white/5 hover:bg-semantic-danger/10 hover:text-semantic-danger"
-                            onClick={() => handleDelete(node.id)}
+                            onClick={() => handleDeleteClick(node.id)}
                         >
                             <Trash2 size={14} />
                         </Button>
@@ -297,6 +303,16 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
                     </div>
                 </div>
             </Modal>
-        </Card>
+
+            <ConfirmDialog
+                open={!!deleteConfirmId}
+                title="刪除分類"
+                description="確定要刪除此分類嗎？此動作將會影響所有關聯文件的語義連結。"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setDeleteConfirmId(null)}
+                confirmText="確認刪除"
+                variant="danger"
+            />
+        </Card >
     );
 }
