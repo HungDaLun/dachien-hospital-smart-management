@@ -21,10 +21,17 @@ export class CrossDepartmentInsightEngine {
         const deptA = departments[0];
         const deptB = departments[1];
 
+
+        // Helper interface for local use
+        interface RecentFile {
+            filename: string;
+            ai_summary: string | null;
+        }
+
         // 3. Fetch recent files for both
         const [filesA, filesB] = await Promise.all([
-            this.getRecentFiles(deptA.id),
-            this.getRecentFiles(deptB.id)
+            this.getRecentFiles(deptA.id) as Promise<RecentFile[]>,
+            this.getRecentFiles(deptB.id) as Promise<RecentFile[]>
         ]);
 
         if (filesA.length === 0 || filesB.length === 0) return [];
@@ -34,10 +41,10 @@ export class CrossDepartmentInsightEngine {
 You are a Strategic Connection Finder. Analyze the recent work of two departments to find hidden opportunities.
 
 Department A (${deptA.name}) Recent Context:
-${filesA.map((f: any) => `- ${f.filename}: ${f.ai_summary}`).join('\n')}
+${filesA.map((f: RecentFile) => `- ${f.filename}: ${f.ai_summary || 'No summary'}`).join('\n')}
 
 Department B (${deptB.name}) Recent Context:
-${filesB.map((f: any) => `- ${f.filename}: ${f.ai_summary}`).join('\n')}
+${filesB.map((f: RecentFile) => `- ${f.filename}: ${f.ai_summary || 'No summary'}`).join('\n')}
 
 TASK:
 1. Identify if Dept A's work is relevant to Dept B's goals.
@@ -64,8 +71,17 @@ Return JSON array (max 1 item):
             const cleanJson = response.replace(/```json\n?|\n?```/g, '').trim();
             const results = JSON.parse(cleanJson);
 
+            // Define result type
+            interface AIAnalysisResult {
+                type: 'opportunity' | 'risk' | 'conflict';
+                title: string;
+                description: string;
+                importance_score: number;
+                recommended_action: string;
+            }
+
             if (Array.isArray(results)) {
-                results.forEach((res: any) => {
+                results.forEach((res: AIAnalysisResult) => {
                     insights.push({
                         id: crypto.randomUUID(),
                         user_id: userId,

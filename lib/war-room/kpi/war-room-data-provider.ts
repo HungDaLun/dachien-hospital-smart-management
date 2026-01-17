@@ -1,41 +1,42 @@
 import { createClient } from '@/lib/supabase/server';
+import { ChartDataPoint } from '../types';
 
 export interface WarRoomDataSet {
-    strategyTrend: any[];
-    deptPerformance: any[];
-    resourceAllocation: any[];
-    riskDistribution: any[];
-    knowledgeGrowth: any[];
-    activityHeatmap: any[];
-    aiEngagement: any[];
-    knowledgeDecay: any[];
-    categoryDistribution: any[];
-    externalIntelligenceTrend: any[];
-    collaborationIndex: any[];
+    strategyTrend: ChartDataPoint[];
+    deptPerformance: ChartDataPoint[];
+    resourceAllocation: ChartDataPoint[];
+    riskDistribution: ChartDataPoint[];
+    knowledgeGrowth: ChartDataPoint[];
+    activityHeatmap: ChartDataPoint[];
+    aiEngagement: ChartDataPoint[];
+    knowledgeDecay: ChartDataPoint[];
+    categoryDistribution: ChartDataPoint[];
+    externalIntelligenceTrend: ChartDataPoint[];
+    collaborationIndex: ChartDataPoint[];
     // New Fields
-    cashFlow: any[];
-    profitMargin: any[];
-    budgetExecution: any[];
-    costStructure: any[];
-    revenueSource: any[];
-    projectCompletion: any[];
-    taskTurnover: any[];
-    resourceUtilization: any[];
-    slaAchievement: any[];
-    fileTypeDistribution: any[];
-    hotKnowledge: any[];
-    knowledgeCoverage: any[];
-    teamActivity: any[];
-    skillDistribution: any[];
-    performanceTrend: any[];
-    turnoverRisk: any[];
-    trainingCompletion: any[];
-    riskResponseTime: any[];
-    complianceStatus: any[];
-    agentEfficiency: any[];
-    responseQuality: any[];
-    knowledgeCitation: any[];
-    conversationDepth: any[];
+    cashFlow: ChartDataPoint[];
+    profitMargin: ChartDataPoint[];
+    budgetExecution: ChartDataPoint[];
+    costStructure: ChartDataPoint[];
+    revenueSource: ChartDataPoint[];
+    projectCompletion: ChartDataPoint[];
+    taskTurnover: ChartDataPoint[];
+    resourceUtilization: ChartDataPoint[];
+    slaAchievement: ChartDataPoint[];
+    fileTypeDistribution: ChartDataPoint[];
+    hotKnowledge: ChartDataPoint[];
+    knowledgeCoverage: ChartDataPoint[];
+    teamActivity: ChartDataPoint[];
+    skillDistribution: ChartDataPoint[];
+    performanceTrend: ChartDataPoint[];
+    turnoverRisk: ChartDataPoint[];
+    trainingCompletion: ChartDataPoint[];
+    riskResponseTime: ChartDataPoint[];
+    complianceStatus: ChartDataPoint[];
+    agentEfficiency: ChartDataPoint[];
+    responseQuality: ChartDataPoint[];
+    knowledgeCitation: ChartDataPoint[];
+    conversationDepth: ChartDataPoint[];
 }
 
 export class WarRoomDataProvider {
@@ -60,7 +61,7 @@ export class WarRoomDataProvider {
         // 3. Resource Allocation (Files by category)
         const { data: catFiles } = await supabase
             .from('files')
-            .select('category_id, size_bytes')
+            .select('category_id, size_bytes, department_id')
             .eq('is_active', true);
 
         // 4. Risk Distribution
@@ -177,7 +178,7 @@ export class WarRoomDataProvider {
         }));
     }
 
-    private async calculateCollaboration(depts: any[], files: any[]) {
+    private async calculateCollaboration(depts: { id: string; name: string }[], files: { department_id: string; category_id: string }[]): Promise<ChartDataPoint[]> {
         if (depts.length === 0) return [];
 
         // 計算邏輯：統計每個部門有多少檔案與其他部門共享相同的類別(Category)
@@ -195,7 +196,7 @@ export class WarRoomDataProvider {
         });
     }
 
-    private processTrend(data: any[]) {
+    private processTrend(data: { value: number | string }[]): ChartDataPoint[] {
         if (!data || data.length === 0) return [
             { name: 'W1', value: 65 }, { name: 'W2', value: 70 }, { name: 'W3', value: 68 },
             { name: 'W4', value: 75 }, { name: 'W5', value: 82 }, { name: 'W6', value: 85 }
@@ -203,7 +204,7 @@ export class WarRoomDataProvider {
         return data.map((d, i) => ({ name: `T${i}`, value: Number(d.value) }));
     }
 
-    private processDeptPerf(metrics: any[], depts: any[]) {
+    private processDeptPerf(metrics: { value: number | string; dimensions: any }[], depts: { id: string; name: string }[]): ChartDataPoint[] {
         if (!depts) return [];
         return depts.map(d => {
             const m = metrics?.find(met => met.dimensions?.department_id === d.id) || { value: Math.random() * 40 + 60 };
@@ -211,11 +212,11 @@ export class WarRoomDataProvider {
         });
     }
 
-    private processResource(files: any[], cats: any[]) {
+    private processResource(files: { category_id: string }[], cats: { id: string; name: string }[]): ChartDataPoint[] {
         if (!files || !cats) return [
             { name: '研發', value: 400 }, { name: '行銷', value: 300 }, { name: '營運', value: 300 }
         ];
-        const map: any = {};
+        const map: Record<string, number> = {};
         files.forEach(f => {
             const cat = cats.find(c => c.id === f.category_id)?.name || '未分類';
             map[cat] = (map[cat] || 0) + 1;
@@ -223,18 +224,18 @@ export class WarRoomDataProvider {
         return Object.entries(map).map(([name, value]) => ({ name, value }));
     }
 
-    private processRisks(risks: any[]) {
-        const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+    private processRisks(risks: { risk_level: string }[]): ChartDataPoint[] {
+        const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
         risks?.forEach(r => {
-            if (r.risk_level in counts) (counts as any)[r.risk_level]++;
+            if (r.risk_level in counts) counts[r.risk_level]++;
         });
         return Object.entries(counts).map(([name, value]) => ({ name, value }));
     }
 
-    private processGrowth(growth: any[]) {
+    private processGrowth(growth: { created_at: string }[]): ChartDataPoint[] {
         // Cumulative files over time
         if (!growth) return [];
-        const points: any[] = [];
+        const points: ChartDataPoint[] = [];
         let sum = 0;
         growth.forEach((g, i) => {
             sum++;
@@ -245,7 +246,7 @@ export class WarRoomDataProvider {
         return points;
     }
 
-    private processActivity(growth: any[]) {
+    private processActivity(growth: { created_at: string }[]): ChartDataPoint[] {
         const hours = new Array(24).fill(0);
         growth?.forEach(g => {
             const hour = new Date(g.created_at).getHours();
@@ -254,12 +255,12 @@ export class WarRoomDataProvider {
         return hours.map((v, i) => ({ name: `${i}h`, value: v }));
     }
 
-    private processChats(_chats: any[]) {
+    private processChats(_chats: unknown[]): ChartDataPoint[] {
         const weeks = ['W1', 'W2', 'W3', 'W4'];
         return weeks.map(w => ({ name: w, value: Math.floor(Math.random() * 50) + 10 }));
     }
 
-    private processDecay(decay: any[]) {
+    private processDecay(decay: { filename?: string; quality_score?: number }[]): ChartDataPoint[] {
         const processed = decay?.map(d => ({
             name: d.filename ? (d.filename.length > 8 ? d.filename.substring(0, 8) + '...' : d.filename) : 'Untitled',
             value: d.quality_score || Math.floor(Math.random() * 40 + 60) // Fallback random score if null
@@ -278,17 +279,17 @@ export class WarRoomDataProvider {
         return processed;
     }
 
-    private processCategories(files: any[], cats: any[]) {
+    private processCategories(files: any[], cats: any[]): ChartDataPoint[] {
         return this.processResource(files, cats);
     }
 
-    private processIntel(_intel: any[]) {
+    private processIntel(_intel: unknown[]): ChartDataPoint[] {
         return [
-            { name: 'Mon', pos: 10, neg: 2 },
-            { name: 'Tue', pos: 12, neg: 4 },
-            { name: 'Wed', pos: 8, neg: 1 },
-            { name: 'Thu', pos: 15, neg: 5 },
-            { name: 'Fri', pos: 20, neg: 3 },
+            { name: 'Mon', value: 8, pos: 10, neg: 2 },
+            { name: 'Tue', value: 8, pos: 12, neg: 4 },
+            { name: 'Wed', value: 7, pos: 8, neg: 1 },
+            { name: 'Thu', value: 10, pos: 15, neg: 5 },
+            { name: 'Fri', value: 17, pos: 20, neg: 3 },
         ];
     }
 }

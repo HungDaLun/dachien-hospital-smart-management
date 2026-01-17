@@ -43,8 +43,8 @@ export class WarRoomAccessControl {
      */
     async filterVisibleDepartments(
         userId: string,
-        allDepartments: any[]
-    ): Promise<any[]> {
+        allDepartments: { id: string }[]
+    ): Promise<{ id: string }[]> {
         const accessLevel = await this.checkAccess(userId);
 
         if (accessLevel === 'owner' || accessLevel === 'executive') {

@@ -148,3 +148,9 @@ export interface CrossDepartmentInsight {
     created_at: string;
     expires_at?: string;
 }
+
+export interface ChartDataPoint {
+    name: string;
+    value: number;
+    [key: string]: string | number | undefined;
+}

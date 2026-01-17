@@ -6,10 +6,10 @@ export class RiskAlertSystem {
     private financialAnalyzer = new FinancialStatusAnalyzer();
     private opsCalculator = new OperationalHealthCalculator();
 
-    async detectRisks(userId: string): Promise<any> {
+    async detectRisks(userId: string): Promise<RiskReport> {
         const supabase = await createClient(); // Initialize async
 
-        const risks = [];
+        const risks: RiskItem[] = [];
 
         // 1. Check Financial Risks
         const finance = await this.financialAnalyzer.analyzeFinancials(userId);
@@ -46,7 +46,14 @@ export class RiskAlertSystem {
             .limit(10);
 
         if (externalRisks) {
-            externalRisks.forEach((r: any) => {
+            interface ExternalRiskRow {
+                risk_level: 'critical' | 'high' | 'medium' | 'low';
+                title: string;
+                ai_summary: string;
+                published_at: string;
+            }
+
+            externalRisks.forEach((r: ExternalRiskRow) => {
                 risks.push({
                     level: r.risk_level,
                     category: 'external',
@@ -68,4 +75,19 @@ export class RiskAlertSystem {
             risks: risks
         };
     }
+}
+
+export interface RiskItem {
+    level: 'critical' | 'high' | 'medium' | 'low';
+    category: 'financial' | 'operational' | 'external' | 'compliance';
+    title: string;
+    description: string;
+    timestamp: string;
+}
+
+export interface RiskReport {
+    total_risks: number;
+    critical_count: number;
+    high_count: number;
+    risks: RiskItem[];
 }

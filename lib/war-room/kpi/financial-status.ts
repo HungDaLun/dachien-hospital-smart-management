@@ -1,9 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 
 
+export interface FinancialStatus {
+    revenue: number;
+    expenses: number;
+    profit_margin: number;
+    budget_variance: number;
+    burn_rate: number;
+    runway_months: number;
+    forecast_next_quarter: {
+        next_month_revenue: number;
+        confidence: number;
+    };
+    ai_insight: string;
+}
+
 export class FinancialStatusAnalyzer {
 
-    async analyzeFinancials(userId: string): Promise<any> {
+    async analyzeFinancials(userId: string): Promise<FinancialStatus> {
         const supabase = await createClient();
 
         // 1. Fetch latest financial metrics
@@ -17,7 +31,10 @@ export class FinancialStatusAnalyzer {
             .order('timestamp', { ascending: false });
 
         // Helper to get latest value
-        const getLatest = (id: string) => metrics?.find((m: any) => m.metric_id === id)?.value || 0;
+        const getLatest = (id: string) => {
+            const m = metrics?.find((item: { metric_id: string; value: number }) => item.metric_id === id);
+            return m?.value || 0;
+        };
 
         const revenue = getLatest('revenue');
         const expenses = getLatest('expenses');

@@ -108,7 +108,15 @@ Return JSON Format:
             }
 
             // 6. Save to Database
-            const metricsToInsert = result.metrics.map((m: any) => ({
+            interface ExtractedMetric {
+                metric_id: string;
+                value: number;
+                timestamp: string;
+                dimensions?: Record<string, string>;
+                confidence?: number;
+            }
+
+            const metricsToInsert = result.metrics.map((m: ExtractedMetric) => ({
                 metric_id: m.metric_id,
                 value: m.value,
                 timestamp: m.timestamp,
@@ -126,9 +134,10 @@ Return JSON Format:
 
             return { status: 'success', count: metricsToInsert.length };
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[ETL] Extraction failed:', err);
-            return { status: 'failed', count: 0, error: err.message };
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            return { status: 'failed', count: 0, error: errorMessage };
         }
     }
 }

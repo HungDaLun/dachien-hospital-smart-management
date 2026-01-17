@@ -22,6 +22,15 @@ export class DepartmentDailyBriefGenerator {
             .gte('updated_at', oneWeekAgo.toISOString())
             .limit(10);
 
+        // Helper interface
+        interface RecentFile {
+            filename: string;
+            ai_summary: string | null;
+            created_at: string;
+        }
+
+        const safeFiles = (files || []) as RecentFile[];
+
         // Recent Metrics (Mocking for now as we don't have direct linkage yet)
         // In real implementation: Query metric_values join department
         const metricsSummary = "Revenue: Stable, Costs: slightly up";
@@ -31,8 +40,8 @@ export class DepartmentDailyBriefGenerator {
 You are a Departmental Intelligence Officer. Generate a daily brief for the department head.
 
 CONTEXT:
-- Recent Files Uploaded: ${files?.map((f: any) => f.filename).join(', ') || 'None'}
-- File Summaries: ${files?.map((f: any) => f.ai_summary).join('; ') || 'None'}
+- Recent Files Uploaded: ${safeFiles.map((f: RecentFile) => f.filename).join(', ') || 'None'}
+- File Summaries: ${safeFiles.map((f: RecentFile) => f.ai_summary || 'No summary').join('; ') || 'None'}
 - Key Metrics Overview: ${metricsSummary}
 
 TASK:
@@ -82,7 +91,7 @@ Return JSON:
             ],
             stats: {
                 total_files: 150, // Mock
-                files_updated_today: files?.filter((f: any) => f.created_at >= new Date().toISOString().split('T')[0]).length || 0,
+                files_updated_today: safeFiles.filter((f: RecentFile) => f.created_at >= new Date().toISOString().split('T')[0]).length || 0,
                 active_agents: 3,
                 conversations_count: 12,
                 knowledge_health_score: 85

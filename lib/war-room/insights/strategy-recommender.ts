@@ -21,7 +21,7 @@ You are a Chief Strategy Officer AI. Synthesize the following intelligence into 
 
 INPUTS:
 - Critical Risks: ${risks.critical_count} (Top: ${risks.risks[0]?.title || 'None'})
-- Cross-Dept Insights: ${crossDeptInsights.map((i: any) => i.title).join(', ') || 'None'}
+- Cross-Dept Insights: ${crossDeptInsights.map(i => i.title).join(', ') || 'None'}
 
 TASK:
 1. Create 2-3 High Priority Recommendations.
@@ -49,7 +49,16 @@ Return JSON:
             const cleanJson = response.replace(/```json\n?|\n?```/g, '').trim();
             const results = JSON.parse(cleanJson);
 
-            return results.map((res: any) => ({
+            interface AIRecommendation {
+                priority: 'high' | 'medium' | 'low';
+                category: 'risk_mitigation' | 'opportunity' | 'efficiency' | 'innovation';
+                title: string;
+                recommendation: string;
+                expected_benefit: string;
+                next_steps: string[];
+            }
+
+            return results.map((res: AIRecommendation) => ({
                 id: crypto.randomUUID(),
                 user_id: userId,
                 week_start_date: new Date().toISOString(),

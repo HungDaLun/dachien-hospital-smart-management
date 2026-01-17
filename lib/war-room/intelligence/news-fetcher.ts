@@ -25,7 +25,16 @@ export class NewsFetcher {
                 throw new Error(data.message || 'News API Error');
             }
 
-            return data.articles.map((a: any) => ({
+            interface NewsApiArticle {
+                title: string;
+                source: { name: string };
+                url: string;
+                publishedAt: string;
+                description: string;
+                content: string;
+            }
+
+            return data.articles.map((a: NewsApiArticle) => ({
                 title: a.title,
                 source: a.source.name,
                 url: a.url,
