@@ -93,7 +93,7 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
                 const err = await res.json();
                 toast.error(`刪除失敗: ${err.error || '未知錯誤'}`);
             }
-        } catch (_e) {
+        } catch {
             toast.error('刪除時發生錯誤');
         } finally {
             setIsDeleting(false);
@@ -232,7 +232,7 @@ export default function KnowledgeDetailSidebar({ isOpen, onClose, node }: Knowle
 
                                                 <div className="grid gap-4">
                                                     {data.structureSchema?.sections ? (
-                                                        data.structureSchema.sections.map((section: any) => {
+                                                        data.structureSchema.sections.map((section: { key: string; label: string }) => {
                                                             const value = data.contentData?.[section.key];
                                                             if (!value) return null;
 

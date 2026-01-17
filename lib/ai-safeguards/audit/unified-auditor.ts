@@ -76,11 +76,16 @@ export async function generateAuditReport(config: AuditConfig = DEFAULT_CONFIG) 
     return report;
 }
 
-function calculateStats(messages: any[] | null) {
+interface MessageWithConfidence {
+    confidence_score?: number;
+    needs_review?: boolean;
+}
+
+function calculateStats(messages: MessageWithConfidence[] | null) {
     if (!messages || messages.length === 0) return { count: 0, avgConfidence: 0, reviewRate: 0 };
 
     const confidenceScores = messages
-        .map(m => (m as { confidence_score?: number }).confidence_score)
+        .map(m => m.confidence_score)
         .filter((s): s is number => typeof s === 'number');
 
     const avgConfidence = confidenceScores.length > 0

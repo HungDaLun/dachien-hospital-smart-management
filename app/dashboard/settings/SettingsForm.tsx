@@ -262,7 +262,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
               type="text"
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
-              placeholder={(dict.settings as any).job_title_placeholder || '例如：資深工程師'}
+              placeholder={'例如：資深工程師'}
               disabled={isLoading}
               fullWidth
             />
@@ -275,7 +275,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
               type="text"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              placeholder={(dict.settings as any).employee_id_placeholder || '例如：EMP-001'}
+              placeholder={'例如：EMP-001'}
               disabled={isLoading}
               fullWidth
             />
@@ -288,7 +288,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder={(dict.settings as any).location_placeholder || '例如：台北總部'}
+              placeholder={'例如：台北總部'}
               disabled={isLoading}
               fullWidth
             />
@@ -322,7 +322,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
               type="text"
               value={extension}
               onChange={(e) => setExtension(e.target.value)}
-              placeholder={(dict.settings as any).extension_placeholder || '例如：#1234'}
+              placeholder={'例如：#1234'}
               disabled={isLoading}
               fullWidth
             />
