@@ -22,11 +22,11 @@ export async function GET(request: Request) {
             generatedAt: report.generatedAt,
             summary: report.summary
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Cron] AI Quality Audit Failed:', error);
         return NextResponse.json({
             success: false,
-            error: error.message
+            error: (error as Error).message
         }, { status: 500 });
     }
 }

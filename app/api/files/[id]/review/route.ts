@@ -41,7 +41,13 @@ export async function POST(
 
             // Update metadata
             // 1. Update File Basic Info
-            const updateData: any = {
+            interface FileUpdateData {
+                gemini_state: string;
+                updated_at: string;
+                filename?: string;
+                metadata_analysis?: Record<string, unknown>;
+            }
+            const updateData: FileUpdateData = {
                 gemini_state: 'SYNCED', // Move to active state
                 updated_at: new Date().toISOString(),
             };
@@ -96,7 +102,7 @@ export async function POST(
 
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         return toApiResponse(error);
     }
 }

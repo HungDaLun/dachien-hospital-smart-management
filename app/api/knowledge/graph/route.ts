@@ -10,7 +10,7 @@ interface GraphNode {
     id: string;
     type: 'file' | 'framework_instance';
     label: string;
-    data: any;
+    data: Record<string, unknown>;
     position?: { x: number; y: number }; // Optional, usually calculated by layout engine
 }
 
@@ -117,7 +117,27 @@ export async function GET(request: NextRequest) {
         });
 
         // Instances -> Nodes & Edges
-        (instances || []).forEach((inst: any) => {
+        interface KnowledgeInstance {
+            id: string;
+            title: string;
+            framework_id: string;
+            knowledge_frameworks?: {
+                display_id?: string;
+                name?: string;
+                code?: string;
+                detailed_definition?: string;
+                structure_schema?: Record<string, unknown>;
+                ui_config?: Record<string, unknown>;
+            };
+            ai_summary?: string;
+            completeness?: number;
+            confidence?: number;
+            data?: Record<string, unknown>;
+            source_file_ids?: string[];
+            created_at: string;
+            department_id?: string;
+        }
+        ((instances || []) as KnowledgeInstance[]).forEach((inst) => {
             nodes.push({
                 id: inst.id,
                 type: 'framework_instance',
@@ -137,7 +157,7 @@ export async function GET(request: NextRequest) {
 
             // Edges from Source Files to Instance
             if (inst.source_file_ids && Array.isArray(inst.source_file_ids)) {
-                inst.source_file_ids.forEach((fileId: string) => {
+                inst.source_file_ids.forEach((fileId) => {
                     if (nodes.find(n => n.id === fileId)) {
                         edges.push({
                             id: `e-${fileId}-${inst.id}`,

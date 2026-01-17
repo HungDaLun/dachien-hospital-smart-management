@@ -132,7 +132,10 @@ export async function POST(request: NextRequest) {
         // 如果沒有 content 且有 repoFullName，則從 GitHub 抓取
         if (!content && client && skill.repoFullName && skill.path) {
             console.log(`[Import] Fetching content from GitHub: ${skill.repoFullName}/${skill.path}`);
-            const fetchedContent = await (client as any).fetchSkillContent(skill.repoFullName, skill.path);
+            interface SkillsMPClientWithFetch {
+                fetchSkillContent(repo: string, path: string): Promise<string | null>;
+            }
+            const fetchedContent = await (client as unknown as SkillsMPClientWithFetch).fetchSkillContent(skill.repoFullName, skill.path);
             if (fetchedContent) {
                 content = fetchedContent;
             }

@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { SkillMarketTranslator } from '@/lib/skills/translator';
+import { SkillMarketTranslator, TranslatableSkill } from '@/lib/skills/translator';
 import { toApiResponse } from '@/lib/errors';
 
 const translator = new SkillMarketTranslator();
@@ -46,14 +46,14 @@ export async function POST(_request: NextRequest) {
             description: s.description
         }));
 
-        let translatedResults = [];
+        let translatedResults: TranslatableSkill[] = [];
         try {
             translatedResults = await translator.translateResults(resultsToTranslate);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[Translate Batch] Translator error:', err);
             return NextResponse.json({
                 success: false,
-                error: { message: `翻譯器發生錯誤: ${err.message}` },
+                error: { message: `翻譯器發生錯誤: ${(err as Error).message}` },
                 found: needsNames
             });
         }
@@ -63,15 +63,24 @@ export async function POST(_request: NextRequest) {
         const failedIds: string[] = [];
 
         for (const tr of translatedResults) {
-            if (tr.translatedTitle || tr.translatedDescription) {
+            const translatedTitle = tr.translatedTitle as string | undefined;
+            const translatedDescription = tr.translatedDescription as string | undefined;
+            const translatedTip = tr.translatedTip as string | undefined;
+
+            if (translatedTitle || translatedDescription) {
                 const original = needsTranslation.find(s => s.id === tr.id);
                 if (original) {
-                    const updateData: any = {};
-                    if (tr.translatedTitle) updateData.display_name = tr.translatedTitle;
-                    if (tr.translatedDescription) {
-                        let finalDesc = tr.translatedDescription;
-                        if (tr.translatedTip) {
-                            finalDesc += `\n\n---TIPS---\n${tr.translatedTip}`;
+                    interface SkillUpdateData {
+                        display_name?: string;
+                        description?: string;
+                        skill_content?: string;
+                    }
+                    const updateData: SkillUpdateData = {};
+                    if (translatedTitle) updateData.display_name = translatedTitle;
+                    if (translatedDescription) {
+                        let finalDesc = translatedDescription;
+                        if (translatedTip) {
+                            finalDesc += `\n\n---TIPS---\n${translatedTip}`;
                         }
                         updateData.description = finalDesc;
                         updateData.skill_content = finalDesc;

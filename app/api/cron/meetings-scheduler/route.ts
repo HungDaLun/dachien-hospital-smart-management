@@ -77,9 +77,9 @@ export async function GET(req: NextRequest) {
                 results.push({ id: meeting.id, status: 'completed' });
                 console.log(`[Cron] 會議 ${meeting.id} 已完成執行`);
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(`[Cron] 處理會議 ${meeting.id} 時發生錯誤:`, error);
-                results.push({ id: meeting.id, status: 'error', error: error.message });
+                results.push({ id: meeting.id, status: 'error', error: (error as Error).message });
             }
         }
 
@@ -88,9 +88,9 @@ export async function GET(req: NextRequest) {
             results
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Cron] 排程器執行失敗:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }
 
@@ -137,7 +137,7 @@ async function runMeetingToCompletion(service: MeetingService, meetingId: string
             // 短暫延遲，避免過快
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(`[Cron] 會議 ${meetingId} 對話輪次失敗:`, error);
             // 繼續下一輪，不中斷整個會議
         }
@@ -147,7 +147,7 @@ async function runMeetingToCompletion(service: MeetingService, meetingId: string
     try {
         await service.endMeeting(meetingId);
         console.log(`[Cron] 會議 ${meetingId} 已結束，會議記錄已生成`);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[Cron] 結束會議 ${meetingId} 時發生錯誤:`, error);
     }
 }

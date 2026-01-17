@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
         );
 
         return NextResponse.json({ id: meetingId });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating meeting:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

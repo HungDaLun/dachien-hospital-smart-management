@@ -38,7 +38,11 @@ export async function PUT(
 
         // 2. 插入新標籤
         if (tags.length > 0) {
-            const tagInserts = tags.map((t: any) => ({
+            interface TagInput {
+                tag_key: string;
+                tag_value: string;
+            }
+            const tagInserts = (tags as TagInput[]).map((t) => ({
                 file_id: id,
                 tag_key: t.tag_key,
                 tag_value: t.tag_value,

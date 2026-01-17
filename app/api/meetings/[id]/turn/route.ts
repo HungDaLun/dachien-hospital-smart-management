@@ -41,8 +41,8 @@ export async function POST(
                 'Connection': 'keep-alive',
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error processing turn:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

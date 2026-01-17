@@ -52,11 +52,12 @@ export async function POST(
                     geminiFileUri,
                     file.mime_type
                 );
-            } catch (testError: any) {
+            } catch (testError: unknown) {
                 // 如果錯誤是 403 (權限問題/檔案不存在)，需要重新上傳
-                if (testError.message?.includes('403') ||
-                    testError.message?.includes('permission') ||
-                    testError.message?.includes('not exist')) {
+                const errorMsg = (testError as Error).message || '';
+                if (errorMsg.includes('403') ||
+                    errorMsg.includes('permission') ||
+                    errorMsg.includes('not exist')) {
                     console.log(`[ETL] Gemini URI 已過期，將重新上傳: ${fileId}`);
                     needsReupload = true;
                 } else {
@@ -181,10 +182,10 @@ export async function POST(
             reuploadedToGemini: needsReupload
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('ETL Error:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
+            { error: (error as Error).message || 'Internal Server Error' },
             { status: 500 }
         );
     }
