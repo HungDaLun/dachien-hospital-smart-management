@@ -5,13 +5,28 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 
+interface AuditLogDetails {
+    filename?: string;
+    size_bytes?: number;
+    mime_type?: string;
+    name?: string;
+    description?: string;
+    email?: string;
+    display_name?: string;
+    role?: string;
+    model_version?: string;
+    department_id?: string;
+    note?: string;
+    [key: string]: unknown;
+}
+
 interface AuditLog {
     id: string;
     user_id: string;
     action_type: string;
     resource_type: string;
     resource_id: string;
-    details: any;
+    details: AuditLogDetails | string | null;
     ip_address: string;
     created_at: string;
     user_profiles?: {
@@ -127,14 +142,14 @@ function getActionColor(action: string): string {
 /**
  * 格式化詳情為友好的文字格式
  */
-function formatDetails(details: any): string {
+function formatDetails(details: AuditLogDetails | string | null): string {
     if (!details) return '-';
     if (typeof details === 'string') return details;
-    
+
     // 如果是物件，根據內容格式化為友好的文字
     if (typeof details === 'object') {
         const parts: string[] = [];
-        
+
         // 優先處理檔案相關的詳情（檔案名稱最重要）
         if (details.filename) {
             parts.push(`檔案：${details.filename}`);
@@ -159,7 +174,7 @@ function formatDetails(details: any): string {
                 }
             }
         }
-        
+
         // 處理使用者相關的詳情（只有在不是檔案的情況下）
         if (!details.filename) {
             if (details.email) {
@@ -172,24 +187,24 @@ function formatDetails(details: any): string {
                 parts.push(`角色：${details.role}`);
             }
         }
-        
+
         // 處理模型版本（Agent 相關）
         if (details.model_version) {
             parts.push(`模型：${details.model_version}`);
         }
-        
+
         // 處理部門 ID（如果有）
         if (details.department_id) {
             parts.push(`部門 ID：${details.department_id}`);
         }
-        
+
         // 如果有 note，顯示在最後（用括號標示）
         if (details.note) {
             parts.push(`（${details.note}）`);
         }
-        
+
         return parts.length > 0 ? parts.join(' | ') : '-';
     }
-    
+
     return '-';
 }

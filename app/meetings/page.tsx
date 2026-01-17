@@ -26,12 +26,18 @@ export default async function MeetingPage() {
         .eq('id', user.id)
         .single();
 
+    interface UserProfileWithDept {
+        display_name: string | null;
+        department_id: string | null;
+        departments: { name: string } | null;
+    }
+
     return <MeetingSetup
         initialDepartments={departments || []}
         initialAgents={agents || []}
         currentUser={{
             name: userProfile?.display_name || user.email || 'Unknown User',
-            department: (userProfile as any)?.departments?.name || '管理部'
+            department: (userProfile as UserProfileWithDept | null)?.departments?.name || '管理部'
         }}
     />;
 }

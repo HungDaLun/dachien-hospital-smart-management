@@ -43,9 +43,13 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
     }, [initialCategories]);
 
     // Tree building logic
+    interface TreeNode extends DocumentCategory {
+        children: TreeNode[];
+    }
+
     const buildTree = (cats: DocumentCategory[]) => {
-        const map: Record<string, DocumentCategory & { children: any[] }> = {};
-        const roots: any[] = [];
+        const map: Record<string, TreeNode> = {};
+        const roots: TreeNode[] = [];
 
         cats.forEach(c => {
             map[c.id] = { ...c, children: [] };
@@ -118,7 +122,7 @@ export default function TaxonomyManager({ initialCategories }: TaxonomyManagerPr
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const renderNode = (node: DocumentCategory & { children: any[] }, level: number = 0) => {
+    const renderNode = (node: TreeNode, level: number = 0): React.JSX.Element => {
         const hasChildren = node.children.length > 0;
         const isExpanded = expanded[node.id];
 
