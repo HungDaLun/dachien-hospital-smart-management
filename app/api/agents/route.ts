@@ -98,10 +98,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     // 儲存知識規則 (若有提供)
     const { knowledge_rules } = body;
     if (knowledge_rules && knowledge_rules.length > 0) {
+      interface KnowledgeRule {
+        rule_type: string;
+        rule_value: string;
+      }
       const { error: rulesError } = await adminSupabase
         .from('agent_knowledge_rules')
         .insert(
-          knowledge_rules.map((rule: any) => ({
+          (knowledge_rules as KnowledgeRule[]).map((rule) => ({
             agent_id: agent.id,
             rule_type: rule.rule_type,
             rule_value: rule.rule_value,

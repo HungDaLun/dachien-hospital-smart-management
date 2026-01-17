@@ -28,11 +28,12 @@ export async function POST(request: NextRequest) {
       .limit(30);
 
     const fileList = recentFiles?.map(f => {
-      const meta = f.metadata_analysis || {};
+      const meta = (f.metadata_analysis || {}) as { title?: string; summary?: string; governance?: { dikw_level?: string; artifact?: string } };
+      interface FileTag { tag_key: string; tag_value: string; }
       return `- [${f.filename}] (ID: ${f.id})
   標題: ${meta.title || '無'}
   摘要: ${meta.summary || '無'}
-  標籤: ${f.file_tags?.map((t: any) => `${t.tag_key}:${t.tag_value}`).join(', ') || '無'}
+  標籤: ${(f.file_tags as FileTag[] | null)?.map((t) => `${t.tag_key}:${t.tag_value}`).join(', ') || '無'}
   DIKW層級: ${meta.governance?.dikw_level || '無'}
   框架類型: ${meta.governance?.artifact || '無'}`;
     }).join('\n\n') || "No files available.";
@@ -59,14 +60,20 @@ export async function POST(request: NextRequest) {
     const availableSkills = skills?.map(s => `- [${s.name}] ${s.display_name}: ${s.description}`).join('\n') || "暫無可用技能";
 
     // Simple keyword matching for tactical framework selection
-    let matchedTemplate = null;
+    interface TacticalTemplate {
+      name: string;
+      trigger_keywords?: string[];
+      structure_template?: string;
+      compliance_checklist?: string[];
+    }
+    let matchedTemplate: (TacticalTemplate & { matchCount: number }) | null = null;
     if (templates && templates.length > 0) {
-      matchedTemplate = templates
-        .map((t: any) => ({
+      matchedTemplate = (templates as TacticalTemplate[])
+        .map((t) => ({
           ...t,
-          matchCount: (t.trigger_keywords || []).filter((k: string) => intent.toLowerCase().includes(k.toLowerCase())).length || 0
+          matchCount: (t.trigger_keywords || []).filter((k) => intent.toLowerCase().includes(k.toLowerCase())).length || 0
         }))
-        .sort((a: any, b: any) => b.matchCount - a.matchCount)[0];
+        .sort((a, b) => b.matchCount - a.matchCount)[0];
 
       if (matchedTemplate.matchCount === 0) matchedTemplate = null;
     }
@@ -235,7 +242,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Agent Architect Error:', error);
     return toApiResponse(error);
   }

@@ -63,7 +63,14 @@ export async function POST(req: Request) {
     }
 
     // Step 3: 格式化回傳結果
-    const formattedFiles = (recommendedFiles || []).map((file: any) => ({
+    interface RecommendedFile {
+      id: string;
+      filename: string;
+      title?: string;
+      summary?: string;
+      similarity: number;
+    }
+    const formattedFiles = ((recommendedFiles || []) as RecommendedFile[]).map((file) => ({
       id: file.id,
       filename: file.filename,
       title: file.title || file.filename,
@@ -80,10 +87,10 @@ export async function POST(req: Request) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[AI Recommend] Unexpected error:', error);
     return NextResponse.json(
-      { success: false, error: { message: 'Internal server error', details: error.message } },
+      { success: false, error: { message: 'Internal server error', details: (error as Error).message } },
       { status: 500 }
     );
   }

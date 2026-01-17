@@ -141,10 +141,14 @@ export async function PUT(
 
             // 插入新規則
             if (knowledge_rules.length > 0) {
+                interface KnowledgeRule {
+                    rule_type: string;
+                    rule_value: string;
+                }
                 const { error: rulesError } = await supabase
                     .from('agent_knowledge_rules')
                     .insert(
-                        knowledge_rules.map((rule: any) => ({
+                        (knowledge_rules as KnowledgeRule[]).map((rule) => ({
                             agent_id: params.id,
                             rule_type: rule.rule_type,
                             rule_value: rule.rule_value,
