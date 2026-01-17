@@ -12,23 +12,77 @@ interface MeetingRoomProps {
     meetingId: string;
 }
 
+interface Citation {
+    file_name?: string;
+    file_id?: string;
+}
+
 interface Message {
     id: string;
     speaker_type: string;
     speaker_name: string;
     content: string;
     created_at: string;
-    citations?: any[];
+    citations?: Citation[];
     metadata?: {
         suspected_hallucinations?: string[];
         warning?: string;
     } | null;
 }
 
+interface Participant {
+    id: string;
+    name: string;
+    participant_type: string;
+}
+
+interface Meeting {
+    id: string;
+    title?: string;
+    topic: string;
+    status: 'scheduled' | 'in_progress' | 'paused' | 'completed';
+    scheduled_start_time?: string;
+    started_at?: string;
+    ended_at?: string;
+    duration_minutes?: number;
+    current_phase?: string;
+    mode?: string;
+}
+
+interface MinutesContent {
+    recommended_actions?: ActionItem[];
+    consensus_points?: string[];
+    divergence_points?: string[];
+    consultant_insights?: ConsultantInsight[];
+}
+
+interface ActionItem {
+    action: string;
+    responsible_department: string;
+    priority: 'high' | 'medium' | 'low';
+    smart_specific?: string;
+    smart_measurable?: string;
+    smart_achievable?: string;
+    smart_relevant?: string;
+    smart_time_bound?: string;
+}
+
+interface ConsultantInsight {
+    consultant_name: string;
+    role_perspective: string;
+    key_insights: string[];
+}
+
+interface MinutesData {
+    meeting_id: string;
+    executive_summary: string;
+    content: MinutesContent;
+}
+
 export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     const { toast } = useToast();
-    const [participants, setParticipants] = useState<any[]>([]);
-    const [meeting, setMeeting] = useState<any>(null);
+    const [participants, setParticipants] = useState<Participant[]>([]);
+    const [meeting, setMeeting] = useState<Meeting | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -43,7 +97,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     const isStreamingRef = useRef(false); // 追蹤是否正在串流中，避免 loadMeeting 覆蓋
 
     // Minutes State
-    const [minutesData, setMinutesData] = useState<any>(null);
+    const [minutesData, setMinutesData] = useState<MinutesData | null>(null);
     const [showMinutes, setShowMinutes] = useState(false);
 
     // 倒數計時狀態（每秒更新）
@@ -65,11 +119,11 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                 });
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetings', filter: `id=eq.${meetingId}` }, (payload) => {
-                setMeeting((prev: any) => ({ ...prev, ...payload.new }));
+                setMeeting((prev) => prev ? ({ ...prev, ...payload.new } as Meeting) : null);
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_minutes', filter: `meeting_id=eq.${meetingId}` }, (payload: any) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_minutes', filter: `meeting_id=eq.${meetingId}` }, (payload) => {
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                    setMinutesData(payload.new);
+                    setMinutesData(payload.new as MinutesData);
                     toast.success('會議記錄已生成！');
                 }
             })
@@ -157,8 +211,8 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
         if (!meeting || meeting.status !== 'in_progress' || !meeting.started_at || !meeting.duration_minutes) return;
 
         const checkTimeout = async () => {
-            const startTime = new Date(meeting.started_at).getTime();
-            const durationMs = meeting.duration_minutes * 60 * 1000;
+            const startTime = new Date(meeting.started_at!).getTime();
+            const durationMs = meeting.duration_minutes! * 60 * 1000;
             const endTime = startTime + durationMs;
             const now = Date.now();
 
@@ -179,7 +233,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                     });
 
                     if (res.ok) {
-                        setMeeting((prev: any) => ({ ...prev, status: 'completed', ended_at: new Date().toISOString() }));
+                        setMeeting((prev) => prev ? ({ ...prev, status: 'completed' as const, ended_at: new Date().toISOString() }) : null);
                         toast.success('會議記錄已生成完成！');
                         window.dispatchEvent(new Event('meeting-updated'));
                         loadMeeting(true); // 會議結束，強制重新載入訊息
@@ -376,7 +430,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
         setIsEnding(true); // 開始結束流程
         // Optimistic update to prevent auto-end timer from firing
-        setMeeting((prev: any) => ({ ...prev, status: 'completed' }));
+        setMeeting((prev) => prev ? ({ ...prev, status: 'completed' as const }) : null);
 
         try {
             await fetch(`/api/meetings/${meetingId}`, {
@@ -399,7 +453,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     const handleForceStart = async () => {
         setIsPlaying(true);
         // Optimistic update
-        setMeeting((prev: any) => ({ ...prev, status: 'in_progress' }));
+        setMeeting((prev) => prev ? ({ ...prev, status: 'in_progress' as const }) : null);
 
         await fetch(`/api/meetings/${meetingId}`, {
             method: 'PATCH',
@@ -640,9 +694,9 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                                     {/* Citations */}
                                     {msg.citations && Array.isArray(msg.citations) && msg.citations.length > 0 && (
                                         <div className="mt-1 flex flex-wrap gap-2">
-                                            {msg.citations.map((c: any, i: number) => (
+                                            {msg.citations.map((c, i: number) => (
                                                 <div key={i} className="text-[10px] px-2 py-0.5 bg-muted/50 border rounded-md text-muted-foreground">
-                                                    📎 {typeof c === 'string' ? c : c.file_name}
+                                                    📎 {c.file_name || 'Unknown'}
                                                 </div>
                                             ))}
                                         </div>
@@ -748,7 +802,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
                                         <ListTodo className="w-5 h-5" /> SMART 行動計畫
                                     </h2>
                                     <div className="grid gap-4">
-                                        {(minutesData.content.recommended_actions || []).map((action: any, idx: number) => (
+                                        {(minutesData.content.recommended_actions || []).map((action, idx: number) => (
                                             <div key={idx} className="border rounded-xl p-5 bg-background-secondary hover:border-primary/50 transition-colors shadow-sm">
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div>
@@ -832,13 +886,13 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
                                 {/* Consultant Insights */}
                                 {
-                                    minutesData.content.consultant_insights?.length > 0 && (
+                                    minutesData.content.consultant_insights && minutesData.content.consultant_insights.length > 0 && (
                                         <section className="space-y-3 pt-4 border-t">
                                             <h2 className="text-lg font-semibold flex items-center gap-2 text-primary">
                                                 <MessageSquare className="w-5 h-5" /> 專家觀點摘要
                                             </h2>
                                             <div className="grid md:grid-cols-2 gap-4">
-                                                {minutesData.content.consultant_insights.map((cons: any, i: number) => (
+                                                {minutesData.content.consultant_insights.map((cons, i: number) => (
                                                     <div key={i} className="p-4 border rounded-lg bg-card text-sm">
                                                         <div className="font-bold mb-2 flex items-center gap-2">
                                                             🤖 {cons.consultant_name}
