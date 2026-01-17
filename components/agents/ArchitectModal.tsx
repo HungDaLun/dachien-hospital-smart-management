@@ -22,7 +22,7 @@ interface ArchitectResponse {
     suggested_knowledge_files?: string[];
     suggested_tools?: string[]; // 新增：建議工具 ID 列表
     suggested_skills?: string[]; // 新增：建議技能 ID 列表
-    mcp_config?: Record<string, any>; // 新增：推薦的 MCP 設定
+    mcp_config?: Record<string, unknown>; // 新增：推薦的 MCP 設定
 }
 
 interface ChatMessage {
@@ -36,7 +36,7 @@ interface ChatMessage {
 interface ArchitectChatProps {
     onApply: (blueprint: ArchitectResponse) => void;
     departmentContext?: string;
-    currentState?: any; // 當前的 Agent 狀態
+    currentState?: Record<string, unknown>; // 當前的 Agent 狀態
     dict: Dictionary;
     fileNames?: Record<string, string>; // 新增：檔案名稱映射
     toolNames?: Record<string, string>; // 新增：工具名稱映射
@@ -181,11 +181,11 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
 
             setMessages(prev => [...prev, assistantMessage]);
             setLastActivityTime(new Date());
-        } catch (err: any) {
+        } catch (err: unknown) {
             const errorMessage: ChatMessage = {
                 id: `error-${Date.now()}`,
                 role: 'assistant',
-                content: `❌ ${t.error_occurred}: ${err.message || 'Something went wrong'}`,
+                content: `❌ ${t.error_occurred}: ${(err as Error).message || 'Something went wrong'}`,
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);

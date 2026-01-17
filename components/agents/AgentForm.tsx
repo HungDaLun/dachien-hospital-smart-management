@@ -11,6 +11,7 @@ import type { AgentData } from './AgentCard';
 import { getCategories, getDepartments } from '@/lib/actions/taxonomy';
 import { DocumentCategory } from '@/types';
 import TemplateSelector from './TemplateSelector';
+import type { AgentTemplate } from './TemplateCard';
 
 /**
  * Agent 表單屬性
@@ -87,15 +88,24 @@ export default function AgentForm({ isOpen, onClose, agent, onSuccess }: AgentFo
     /**
      * 當選擇模板時
      */
-    const handleTemplateSelect = (template: any) => {
-        setName(template.name); // 預設使用模板名稱，使用者可改
-        setDescription(template.description);
-        setSystemPrompt(template.system_prompt_template);
+    interface TemplateKnowledge {
+        required_categories?: string[];
+    }
+    interface TemplateWithKnowledge extends AgentTemplate {
+        system_prompt_template?: string;
+        recommended_knowledge?: TemplateKnowledge;
+    }
+
+    const handleTemplateSelect = (template: AgentTemplate) => {
+        const tmpl = template as TemplateWithKnowledge;
+        setName(tmpl.name); // 預設使用模板名稱，使用者可改
+        setDescription(tmpl.description);
+        setSystemPrompt(tmpl.system_prompt_template || tmpl.system_prompt || '');
 
         // 解析並填入建議的知識規則
-        const rules: any[] = [];
-        if (template.recommended_knowledge?.required_categories) {
-            template.recommended_knowledge.required_categories.forEach((catName: string) => {
+        const rules: { rule_type: string; rule_value: string }[] = [];
+        if (tmpl.recommended_knowledge?.required_categories) {
+            tmpl.recommended_knowledge.required_categories.forEach((catName: string) => {
                 const cat = categories.find(c => c.name === catName);
                 if (cat) {
                     rules.push({ rule_type: 'CATEGORY', rule_value: cat.id });

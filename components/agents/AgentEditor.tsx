@@ -91,17 +91,20 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         temperature: 0.7,
         knowledge_rules: [],
         knowledge_files: [],
-        mcp_config: (initialData as any)?.mcp_config || '{}',
-        enabled_tools: (initialData as any)?.enabled_tools || [],
-        enabled_skills: (initialData as any)?.enabled_skills || [],
+        mcp_config: (initialData as AgentData | undefined)?.mcp_config || '{}',
+        enabled_tools: (initialData as AgentData | undefined)?.enabled_tools || [],
+        enabled_skills: (initialData as AgentData | undefined)?.enabled_skills || [],
     });
 
     const [fileNames, setFileNames] = useState<Record<string, string>>({});
     const [toolNames, setToolNames] = useState<Record<string, string>>({});
     const [skillNames, setSkillNames] = useState<Record<string, string>>({});
-    const [allFiles, setAllFiles] = useState<any[]>([]);
-    const [allSkills, setAllSkills] = useState<any[]>([]); // 新增：保存所有技能以供名稱轉 ID
-    const [departments, setDepartments] = useState<any[]>([]);
+    interface FileItem { id: string; filename: string; }
+    interface SkillItem { id: string; name: string; display_name?: string; }
+    interface DepartmentItem { id: string; name: string; code: string; }
+    const [allFiles, setAllFiles] = useState<FileItem[]>([]);
+    const [allSkills, setAllSkills] = useState<SkillItem[]>([]); // 新增：保存所有技能以供名稱轉 ID
+    const [departments, setDepartments] = useState<DepartmentItem[]>([]);
 
     const [newTag, setNewTag] = useState({ key: '', value: '' });
     const [newDept, setNewDept] = useState('');
@@ -140,7 +143,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 if (filesData.success) {
                     setAllFiles(filesData.data);
                     const mapping: Record<string, string> = {};
-                    filesData.data.forEach((f: any) => {
+                    filesData.data.forEach((f: FileItem) => {
                         mapping[f.id] = f.filename;
                     });
                     setFileNames(mapping);
@@ -150,8 +153,9 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 const toolsRes = await fetch('/api/tools');
                 const toolsData = await toolsRes.json();
                 if (toolsData.success) {
+                    interface ToolItem { name: string; display_name: string; }
                     const mapping: Record<string, string> = {};
-                    toolsData.data.forEach((t: any) => {
+                    toolsData.data.forEach((t: ToolItem) => {
                         mapping[t.name] = t.display_name;
                     });
                     setToolNames(mapping);
@@ -163,8 +167,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 if (skillsData.success) {
                     setAllSkills(skillsData.data); // 保存完整物件
                     const mapping: Record<string, string> = {};
-                    skillsData.data.forEach((s: any) => {
-                        mapping[s.name] = s.display_name;
+                    skillsData.data.forEach((s: SkillItem) => {
+                        mapping[s.name] = s.display_name || s.name;
                     });
                     setSkillNames(mapping);
                 }
@@ -245,13 +249,24 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
         setNewDept('');
     };
 
-    const handleArchitectApply = (blueprint: any) => {
+    interface ArchitectBlueprint {
+        name?: string;
+        description?: string;
+        system_prompt?: string;
+        suggested_knowledge_rules?: KnowledgeRule[];
+        suggested_knowledge_files?: string[];
+        mcp_config?: Record<string, unknown>;
+        suggested_tools?: string[];
+        suggested_skills?: string[];
+    }
+
+    const handleArchitectApply = (blueprint: ArchitectBlueprint) => {
         setFormData(prev => {
             const existingRules = prev.knowledge_rules || [];
             const suggestedRules = blueprint.suggested_knowledge_rules || [];
             const mergedRules = [...existingRules];
 
-            suggestedRules.forEach((sRule: any) => {
+            suggestedRules.forEach((sRule) => {
                 const exists = mergedRules.some(r =>
                     r.rule_type === sRule.rule_type &&
                     r.rule_value === sRule.rule_value
@@ -269,9 +284,9 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                     return found ? found.id : null;
                 }
                 return item;
-            }).filter(Boolean);
+            }).filter((item): item is string => item !== null);
 
-            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFilesResolved]));
+            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFilesResolved])) as string[];
 
             return {
                 ...prev,
@@ -296,7 +311,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 return found ? found.id : null;
                             }
                             return sName;
-                        }).filter(Boolean)
+                        }).filter((item): item is string => item !== null)
                     ])] : prev.enabled_skills
             };
         });
@@ -836,7 +851,7 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
             <ArchitectChat
                 onApply={handleArchitectApply}
-                currentState={formData}
+                currentState={formData as unknown as Record<string, unknown>}
                 dict={dict}
                 fileNames={fileNames}
                 toolNames={toolNames}
