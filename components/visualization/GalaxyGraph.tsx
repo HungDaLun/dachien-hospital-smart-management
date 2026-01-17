@@ -55,7 +55,19 @@ const DIKW_COLORS = {
 };
 
 // --- Star Node Component (Obsidian Style - Pure Dot) ---
-const StarNode = ({ data, selected }: any) => {
+interface StarNodeData {
+    dikwLevel?: string;
+    dimmed?: boolean;
+    highlighted?: boolean;
+    label?: string;
+}
+
+interface StarNodeProps {
+    data: StarNodeData;
+    selected?: boolean;
+}
+
+const StarNode = ({ data, selected }: StarNodeProps) => {
     const level = data.dikwLevel || 'data';
     const colors = DIKW_COLORS[level as keyof typeof DIKW_COLORS] || DIKW_COLORS.data;
 
@@ -137,7 +149,16 @@ const nodeTypes = {
 };
 
 // Helper to determine Ring Radius based on type/level
-const getNodeRadius = (node: any) => {
+interface NodeWithData {
+    id: string;
+    type?: string;
+    data?: {
+        nodeType?: string;
+        dikwLevel?: string;
+    };
+}
+
+const getNodeRadius = (node: NodeWithData) => {
     const type = node.data?.nodeType || node.type;
     const level = node.data?.dikwLevel;
 
@@ -178,12 +199,19 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     });
     const d3Links = edges.map((e) => ({ ...e, source: e.source, target: e.target }));
 
-    const simulation = forceSimulation(d3Nodes as any)
+    interface D3Node {
+        id: string;
+        x: number;
+        y: number;
+        [key: string]: unknown;
+    }
+
+    const simulation = forceSimulation(d3Nodes as D3Node[])
         .force('center', forceCenter(0, 0)) // 強制置中
-        .force('link', forceLink(d3Links).id((d: any) => d.id).distance(200).strength(0.4)) // 連接的節點靠近但距離增加
+        .force('link', forceLink(d3Links).id((d) => (d as D3Node).id).distance(200).strength(0.4)) // 連接的節點靠近但距離增加
         .force('charge', forceManyBody().strength(-1200)) // 大幅增加斥力使節點分散
         .force('collide', forceCollide().radius(100).iterations(4)) // 增加碰撞半徑避免重疊
-        .force('radial', forceRadial((d: any) => getNodeRadius(d), 0, 0).strength(0.15)) // 進一步降低徑向力
+        .force('radial', forceRadial((d) => getNodeRadius(d as NodeWithData), 0, 0).strength(0.15)) // 進一步降低徑向力
         .stop();
 
     const TICK_COUNT = 500; // 增加迭代次數使佈局更穩定
@@ -191,10 +219,10 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
         simulation.tick();
     }
 
-    const layoutedNodes = d3Nodes.map((n: any) => ({
+    const layoutedNodes = (d3Nodes as (Node & { x: number; y: number })[]).map((n) => ({
         ...n,
         position: { x: n.x, y: n.y },
-    }));
+    })) as Node[];
 
     return { nodes: layoutedNodes, edges };
 };
@@ -328,7 +356,20 @@ function GalaxyGraphContent({
             const data = await res.json();
 
             // Initial Nodes without visual state
-            const apiNodes = data.nodes.map((n: any) => {
+            interface ApiNode {
+                id: string;
+                type: string;
+                label: string;
+                data?: Record<string, unknown>;
+            }
+
+            interface ApiEdge {
+                id: string;
+                source: string;
+                target: string;
+            }
+
+            const apiNodes = (data.nodes as ApiNode[]).map((n) => {
                 const dikwLevel = n.data?.dikwLevel || getDIKWLevel(n.type);
                 return {
                     id: n.id,
@@ -348,7 +389,7 @@ function GalaxyGraphContent({
                 };
             });
 
-            const apiEdges = data.edges.map((e: any) => ({
+            const apiEdges = (data.edges as ApiEdge[]).map((e) => ({
                 id: e.id,
                 source: e.source,
                 target: e.target,

@@ -14,6 +14,36 @@ import { generateEmbedding } from '@/lib/knowledge/embedding';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// 類型定義
+interface KnowledgeRule {
+    rule_type: string;
+    rule_value: string;
+}
+
+interface FileWithId {
+    id: string;
+    file_id?: string;
+}
+
+interface DepartmentWithId {
+    id: string;
+}
+
+interface RetrievedFile {
+    filename?: string;
+    source?: string;
+    content?: string;
+    markdown_content?: string;
+    summary?: string;
+    metadata_analysis?: { summary?: string };
+}
+
+interface FileRecord {
+    filename: string;
+    markdown_content: string;
+    metadata_analysis?: { summary?: string };
+}
+
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -72,13 +102,13 @@ export async function POST(req: NextRequest) {
         let departmentIds: string[] = [];
 
         if (rules && rules.length > 0) {
-            const tagRules = rules.filter((r: any) => r.rule_type === 'TAG');
-            const deptRules = rules.filter((r: any) => r.rule_type === 'DEPARTMENT');
-            const categoryRules = rules.filter((r: any) => r.rule_type === 'CATEGORY');
+            const tagRules = rules.filter((r: KnowledgeRule) => r.rule_type === 'TAG');
+            const deptRules = rules.filter((r: KnowledgeRule) => r.rule_type === 'DEPARTMENT');
+            const categoryRules = rules.filter((r: KnowledgeRule) => r.rule_type === 'CATEGORY');
 
             // 處理 TAG 規則
             if (tagRules.length > 0) {
-                const tagFilters = tagRules.map((r: any) => {
+                const tagFilters = tagRules.map((r: KnowledgeRule) => {
                     const [key, value] = r.rule_value.split(':');
                     return { key, value };
                 });
@@ -88,45 +118,45 @@ export async function POST(req: NextRequest) {
                     .select('file_id')
                     .or(tagFilters.map(f => `and(tag_key.eq.${f.key},tag_value.eq.${f.value})`).join(','));
 
-                tagFiles?.forEach((f: any) => matchedFileIds.add(f.file_id));
+                (tagFiles as FileWithId[] | null)?.forEach((f) => matchedFileIds.add(f.file_id || f.id));
             }
 
             // 處理 DEPARTMENT 規則
             if (deptRules.length > 0) {
-                const deptValues = deptRules.map((r: any) => r.rule_value);
+                const deptValues = deptRules.map((r: KnowledgeRule) => r.rule_value);
                 const { data: departments } = await supabase
                     .from('departments')
                     .select('id')
                     .or(`code.in.(${deptValues.map(v => `"${v}"`).join(',')}),name.in.(${deptValues.map(v => `"${v}"`).join(',')})`);
 
                 if (departments && departments.length > 0) {
-                    departmentIds = departments.map((d: any) => d.id);
+                    departmentIds = (departments as DepartmentWithId[]).map((d) => d.id);
                     const { data: deptFiles } = await supabase
                         .from('files')
                         .select('id')
                         .in('department_id', departmentIds)
                         .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
 
-                    deptFiles?.forEach((f: any) => matchedFileIds.add(f.id));
+                    (deptFiles as FileWithId[] | null)?.forEach((f) => matchedFileIds.add(f.id));
                 }
             }
 
             // 處理 CATEGORY 規則
             if (categoryRules.length > 0) {
-                const catIds = categoryRules.map((r: any) => r.rule_value);
+                const catIds = categoryRules.map((r: KnowledgeRule) => r.rule_value);
                 const { data: catFiles } = await supabase
                     .from('files')
                     .select('id')
                     .in('category_id', catIds)
                     .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
 
-                catFiles?.forEach((f: any) => matchedFileIds.add(f.id));
+                (catFiles as FileWithId[] | null)?.forEach((f) => matchedFileIds.add(f.id));
             }
         }
 
         // 使用向量搜尋或直接查詢檔案內容
         const lastMessage = messages[messages.length - 1];
-        let retrievedFiles: any[] = [];
+        let retrievedFiles: RetrievedFile[] = [];
 
         try {
             const embedding = await generateEmbedding(lastMessage.content);
@@ -152,7 +182,7 @@ export async function POST(req: NextRequest) {
                     .in('gemini_state', ['SYNCED', 'NEEDS_REVIEW', 'APPROVED']);
 
                 if (files) {
-                    retrievedFiles = files.map((f: any) => ({
+                    retrievedFiles = (files as FileRecord[]).map((f) => ({
                         filename: f.filename,
                         content: f.markdown_content,
                         summary: f.metadata_analysis?.summary
@@ -176,7 +206,7 @@ export async function POST(req: NextRequest) {
 
         // 建構知識上下文
         if (retrievedFiles.length > 0) {
-            knowledgeContext = retrievedFiles.map((f: any, i: number) => {
+            knowledgeContext = retrievedFiles.map((f: RetrievedFile, i: number) => {
                 const content = f.content || f.markdown_content || '';
                 const summary = f.summary || '';
                 const truncatedContent = content.length > 8000
@@ -204,8 +234,12 @@ ${knowledgeContext}
 ` : ''}`;
 
         // 4. Prepare Chat History
-        const historyMessages = messages.slice(0, messages.length - 1);
-        const geminiHistory = historyMessages.map((m: any) => ({
+        interface MessageItem {
+            role: string;
+            content: string;
+        }
+        const historyMessages = messages.slice(0, messages.length - 1) as MessageItem[];
+        const geminiHistory = historyMessages.map((m) => ({
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
         }));
