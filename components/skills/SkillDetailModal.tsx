@@ -22,7 +22,12 @@ export function SkillDetailModal({ isOpen, onClose, skill, onInstall, isInstalle
     if (!skill) return null;
 
     // 使用 skill_content 或 prompt_instruction（向後相容）
-    const skillContent = (skill as any).skill_content || skill.prompt_instruction || '';
+    interface SkillExtended extends Skill {
+        skill_content?: string;
+        usage_count?: number;
+    }
+    const extendedSkill = skill as SkillExtended;
+    const skillContent = extendedSkill.skill_content || skill.prompt_instruction || '';
 
     const handleCopy = () => {
         navigator.clipboard.writeText(skillContent);
@@ -58,7 +63,7 @@ export function SkillDetailModal({ isOpen, onClose, skill, onInstall, isInstalle
                             {/* 使用真實的 usage_count */}
                             <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4" />
-                                <span>{(skill as any).usage_count || 0} 次使用</span>
+                                <span>{extendedSkill.usage_count || 0} 次使用</span>
                             </div>
                             {/* 官方認證技能顯示星號 */}
                             {skill.is_official && (

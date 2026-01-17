@@ -135,8 +135,8 @@ export default function MeetingSetup({ initialDepartments, initialAgents, curren
             const data = await res.json();
             toast.success('會議已建立，正在進入會議室...');
             router.push(`/meetings/${data.id}`);
-        } catch (error: any) {
-            toast.error('建立失敗: ' + error.message);
+        } catch (error: unknown) {
+            toast.error('建立失敗: ' + (error as Error).message);
             setCreating(false);
         }
     };

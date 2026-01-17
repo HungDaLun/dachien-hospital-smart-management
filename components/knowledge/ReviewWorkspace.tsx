@@ -7,8 +7,21 @@ import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FileText, Sparkles, X, CheckCircle2, AlertCircle, Database, Tag, ArrowLeft } from 'lucide-react';
 
+interface ReviewFile {
+    id: string;
+    filename: string;
+    markdown_content?: string;
+    metadata_analysis?: {
+        suggested_filename?: string;
+        summary?: string;
+        tags?: string[];
+        document_type?: string;
+        department_suggestion?: string;
+    };
+}
+
 interface ReviewWorkspaceProps {
-    file: any;
+    file: ReviewFile;
 }
 
 export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {

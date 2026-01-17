@@ -24,11 +24,12 @@ const GalaxyGraph = dynamic(
         ssr: false
     }
 );
+import { FileData } from '@/components/files/FileCard';
 
 interface ControlCenterProps {
     canUpload: boolean;
     dict: Dictionary;
-    initialFiles?: any[];
+    initialFiles?: FileData[];
     initialTotal?: number;
     initialDepartments: Array<{ id: string; name: string }>;
     currentUserRole?: string;

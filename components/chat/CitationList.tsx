@@ -15,7 +15,7 @@ export interface Citation {
     uri?: string;
     title?: string;
     content?: string;
-    [key: string]: any;
+    [key: string]: string | number | undefined;
 }
 
 interface CitationListProps {

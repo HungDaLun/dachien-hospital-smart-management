@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button, Modal } from '@/components/ui';
 
 interface SkillImporterProps {
-    onImportComplete?: (skillData: any) => void;
+    onImportComplete?: (skillData: Record<string, unknown>) => void;
 }
 
 export default function SkillImporter({ onImportComplete }: SkillImporterProps) {
@@ -35,8 +35,8 @@ export default function SkillImporter({ onImportComplete }: SkillImporterProps) 
             if (onImportComplete) {
                 onImportComplete(result.data);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError((err as Error).message);
         } finally {
             setIsImporting(false);
         }

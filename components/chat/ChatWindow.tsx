@@ -150,13 +150,16 @@ export default function ChatWindow({ agent, dict }: ChatWindowProps) {
                             }
                             // Handle Metadata Block (Citations, Confidence, Review)
                             if (data.metadata) {
+                                interface ReviewTrigger {
+                                    category?: string;
+                                }
                                 setMessages((prev) => prev.map(msg =>
                                     msg.id === aiMessageId ? {
                                         ...msg,
                                         citations: data.metadata.citations,
                                         confidenceScore: data.metadata.confidence,
                                         needsReview: data.metadata.needs_review,
-                                        reviewTriggers: data.metadata.review_triggers ? data.metadata.review_triggers.map((t: any) => t.category || t) : []
+                                        reviewTriggers: data.metadata.review_triggers ? data.metadata.review_triggers.map((t: ReviewTrigger | string) => (typeof t === 'string' ? t : t.category) || '') : []
                                     } : msg
                                 ));
                             }
