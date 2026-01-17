@@ -101,7 +101,11 @@ export async function POST(request: NextRequest) {
 
       // 如果是正向回饋，且訊息有引用來源，則同步更新引用來源的評分 (Implicit Feedback to Knowledge)
       if (rating === 1 && message.citations) {
-        const citations = message.citations as any[];
+        interface Citation {
+          file_id?: string;
+          uri?: string;
+        }
+        const citations = message.citations as Citation[];
         if (Array.isArray(citations) && citations.length > 0) {
           // Import dynamically to avoid circle dependency issues if any
           const { submitFeedback } = await import('@/lib/knowledge/feedback');

@@ -41,7 +41,12 @@ export async function POST(req: NextRequest) {
             });
 
             if (!rpcError && vectorMatches && vectorMatches.length > 0) {
-                knowledgeContext = vectorMatches.map((m: any) =>
+                interface VectorMatch {
+                    filename: string;
+                    similarity: number;
+                    summary?: string;
+                }
+                knowledgeContext = (vectorMatches as VectorMatch[]).map((m) =>
                     `【核心文件：${m.filename}】(相關度: ${Math.round(m.similarity * 100)}%)\n內容摘要：${m.summary || "無摘要"}`
                 ).join('\n\n');
                 vectorSearchHadResults = true;
@@ -59,7 +64,11 @@ export async function POST(req: NextRequest) {
                 .limit(10);
 
             if (allFiles && allFiles.length > 0) {
-                knowledgeContext = allFiles.map((f: any) =>
+                interface FileWithMetadata {
+                    filename: string;
+                    metadata_analysis?: { summary?: string };
+                }
+                knowledgeContext = (allFiles as FileWithMetadata[]).map((f) =>
                     `【部門文件：${f.filename}】\n內容分析：${f.metadata_analysis?.summary || "尚無詳細摘要"}`
                 ).join('\n\n');
             } else {
@@ -152,10 +161,10 @@ ${message}
             headers: { 'Content-Type': 'text/plain; charset=utf-8' }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Dept Chat Error:', error);
         return NextResponse.json({
-            reply: `(連線異常) ${error.message || '請稍後再試'}`
+            reply: `(連線異常) ${(error as Error).message || '請稍後再試'}`
         }, { status: 500 });
     }
 }

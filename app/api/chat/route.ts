@@ -160,7 +160,17 @@ export async function POST(request: NextRequest) {
         }
 
         let knowledgeContext = '';
-        let retrievedFiles: any[] = [];
+        interface RetrievedFile {
+            id: string;
+            filename?: string;
+            source?: string;
+            content?: string;
+            markdown_content?: string;
+            summary?: string;
+            similarity?: number;
+            department_id?: string;
+        }
+        let retrievedFiles: RetrievedFile[] = [];
 
         try {
             const embedding = await generateEmbedding(message);
@@ -187,7 +197,7 @@ export async function POST(request: NextRequest) {
                 // 去重並按相似度排序
                 const uniqueFiles = Array.from(
                     new Map(retrievedFiles.map(f => [f.id, f])).values()
-                ).sort((a: any, b: any) => b.similarity - a.similarity);
+                ).sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
                 retrievedFiles = uniqueFiles.slice(0, 10);
             } else if (matchedFileIds.size > 0) {
@@ -219,7 +229,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (retrievedFiles.length > 0) {
-            knowledgeContext = retrievedFiles.map((f: any, i: number) => {
+            knowledgeContext = retrievedFiles.map((f, i) => {
                 const content = f.content || f.markdown_content || '';
                 const summary = f.summary || '';
                 const truncatedContent = content.length > 8000
