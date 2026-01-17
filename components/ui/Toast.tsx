@@ -71,6 +71,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         setMounted(true);
     }, []);
 
+    const removeToast = useCallback((id: string) => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, []);
+
     const addToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
         const id = Math.random().toString(36).substr(2, 9);
         const newToast: ToastItem = {
@@ -87,11 +91,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 removeToast(id);
             }, newToast.duration);
         }
-    }, []);
+    }, [removeToast]);
 
-    const removeToast = useCallback((id: string) => {
-        setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, []);
+
 
     return (
         <ToastContext.Provider value={{ toasts, addToast, removeToast }}>

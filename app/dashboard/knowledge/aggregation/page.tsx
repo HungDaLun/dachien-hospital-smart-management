@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Badge } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { AggregationCandidate } from '@/lib/knowledge/aggregation-engine';
@@ -11,11 +11,7 @@ export default function AggregationDashboard() {
     const [processingState, setProcessingState] = useState<Record<string, boolean>>({});
     const { toast } = useToast();
 
-    useEffect(() => {
-        fetchCandidates();
-    }, []);
-
-    const fetchCandidates = async () => {
+    const fetchCandidates = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await fetch('/api/knowledge/aggregation');
@@ -29,7 +25,13 @@ export default function AggregationDashboard() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchCandidates();
+    }, [fetchCandidates]);
+
+
 
     const handleSynthesize = async (candidate: AggregationCandidate) => {
         const key = candidate.concept_name;

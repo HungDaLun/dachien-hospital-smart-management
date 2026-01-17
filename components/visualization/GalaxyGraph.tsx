@@ -415,11 +415,11 @@ function GalaxyGraphContent({
         } finally {
             setLoading(false);
         }
-    }, [setNodes, setEdges, selectedDept, refreshTrigger]);
+    }, [setNodes, setEdges, selectedDept]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, refreshTrigger]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge(params, eds)),

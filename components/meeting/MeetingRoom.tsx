@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card, useToast } from '@/components/ui';
@@ -103,159 +103,13 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
     // 倒數計時狀態（每秒更新）
     const [currentTime, setCurrentTime] = useState(Date.now());
 
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
-    useEffect(() => {
-        loadMeeting();
-        const subscription = supabase
-            .channel(`meeting-${meetingId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meeting_messages', filter: `meeting_id=eq.${meetingId}` }, (payload) => {
-                // 防止重複：SSE 串流的 'done' 事件可能已經加入了這則訊息
-                const newMsg = payload.new as Message;
-                setMessages(prev => {
-                    const exists = prev.some(m => m.id === newMsg.id);
-                    if (exists) return prev; // 避免重複加入，防止閃爍
-                    return [...prev, newMsg];
-                });
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetings', filter: `id=eq.${meetingId}` }, (payload) => {
-                setMeeting((prev) => prev ? ({ ...prev, ...payload.new } as Meeting) : null);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_minutes', filter: `meeting_id=eq.${meetingId}` }, (payload) => {
-                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                    setMinutesData(payload.new as MinutesData);
-                    toast.success('會議記錄已生成！');
-                }
-            })
-            .subscribe();
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, []);
 
-        return () => {
-            supabase.removeChannel(subscription);
-        };
-    }, [meetingId]);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
-    // 【核心修復】倒數計時器 - 永遠每秒更新 currentTime（只要會議存在且未結束）
-    useEffect(() => {
-        // 只有在會議存在且處於預約中或進行中時才需要計時
-        if (!meeting || (meeting.status !== 'scheduled' && meeting.status !== 'in_progress')) {
-            return;
-        }
-
-        // 立即更新一次
-        setCurrentTime(Date.now());
-
-        // 建立穩定的每秒更新計時器
-        const timerId = setInterval(() => {
-            setCurrentTime(Date.now());
-        }, 1000);
-
-        return () => clearInterval(timerId);
-    }, [meeting?.status]); // 只依賴 status，減少不必要的重建
-
-    // 【獨立】自動啟動檢查 - 依賴 currentTime 變化來觸發
-    useEffect(() => {
-        if (meeting?.status !== 'scheduled' || !meeting?.scheduled_start_time) return;
-
-        const scheduledTime = new Date(meeting.scheduled_start_time).getTime();
-
-        if (currentTime >= scheduledTime) {
-            console.log('[MeetingRoom] 預約時間已到，觸發自動啟動...');
-            handleForceStart();
-        }
-    }, [currentTime, meeting?.status, meeting?.scheduled_start_time]);
-
-    // 自動播放邏輯：當會議變為進行中且尚無訊息時，自動開啟對談
-    useEffect(() => {
-        if (meeting?.status === 'in_progress' && !isPlaying && !processingRef.current && messages.length === 0) {
-            console.log('[MeetingRoom] 會議已啟動且無訊息，自動開始 AI 對話...');
-            setIsPlaying(true);
-        }
-    }, [meeting?.status, messages.length]);
-
-    // Auto-play logic - 使用 ref 來避免 closure 問題
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-
-        const scheduleNextTurn = () => {
-            // 使用 ref 來檢查真正的 processing 狀態，避免 closure 陷阱
-            if (!isPlaying || processingRef.current) {
-                // 如果正在處理中，等待後再檢查
-                if (isPlaying) {
-                    timeoutId = setTimeout(scheduleNextTurn, 1000);
-                }
-                return;
-            }
-
-            // 觸發下一輪，完成後再排程
-            triggerNextTurn().finally(() => {
-                if (isPlaying) {
-                    timeoutId = setTimeout(scheduleNextTurn, 3000);
-                }
-            });
-        };
-
-        if (isPlaying) {
-            // 初始延遲後開始
-            timeoutId = setTimeout(scheduleNextTurn, 1000);
-        }
-
-        return () => clearTimeout(timeoutId);
-    }, [isPlaying]); // 只依賴 isPlaying，processing 用 ref 追蹤
-
-    // 會議超時自動結束邏輯
-    useEffect(() => {
-        if (!meeting || meeting.status !== 'in_progress' || !meeting.started_at || !meeting.duration_minutes) return;
-
-        const checkTimeout = async () => {
-            const startTime = new Date(meeting.started_at!).getTime();
-            const durationMs = meeting.duration_minutes! * 60 * 1000;
-            const endTime = startTime + durationMs;
-            const now = Date.now();
-
-            if (now >= endTime) {
-                if (hasShownEndToast.current) return; // Prevent multiple toasts
-                hasShownEndToast.current = true;
-
-                console.log('[MeetingRoom] 會議時間已到，自動結束會議...');
-                setIsPlaying(false);
-                setIsEnding(true); // 設置結束狀態，顯示進度條
-                toast.info('會議時間已到，正在生成會議記錄...');
-
-                try {
-                    const res = await fetch(`/api/meetings/${meetingId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'completed' })
-                    });
-
-                    if (res.ok) {
-                        setMeeting((prev) => prev ? ({ ...prev, status: 'completed' as const, ended_at: new Date().toISOString() }) : null);
-                        toast.success('會議記錄已生成完成！');
-                        window.dispatchEvent(new Event('meeting-updated'));
-                        loadMeeting(true); // 會議結束，強制重新載入訊息
-                        setIsEnding(false); // 結束後關閉進度條
-                    }
-                } catch (error) {
-                    console.error('自動結束會議失敗:', error);
-                    setIsEnding(false);
-                }
-            }
-        };
-
-        // 立即檢查一次
-        checkTimeout();
-
-        // 每 5 秒檢查一次
-        const interval = setInterval(checkTimeout, 5000);
-
-        return () => clearInterval(interval);
-    }, [meeting?.id, meeting?.status, meeting?.started_at, meeting?.duration_minutes, meetingId]);
-
-    const loadMeeting = async (forceReloadMessages = false) => {
+    const loadMeeting = useCallback(async (forceReloadMessages = false) => {
         const { data: m } = await supabase.from('meetings').select('*').eq('id', meetingId).single();
         if (m) setMeeting(m);
 
@@ -270,27 +124,9 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
 
         const { data: mins } = await supabase.from('meeting_minutes').select('*').eq('meeting_id', meetingId).single();
         if (mins) setMinutesData(mins);
-    };
+    }, [meetingId, supabase]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const togglePlay = async () => {
-        if (!meeting) return;
-        const newStatus = isPlaying ? 'paused' : 'in_progress';
-
-        // Optimistic UI
-        setIsPlaying(!isPlaying);
-
-        await fetch(`/api/meetings/${meetingId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
-        });
-    };
-
-    const triggerNextTurn = async () => {
+    const triggerNextTurn = useCallback(async () => {
         // 同時設置 state 和 ref
         setProcessing(true);
         processingRef.current = true;
@@ -418,7 +254,191 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
             processingRef.current = false;
             isStreamingRef.current = false;
         }
+    }, [meetingId, toast, supabase]);
+
+    useEffect(() => {
+        loadMeeting();
+        const subscription = supabase
+            .channel(`meeting-${meetingId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'meeting_messages', filter: `meeting_id=eq.${meetingId}` }, (payload) => {
+                // 防止重複：SSE 串流的 'done' 事件可能已經加入了這則訊息
+                const newMsg = payload.new as Message;
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === newMsg.id);
+                    if (exists) return prev; // 避免重複加入，防止閃爍
+                    return [...prev, newMsg];
+                });
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'meetings', filter: `id=eq.${meetingId}` }, (payload) => {
+                setMeeting((prev) => prev ? ({ ...prev, ...payload.new } as Meeting) : null);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_minutes', filter: `meeting_id=eq.${meetingId}` }, (payload) => {
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    setMinutesData(payload.new as MinutesData);
+                    toast.success('會議記錄已生成！');
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
+    }, [meetingId, loadMeeting, supabase, toast]);
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
+
+    // 【核心修復】倒數計時器 - 永遠每秒更新 currentTime（只要會議存在且未結束）
+    useEffect(() => {
+        // 只有在會議存在且處於預約中或進行中時才需要計時
+        if (!meeting || (meeting.status !== 'scheduled' && meeting.status !== 'in_progress')) {
+            return;
+        }
+
+        // 立即更新一次
+        setCurrentTime(Date.now());
+
+        // 建立穩定的每秒更新計時器
+        const timerId = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
+
+        return () => clearInterval(timerId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [meetingId, meeting?.status]); // Adding meetingId which is stable, suppresses 'meeting' which changes often
+
+    const handleForceStart = useCallback(async () => {
+        setIsPlaying(true);
+        // Optimistic update
+        setMeeting((prev) => prev ? ({ ...prev, status: 'in_progress' as const }) : null);
+
+        await fetch(`/api/meetings/${meetingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'in_progress' })
+        });
+        window.dispatchEvent(new Event('meeting-updated'));
+        loadMeeting(true); // 開始會議，強制重新載入訊息
+    }, [meetingId, loadMeeting]);
+
+    // 【獨立】自動啟動檢查 - 依賴 currentTime 變化來觸發
+    useEffect(() => {
+        if (meeting?.status !== 'scheduled' || !meeting?.scheduled_start_time) return;
+
+        const scheduledTime = new Date(meeting.scheduled_start_time).getTime();
+
+        if (currentTime >= scheduledTime) {
+            console.log('[MeetingRoom] 預約時間已到，觸發自動啟動...');
+            handleForceStart();
+        }
+    }, [currentTime, meeting?.status, meeting?.scheduled_start_time, handleForceStart]);
+
+    // 自動播放邏輯：當會議變為進行中且尚無訊息時，自動開啟對談
+    useEffect(() => {
+        if (meeting?.status === 'in_progress' && !isPlaying && !processingRef.current && messages.length === 0) {
+            console.log('[MeetingRoom] 會議已啟動且無訊息，自動開始 AI 對話...');
+            setIsPlaying(true);
+        }
+    }, [meeting?.status, messages.length, isPlaying]);
+
+    // Auto-play logic - 使用 ref 來避免 closure 問題
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const scheduleNextTurn = () => {
+            // 使用 ref 來檢查真正的 processing 狀態，避免 closure 陷阱
+            if (!isPlaying || processingRef.current) {
+                // 如果正在處理中，等待後再檢查
+                if (isPlaying) {
+                    timeoutId = setTimeout(scheduleNextTurn, 1000);
+                }
+                return;
+            }
+
+            // 觸發下一輪，完成後再排程
+            triggerNextTurn().finally(() => {
+                if (isPlaying) {
+                    timeoutId = setTimeout(scheduleNextTurn, 3000);
+                }
+            });
+        };
+
+        if (isPlaying) {
+            // 初始延遲後開始
+            timeoutId = setTimeout(scheduleNextTurn, 1000);
+        }
+
+        return () => clearTimeout(timeoutId);
+    }, [isPlaying, triggerNextTurn]); // 只依賴 isPlaying，processing 用 ref 追蹤
+
+    // 會議超時自動結束邏輯
+    useEffect(() => {
+        if (!meeting || meeting.status !== 'in_progress' || !meeting.started_at || !meeting.duration_minutes) return;
+
+        const checkTimeout = async () => {
+            const startTime = new Date(meeting.started_at!).getTime();
+            const durationMs = meeting.duration_minutes! * 60 * 1000;
+            const endTime = startTime + durationMs;
+            const now = Date.now();
+
+            if (now >= endTime) {
+                if (hasShownEndToast.current) return; // Prevent multiple toasts
+                hasShownEndToast.current = true;
+
+                console.log('[MeetingRoom] 會議時間已到，自動結束會議...');
+                setIsPlaying(false);
+                setIsEnding(true); // 設置結束狀態，顯示進度條
+                toast.info('會議時間已到，正在生成會議記錄...');
+
+                try {
+                    const res = await fetch(`/api/meetings/${meetingId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'completed' })
+                    });
+
+                    if (res.ok) {
+                        setMeeting((prev) => prev ? ({ ...prev, status: 'completed' as const, ended_at: new Date().toISOString() }) : null);
+                        toast.success('會議記錄已生成完成！');
+                        window.dispatchEvent(new Event('meeting-updated'));
+                        loadMeeting(true); // 會議結束，強制重新載入訊息
+                        setIsEnding(false); // 結束後關閉進度條
+                    }
+                } catch (error) {
+                    console.error('自動結束會議失敗:', error);
+                    setIsEnding(false);
+                }
+            }
+        };
+
+        // 立即檢查一次
+        checkTimeout();
+
+        // 每 5 秒檢查一次
+        const interval = setInterval(checkTimeout, 5000);
+
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [meeting?.id, meeting?.status, meeting?.started_at, meeting?.duration_minutes, meetingId, loadMeeting, toast]);
+
+
+
+    const togglePlay = async () => {
+        if (!meeting) return;
+        const newStatus = isPlaying ? 'paused' : 'in_progress';
+
+        // Optimistic UI
+        setIsPlaying(!isPlaying);
+
+        await fetch(`/api/meetings/${meetingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
     };
+
+
 
     const handleStop = async () => {
         setIsPlaying(false);
@@ -450,19 +470,7 @@ export default function MeetingRoom({ meetingId }: MeetingRoomProps) {
         }
     };
 
-    const handleForceStart = async () => {
-        setIsPlaying(true);
-        // Optimistic update
-        setMeeting((prev) => prev ? ({ ...prev, status: 'in_progress' as const }) : null);
 
-        await fetch(`/api/meetings/${meetingId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'in_progress' })
-        });
-        window.dispatchEvent(new Event('meeting-updated'));
-        loadMeeting(true); // 開始會議，強制重新載入訊息
-    };
 
     if (!meeting) return <div className="p-10 text-center">載入中...</div>;
 

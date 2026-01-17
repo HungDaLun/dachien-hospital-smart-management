@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -31,6 +31,39 @@ export function MeetingSidebar() {
     const router = useRouter();
     const supabase = createClient();
     const { toast } = useToast();
+
+    const fetchMeetings = useCallback(async () => {
+        const { data } = await supabase
+            .from('meetings')
+            .select('id, title, topic, status, created_at, scheduled_start_time, mode, current_phase')
+            .order('created_at', { ascending: false });
+
+        if (data) setMeetings(data);
+    }, [supabase]);
+
+    const checkScheduledMeetings = async (currentMeetings: MeetingSummary[]) => {
+        const now = new Date();
+        const dueMeetings = currentMeetings.filter(m =>
+            m.status === 'scheduled' &&
+            m.scheduled_start_time &&
+            new Date(m.scheduled_start_time) <= now
+        );
+
+        for (const meeting of dueMeetings) {
+            console.log(`Starting scheduled meeting: ${meeting.title || meeting.topic}`);
+            try {
+                // Trigger start
+                await fetch(`/api/meetings/${meeting.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'in_progress' })
+                });
+                // Realtime submission should trigger UI update
+            } catch (err) {
+                console.error('Failed to auto-start meeting', err);
+            }
+        }
+    };
 
     useEffect(() => {
         fetchMeetings();
@@ -67,7 +100,7 @@ export function MeetingSidebar() {
             supabase.removeChannel(channel);
             clearInterval(interval);
         };
-    }, []);
+    }, [fetchMeetings, supabase]);
 
     // Also restart interval when meetings array updates to close over new data? 
     // Actually better to pass meetings to the check function or use a ref.
@@ -84,40 +117,9 @@ export function MeetingSidebar() {
     // Update on route change
     useEffect(() => {
         fetchMeetings();
-    }, [pathname]);
+    }, [pathname, fetchMeetings]);
 
-    const fetchMeetings = async () => {
-        const { data } = await supabase
-            .from('meetings')
-            .select('id, title, topic, status, created_at, scheduled_start_time, mode, current_phase')
-            .order('created_at', { ascending: false });
 
-        if (data) setMeetings(data);
-    };
-
-    const checkScheduledMeetings = async (currentMeetings: MeetingSummary[]) => {
-        const now = new Date();
-        const dueMeetings = currentMeetings.filter(m =>
-            m.status === 'scheduled' &&
-            m.scheduled_start_time &&
-            new Date(m.scheduled_start_time) <= now
-        );
-
-        for (const meeting of dueMeetings) {
-            console.log(`Starting scheduled meeting: ${meeting.title || meeting.topic}`);
-            try {
-                // Trigger start
-                await fetch(`/api/meetings/${meeting.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'in_progress' })
-                });
-                // Realtime submission should trigger UI update
-            } catch (err) {
-                console.error('Failed to auto-start meeting', err);
-            }
-        }
-    };
 
     const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.preventDefault();

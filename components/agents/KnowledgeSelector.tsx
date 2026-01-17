@@ -9,7 +9,7 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import { Dictionary } from '@/lib/i18n/dictionaries';
@@ -48,7 +48,7 @@ export default function KnowledgeSelector({
   const { toast } = useToast();
 
   // AI 推薦檔案
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     if (!agentDescription.trim()) {
       toast.error('請先填寫 Agent 描述，AI 才能推薦相關知識來源');
       return;
@@ -80,10 +80,10 @@ export default function KnowledgeSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [agentDescription, onChange, toast]);
 
   // 載入所有檔案（手動模式）
-  const fetchAllFiles = async () => {
+  const fetchAllFiles = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/files');
@@ -96,13 +96,13 @@ export default function KnowledgeSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (mode === 'manual' && allFiles.length === 0) {
       fetchAllFiles();
     }
-  }, [mode]);
+  }, [mode, allFiles.length, fetchAllFiles]);
 
   // 切換檔案選擇狀態
   const toggleFile = (fileId: string) => {

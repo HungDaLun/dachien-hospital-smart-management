@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Menu, Transition } from '@headlessui/react';
 import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
 
 interface UserMenuProps {
     email?: string;
@@ -52,11 +53,14 @@ export default function UserMenu({ email, displayName, role, avatarUrl, logoutTe
             <div>
                 <Menu.Button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                     <span className="sr-only">Open user menu</span>
+
                     {avatarUrl ? (
-                        <img
-                            className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                        <Image
+                            className="rounded-full object-cover border border-gray-200"
                             src={avatarUrl}
                             alt={displayName || 'User avatar'}
+                            width={40}
+                            height={40}
                         />
                     ) : (
                         <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">

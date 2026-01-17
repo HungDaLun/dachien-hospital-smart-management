@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
 
 
 
@@ -192,11 +193,14 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
       {/* ===== 個人頭像區 ===== */}
       <div className="flex items-center gap-8 group/avatar">
         <div className="relative">
+
           {avatarUrl ? (
-            <img
+            <Image
               src={avatarUrl}
               alt="Avatar"
-              className="w-28 h-28 rounded-3xl object-cover border-2 border-white/10 shadow-glow-cyan/5 group-hover/avatar:border-primary-500/50 transition-all duration-500"
+              className="rounded-3xl object-cover border-2 border-white/10 shadow-glow-cyan/5 group-hover/avatar:border-primary-500/50 transition-all duration-500"
+              width={112}
+              height={112}
             />
           ) : (
             <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary-500/10 to-purple-500/10 flex items-center justify-center text-primary-400 text-4xl font-black border-2 border-white/10 shadow-inner group-hover/avatar:border-primary-500/50 transition-all duration-500">

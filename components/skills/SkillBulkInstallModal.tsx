@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Spinner } from '@/components/ui';
 import { Skill } from '@/lib/skills/types';
 import { Check, Search, AlertCircle } from 'lucide-react';
@@ -30,13 +30,7 @@ export function SkillBulkInstallModal({ isOpen, onClose, skills, onSuccess }: Sk
     const [search, setSearch] = useState('');
     const [progress, setProgress] = useState(0);
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchAgents();
-        }
-    }, [isOpen]);
-
-    const fetchAgents = async () => {
+    const fetchAgents = useCallback(async () => {
         setLoading(true);
         const supabase = createClient();
         const { data, error } = await supabase
@@ -54,7 +48,13 @@ export function SkillBulkInstallModal({ isOpen, onClose, skills, onSuccess }: Sk
             setAgents(data);
         }
         setLoading(false);
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchAgents();
+        }
+    }, [isOpen, fetchAgents]);
 
     const handleBulkInstall = async (agent: Agent) => {
         if (skills.length === 0) return;

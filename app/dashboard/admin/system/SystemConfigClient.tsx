@@ -4,7 +4,7 @@
  * 系統設定客戶端元件
  * 顯示系統配置狀態並提供可編輯功能（僅 SUPER_ADMIN）
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import { Card, Button } from '@/components/ui';
 import { Eye, EyeOff, RefreshCw, Shield, Lock, CheckCircle, AlertCircle } from 'lucide-react';
@@ -93,11 +93,7 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // 載入系統設定
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
+  const loadConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -122,7 +118,13 @@ export default function SystemConfigClient({ dict }: { dict: Dictionary }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dict]);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+
 
   const handleSave = async (withPassword?: string) => {
     try {

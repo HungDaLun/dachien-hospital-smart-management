@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Badge } from '@/components/ui';
 import SkillImporter from './SkillImporter';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'; // Check if available, package.json says yes
@@ -29,7 +29,7 @@ export default function SkillsMarketplace({ onSelectSkill }: SkillsMarketplacePr
     // Categories for filter - could be dynamic later
     const categories = ['All', 'Marketing', 'Sales', 'HR', 'Legal', 'R&D', 'Support', 'Custom'];
 
-    const fetchSkills = async () => {
+    const fetchSkills = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -46,14 +46,14 @@ export default function SkillsMarketplace({ onSelectSkill }: SkillsMarketplacePr
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchTerm, categoryFilter]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             fetchSkills();
         }, 300);
         return () => clearTimeout(timeoutId);
-    }, [searchTerm, categoryFilter]);
+    }, [searchTerm, categoryFilter, fetchSkills]);
 
     const handleImportComplete = () => {
         fetchSkills(); // Refresh list
