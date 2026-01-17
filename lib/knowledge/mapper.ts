@@ -144,7 +144,7 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
                 let { data: existingInstance } = await supabase
                     .from('knowledge_instances')
                     .select('id, title, data, source_file_ids')
-                    .eq('framework_id', (targetFramework as any).id)
+                    .eq('framework_id', (targetFramework as { id: string }).id)
                     .contains('source_file_ids', [file.id])
                     .limit(1)
                     .maybeSingle();
@@ -159,7 +159,7 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
                     let candidatesQuery = supabase
                         .from('knowledge_instances')
                         .select('id, title, data, source_file_ids')
-                        .eq('framework_id', (targetFramework as any).id);
+                        .eq('framework_id', (targetFramework as { id: string }).id);
 
                     if (file.user_profiles?.department_id) {
                         candidatesQuery = candidatesQuery.eq('department_id', file.user_profiles.department_id);
@@ -251,7 +251,7 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
                     const { data: inserted } = await supabase
                         .from('knowledge_instances')
                         .insert({
-                            framework_id: (targetFramework as any).id,
+                            framework_id: (targetFramework as { id: string }).id,
                             title: extractionData.title || `${targetFramework.name} of ${file.filename}`,
                             ai_summary: extractionData.ai_summary,
                             data: extractionData.data,
@@ -281,8 +281,8 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
             instanceIds: successfulInstances.map(i => i.id)
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Mapper Logic Error:', error);
-        return { success: false, message: `Analysis failed: ${error.message}` };
+        return { success: false, message: `Analysis failed: ${(error as Error).message}` };
     }
 }

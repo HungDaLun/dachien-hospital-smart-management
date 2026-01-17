@@ -41,7 +41,7 @@ export class KnowledgeAggregationEngine {
         const topicMap: Record<string, string[]> = {};
 
         files.forEach(file => {
-            const meta = file.metadata_analysis as any;
+            const meta = file.metadata_analysis as { topics?: string[] } | null;
             if (meta?.topics && Array.isArray(meta.topics)) {
                 meta.topics.forEach((topic: string) => {
                     // Normalize topic

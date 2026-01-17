@@ -94,7 +94,7 @@ export async function getSystemStats(): Promise<{ success: boolean; data?: Syste
 
             return {
                 id: log.id,
-                action: (log as any).action_type,
+                action: log.action_type,
                 user: userProfile?.display_name || 'Unknown',
                 time: log.created_at
             };
@@ -113,8 +113,8 @@ export async function getSystemStats(): Promise<{ success: boolean; data?: Syste
             }
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching system stats:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 }

@@ -81,7 +81,7 @@ export async function chatWithTools(
                         console.log(`[GeminiToolChat] Executing tool: ${toolName}`);
 
                         // Execute the tool
-                        const toolResult = await executeTool(toolName, toolArgs as any, context);
+                        const toolResult = await executeTool(toolName, toolArgs as Record<string, unknown>, context);
 
                         // Notify client of the result (optional)
                         controller.enqueue(encoder.encode(
@@ -119,10 +119,10 @@ export async function chatWithTools(
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                 controller.close();
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('[GeminiToolChat] Error:', error);
                 controller.enqueue(encoder.encode(
-                    `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`
+                    `data: ${JSON.stringify({ type: 'error', error: (error as Error).message })}\n\n`
                 ));
                 controller.close();
             }

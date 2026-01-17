@@ -10,7 +10,7 @@ export interface FeedbackEvent {
     score: number; // -1.0 to 1.0
     user_id?: string;
     agent_id?: string;
-    details?: any;
+    details?: Record<string, unknown>;
 }
 
 /**

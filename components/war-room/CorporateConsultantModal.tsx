@@ -178,17 +178,17 @@ export default function CorporateConsultantModal({
                                     <div className="prose prose-invert prose-sm max-w-none">
                                         <ReactMarkdown
                                             components={{
-                                                h1: ({ node, ...props }) => <h1 className="text-lg font-bold mb-3 text-blue-400" {...props} />,
-                                                h2: ({ node, ...props }) => <h2 className="text-base font-bold mb-2 text-purple-300" {...props} />,
-                                                h3: ({ node, ...props }) => <h3 className="text-sm font-bold mb-2 text-white/90" {...props} />,
-                                                p: ({ node, ...props }) => <p className="mb-4 last:mb-0 leading-relaxed custom-line-height" {...props} />,
-                                                ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
-                                                ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
-                                                li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                                                strong: ({ node, ...props }) => <strong className="text-blue-200 font-bold" {...props} />,
-                                                blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-blue-500/50 pl-4 py-1 my-4 bg-blue-500/5 rounded-r italic text-gray-400" {...props} />,
-                                                hr: ({ node, ...props }) => <hr className="border-white/10 my-6" {...props} />,
-                                                code: ({ node, ...props }) => <code className="bg-black/30 px-1 py-0.5 rounded text-yellow-500 font-mono text-xs" {...props} />
+                                                h1: ({ node: _node, ...props }) => <h1 className="text-lg font-bold mb-3 text-blue-400" {...props} />,
+                                                h2: ({ node: _node, ...props }) => <h2 className="text-base font-bold mb-2 text-purple-300" {...props} />,
+                                                h3: ({ node: _node, ...props }) => <h3 className="text-sm font-bold mb-2 text-white/90" {...props} />,
+                                                p: ({ node: _node, ...props }) => <p className="mb-4 last:mb-0 leading-relaxed custom-line-height" {...props} />,
+                                                ul: ({ node: _node, ...props }) => <ul className="list-disc pl-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
+                                                ol: ({ node: _node, ...props }) => <ol className="list-decimal pl-4 mb-4 space-y-2 marker:text-blue-500" {...props} />,
+                                                li: ({ node: _node, ...props }) => <li className="pl-1" {...props} />,
+                                                strong: ({ node: _node, ...props }) => <strong className="text-blue-200 font-bold" {...props} />,
+                                                blockquote: ({ node: _node, ...props }) => <blockquote className="border-l-4 border-blue-500/50 pl-4 py-1 my-4 bg-blue-500/5 rounded-r italic text-gray-400" {...props} />,
+                                                hr: ({ node: _node, ...props }) => <hr className="border-white/10 my-6" {...props} />,
+                                                code: ({ node: _node, ...props }) => <code className="bg-black/30 px-1 py-0.5 rounded text-yellow-500 font-mono text-xs" {...props} />
                                             }}
                                         >
                                             {m.text}

@@ -80,8 +80,8 @@ function calculateStats(messages: any[] | null) {
     if (!messages || messages.length === 0) return { count: 0, avgConfidence: 0, reviewRate: 0 };
 
     const confidenceScores = messages
-        .map(m => m.confidence_score)
-        .filter(s => typeof s === 'number');
+        .map(m => (m as { confidence_score?: number }).confidence_score)
+        .filter((s): s is number => typeof s === 'number');
 
     const avgConfidence = confidenceScores.length > 0
         ? confidenceScores.reduce((a, b) => a + b, 0) / confidenceScores.length

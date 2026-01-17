@@ -33,7 +33,7 @@ interface LogAuditOptions {
     action: AuditAction;
     resourceType: AuditResource;
     resourceId?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
 }
 
 /**

@@ -56,7 +56,17 @@ export class ANNSemanticSearchEngine {
             throw error;
         }
 
-        return (results as any[]).map(r => ({
+        interface RPCSearchResult {
+            id: string;
+            filename: string;
+            markdown_content: string;
+            similarity: number;
+            dikw_level: string;
+            decay_score: number;
+            decay_status: string;
+        }
+
+        return (results as RPCSearchResult[]).map(r => ({
             file_id: r.id,
             filename: r.filename,
             markdown_content: r.markdown_content,

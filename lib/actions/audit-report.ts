@@ -39,7 +39,7 @@ export interface AuditReportData {
         action: string;
         resourceType: string;
         resourceId: string | null;
-        details: Record<string, any>;
+        details: Record<string, unknown>;
     }>;
 }
 
@@ -159,7 +159,7 @@ export async function generateUserAuditReport(
         userId: userProfile.id,
         userEmail: userProfile.email,
         userName: userProfile.display_name || userProfile.email,
-        departmentName: (userProfile.departments as any)?.name || null,
+        departmentName: (userProfile.departments as unknown as { name: string })?.name || null,
         period: { start: startDate, end: endDate },
         statistics,
         detailedLogs: safeLogs.map(log => ({

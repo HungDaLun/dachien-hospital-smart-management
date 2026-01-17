@@ -75,9 +75,7 @@ export interface MeetingConfig {
 }
 
 // DB representation might differ slightly (JSONB columns), but this is the application view
-export interface Meeting extends MeetingConfig {
-    // participants are hydrated separately usually, but for config object it stores IDs
-}
+export type Meeting = MeetingConfig;
 
 export interface MeetingMinutes {
     id: string;

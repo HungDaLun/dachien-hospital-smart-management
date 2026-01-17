@@ -111,7 +111,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         ));
 
         const cleanedJsonString = metadataJsonString.replace(/```json\n?|\n?```/g, '').trim();
-        let metadata: Record<string, any> = {};
+        let metadata: Record<string, unknown> = {};
         try {
             metadata = JSON.parse(cleanedJsonString);
         } catch (e) {
@@ -135,12 +135,13 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
             metadata_analysis: metadata,
             content_embedding: embedding,
             gemini_state: 'NEEDS_REVIEW', // Enforce Human-in-the-Loop
-            dikw_level: metadata.dikw_level || 'data', // Default to 'data' if analysis fails to return level
+            dikw_level: (metadata as { dikw_level?: string }).dikw_level || 'data', // Default to 'data' if analysis fails to return level
         }).eq('id', fileId);
 
         // 7. 自動寫入標籤
-        if (metadata.tags && Array.isArray(metadata.tags)) {
-            const tagInserts = metadata.tags.map((t: string) => ({
+        const metadataWithTags = metadata as { tags?: string[]; dikw_level?: string };
+        if (metadataWithTags.tags && Array.isArray(metadataWithTags.tags)) {
+            const tagInserts = metadataWithTags.tags.map((t: string) => ({
                 file_id: fileId,
                 tag_key: 'topic',
                 tag_value: t

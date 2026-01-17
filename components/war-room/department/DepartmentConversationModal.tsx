@@ -180,15 +180,15 @@ export default function DepartmentConversationModal({
                                     <div className="prose prose-invert prose-sm max-w-none">
                                         <ReactMarkdown
                                             components={{
-                                                h1: ({ node, ...props }) => <h1 className="text-lg font-bold mb-2 text-blue-400" {...props} />,
-                                                h2: ({ node, ...props }) => <h2 className="text-md font-bold mb-2 text-blue-300" {...props} />,
-                                                h3: ({ node, ...props }) => <h3 className="text-base font-bold mb-2 text-white" {...props} />,
-                                                p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                                                ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
-                                                ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
-                                                li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                                                strong: ({ node, ...props }) => <strong className="text-blue-200 font-bold" {...props} />,
-                                                hr: ({ node, ...props }) => <hr className="border-gray-700 my-4" {...props} />
+                                                h1: ({ node: _node, ...props }) => <h1 className="text-lg font-bold mb-2 text-blue-400" {...props} />,
+                                                h2: ({ node: _node, ...props }) => <h2 className="text-md font-bold mb-2 text-blue-300" {...props} />,
+                                                h3: ({ node: _node, ...props }) => <h3 className="text-base font-bold mb-2 text-white" {...props} />,
+                                                p: ({ node: _node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+                                                ul: ({ node: _node, ...props }) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
+                                                ol: ({ node: _node, ...props }) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
+                                                li: ({ node: _node, ...props }) => <li className="mb-1" {...props} />,
+                                                strong: ({ node: _node, ...props }) => <strong className="text-blue-200 font-bold" {...props} />,
+                                                hr: ({ node: _node, ...props }) => <hr className="border-gray-700 my-4" {...props} />
                                             }}
                                         >
                                             {m.text}

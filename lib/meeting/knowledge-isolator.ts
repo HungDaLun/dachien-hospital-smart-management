@@ -212,7 +212,7 @@ ${meetingContext ? meetingContext : '(會議剛開始，尚無發言)'}
             return [];
         }
 
-        return (relevantFiles || []).map((f: any) => ({
+        return (relevantFiles || []).map((f: { id: string; filename: string; summary?: string; content?: string }) => ({
             file_id: f.id,
             filename: f.filename,
             summary: f.summary,
@@ -242,7 +242,7 @@ ${meetingContext ? meetingContext : '(會議剛開始，尚無發言)'}
 
         // 如果語意搜尋有結果，直接返回
         if (relevantFiles && relevantFiles.length > 0) {
-            return relevantFiles.map((f: any) => ({
+            return relevantFiles.map((f: { id: string; filename: string; summary?: string }) => ({
                 file_id: f.id,
                 filename: f.filename,
                 summary: f.summary,
@@ -264,7 +264,7 @@ ${meetingContext ? meetingContext : '(會議剛開始，尚無發言)'}
             return [];
         }
 
-        return (allFiles || []).map((f: any) => ({
+        return (allFiles || []).map((f: { id: string; filename: string; metadata_analysis?: { summary?: string } }) => ({
             file_id: f.id,
             filename: f.filename,
             summary: f.metadata_analysis?.summary || '',

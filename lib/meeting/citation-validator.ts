@@ -75,15 +75,15 @@ export class CitationValidator {
                 .select('filename, metadata_analysis')
                 .eq('department_id', speakerId);
 
-            availableFilenames = (files || []).flatMap((f: any) => [
+            availableFilenames = (files || []).flatMap((f: { filename: string; metadata_analysis?: { title?: string } }) => [
                 f.filename,
                 f.metadata_analysis?.title,
                 // 新增：支持不帶副檔名的文件名比對
                 f.filename?.replace(/\.[^.]+$/, ''),
                 f.metadata_analysis?.title?.replace(/\.[^.]+$/, '')
-            ].filter(Boolean));
+            ].filter(Boolean) as string[]);
 
-            availableSummaries = (files || []).map((f: any) =>
+            availableSummaries = (files || []).map((f: { metadata_analysis?: { summary?: string } }) =>
                 f.metadata_analysis?.summary || ''
             ).filter(Boolean);
         } else {
@@ -93,15 +93,28 @@ export class CitationValidator {
                 .select('file:files(filename, metadata_analysis)')
                 .eq('agent_id', speakerId);
 
-            availableFilenames = (agentFiles || []).flatMap((af: any) => [
-                af.file?.filename,
-                af.file?.metadata_analysis?.title,
-                af.file?.filename?.replace(/\.[^.]+$/, ''),
-                af.file?.metadata_analysis?.title?.replace(/\.[^.]+$/, '')
-            ].filter(Boolean));
+            interface AgentFile {
+                file: {
+                    filename: string;
+                    metadata_analysis?: {
+                        title?: string;
+                        summary?: string;
+                    };
+                } | null;
+            }
 
-            availableSummaries = (agentFiles || []).map((af: any) =>
-                af.file?.metadata_analysis?.summary || ''
+            availableFilenames = (agentFiles || []).flatMap((af: unknown) => {
+                const f = (af as AgentFile).file;
+                return [
+                    f?.filename,
+                    f?.metadata_analysis?.title,
+                    f?.filename?.replace(/\.[^.]+$/, ''),
+                    f?.metadata_analysis?.title?.replace(/\.[^.]+$/, '')
+                ].filter(Boolean) as string[];
+            });
+
+            availableSummaries = (agentFiles || []).map((af: unknown) =>
+                (af as AgentFile).file?.metadata_analysis?.summary || ''
             ).filter(Boolean);
         }
 

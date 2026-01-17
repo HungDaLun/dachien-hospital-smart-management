@@ -35,7 +35,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
                             if (el) {
                                 el.indeterminate = indeterminate || false;
                                 if (typeof ref === 'function') ref(el);
-                                else if (ref) (ref as any).current = el;
+                                else if (ref) (ref as React.MutableRefObject<HTMLInputElement | null>).current = el;
                             }
                         }}
                         type="checkbox"

@@ -37,7 +37,7 @@ export class SafeguardProcessor {
 
         if (parsed && parsed.answer) {
             // 如果有 JSON 格式，提取核心內容
-            result.cleanContent = parsed.answer;
+            result.cleanContent = typeof parsed.answer === 'string' ? parsed.answer : JSON.stringify(parsed.answer);
 
             // 從 JSON 中提取引用
             if (this.config.enableCitation && parsed.citations) {
@@ -121,7 +121,7 @@ ${guidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}
     /**
      * 內部輔助：嘗試解析內容中的 JSON
      */
-    private tryParseJsonResponse(content: string): Record<string, any> | null {
+    private tryParseJsonResponse(content: string): Record<string, unknown> | null {
         if (!content) return null;
 
         try {

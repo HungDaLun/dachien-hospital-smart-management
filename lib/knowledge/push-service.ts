@@ -35,7 +35,7 @@ export class KnowledgePushService {
         events.forEach(e => {
             // Assuming 'details' might contain tags or we infer from file content eventually
             // For now, let's pretend we extract a "topic"
-            const topic = (e.details as any)?.topic || 'General';
+            const topic = (e.details as { topic?: string })?.topic || 'General';
             interestMap[topic] = (interestMap[topic] || 0) + 0.1;
         });
 

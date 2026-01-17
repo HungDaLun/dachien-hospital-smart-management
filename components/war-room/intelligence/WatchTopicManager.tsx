@@ -35,7 +35,7 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
         setEditingTopicId(topic.id);
         setNewTopicName(topic.name);
         setNewTopicKeywords(topic.keywords.join(', '));
-        setNewTopicThreshold(topic.risk_threshold as any || 'low');
+        setNewTopicThreshold(topic.risk_threshold as 'low' | 'medium' | 'high' || 'low');
         setNewSyncMode(topic.sync_mode || 'auto');
         setNewSyncValue(topic.sync_interval_value || 24);
         setNewSyncUnit(topic.sync_interval_unit || 'hours');
@@ -104,12 +104,12 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
         // Log Activity
         await logAudit({
             action: 'UPDATE_WATCH_TOPICS',
-            resourceType: 'department' as any,
+            resourceType: 'DEPARTMENT',
             details: {
                 topic_name: newTopicName,
                 is_edit: !!editingTopicId,
                 total_topics: updatedTopics.length
-            }
+            } as Record<string, unknown>
         });
 
         setIsSaving(false);
@@ -142,12 +142,12 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
             // Log Activity
             await logAudit({
                 action: 'UPDATE_WATCH_TOPICS',
-                resourceType: 'department' as any,
+                resourceType: 'DEPARTMENT',
                 details: {
                     action: 'DELETE',
                     id: topicToDelete,
                     total_topics: updatedTopics.length
-                }
+                } as Record<string, unknown>
             });
 
             setTopics(updatedTopics);
@@ -318,7 +318,7 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                     <select
                                         className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50 appearance-none mb-6"
                                         value={newTopicThreshold}
-                                        onChange={(e: any) => setNewTopicThreshold(e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewTopicThreshold(e.target.value as 'low' | 'medium' | 'high')}
                                     >
                                         <option value="low" className="bg-background-secondary text-white">低 (僅通知重大危機)</option>
                                         <option value="medium" className="bg-background-secondary text-white">中 (標準情資預警)</option>
@@ -355,7 +355,7 @@ export default function WatchTopicManager({ initialTopics = [], userId }: WatchT
                                                 <select
                                                     className="flex-1 bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm focus:outline-none focus:border-primary-500/50 appearance-none"
                                                     value={newSyncUnit}
-                                                    onChange={(e: any) => setNewSyncUnit(e.target.value)}
+                                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewSyncUnit(e.target.value as 'minutes' | 'hours' | 'days' | 'weeks' | 'months')}
                                                 >
                                                     <option value="minutes" className="bg-background-secondary text-white">分鐘</option>
                                                     <option value="hours" className="bg-background-secondary text-white">小時</option>

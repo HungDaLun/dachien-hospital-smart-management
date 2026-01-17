@@ -140,7 +140,7 @@ export function toApiErrorResponse(error: unknown): ApiErrorResponse {
   const errorMessage = error instanceof Error
     ? error.message
     : (error && typeof error === 'object' && 'message' in error)
-      ? String((error as any).message)
+      ? String((error as { message: unknown }).message)
       : '發生未預期的錯誤，我們已收到通知';
 
   return {
@@ -157,8 +157,8 @@ export function toApiErrorResponse(error: unknown): ApiErrorResponse {
  * 將錯誤轉換為 NextResponse API 回應
  * 便於在 API Route 中使用
  */
-export function toApiResponse(error: unknown) {
-  const { NextResponse } = require('next/server');
+export async function toApiResponse(error: unknown) {
+  const { NextResponse } = await import('next/server');
 
   if (error instanceof ValidationError) {
     return NextResponse.json(toApiErrorResponse(error), { status: 400 });

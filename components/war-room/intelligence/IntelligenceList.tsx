@@ -7,7 +7,16 @@ import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui';
 
 interface IntelligenceListProps {
-    items: any[];
+    items: Array<{
+        id: string;
+        title: string;
+        source: string;
+        published_at: string;
+        risk_level: string;
+        tags?: string[];
+        url?: string;
+        ai_summary?: string;
+    }>;
 }
 
 export default function IntelligenceList({ items }: IntelligenceListProps) {

@@ -19,9 +19,9 @@ export async function getCategories(): Promise<{ success: boolean; data?: Docume
         if (error) throw error;
 
         return { success: true, data: data as DocumentCategory[] };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching categories:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 }
 
@@ -63,9 +63,9 @@ export async function createCategory(
 
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true, data: data as DocumentCategory };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating category:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 }
 
@@ -79,7 +79,7 @@ export async function updateCategory(
     try {
         const supabase = await createClient();
 
-        const updatePayload: any = {};
+        const updatePayload: Record<string, string | null | undefined> = {};
         if (data.name !== undefined) updatePayload.name = data.name;
         if (data.parentId !== undefined) updatePayload.parent_id = data.parentId;
         if (data.description !== undefined) updatePayload.description = data.description;
@@ -102,9 +102,9 @@ export async function updateCategory(
 
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true, data: updatedCategory as DocumentCategory };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating category:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 }
 
@@ -130,8 +130,8 @@ export async function deleteCategory(id: string): Promise<{ success: boolean; er
 
         revalidatePath('/dashboard/admin/taxonomy');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: (error as Error).message };
     }
 }
 
@@ -149,8 +149,8 @@ export async function getDepartments(): Promise<{ success: boolean; data?: { id:
         if (error) throw error;
 
         return { success: true, data: data };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching departments:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 }

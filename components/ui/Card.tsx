@@ -212,7 +212,7 @@ CardTitle.displayName = 'CardTitle';
 /**
  * CardContent 屬性介面
  */
-export interface CardContentProps extends HTMLAttributes<HTMLDivElement> { }
+export type CardContentProps = HTMLAttributes<HTMLDivElement>;
 
 /**
  * CardContent 元件（原 CardBody，保持向後兼容）
