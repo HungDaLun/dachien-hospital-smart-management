@@ -170,7 +170,7 @@ export default async function DashboardPage() {
               <Activity size={24} className="text-blue-500 opacity-20" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {ops.department_scores.map((dept: any) => (
+              {ops.department_scores.map((dept: { department_id: string; department_name: string; score: number; metrics: { totalFiles: number } }) => (
                 <Link
                   key={dept.department_id}
                   href={`/dashboard/department/${dept.department_id}`}
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
               </div>
 
               <div className="space-y-4">
-                {risks.risks.slice(0, 5).map((risk: any, i: number) => (
+                {risks.risks.slice(0, 5).map((risk: { level: string; title: string; description: string; timestamp: string }, i: number) => (
                   <div key={i} className="group/item flex gap-4 p-4 rounded-2xl bg-white/[0.02] border border-transparent hover:border-red-500/20 transition-all">
                     <div className={`mt-1 h-2 w-2 rounded-full ${risk.level === 'critical' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-amber-500'}`} />
                     <div className="flex-1">

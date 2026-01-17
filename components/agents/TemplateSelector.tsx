@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TemplateCard from './TemplateCard';
+import TemplateCard, { AgentTemplate } from './TemplateCard';
 import { Button } from '@/components/ui';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 interface TemplateSelectorProps {
-    onSelect: (template: any) => void;
+    onSelect: (template: AgentTemplate) => void;
     onSkip: () => void;
 }
 
 export default function TemplateSelector({ onSelect, onSkip }: TemplateSelectorProps) {
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<AgentTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState<string>('All');
-    const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+    const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
 
     useEffect(() => {
         fetchTemplates();

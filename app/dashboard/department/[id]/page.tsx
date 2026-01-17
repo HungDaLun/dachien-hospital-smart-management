@@ -30,12 +30,18 @@ export default async function DepartmentWarRoomPage({ params }: { params: { id: 
     const fileCount = files?.length || 0;
 
     // Construct summary from recent files
+    interface FileWithMetadata {
+        id: string;
+        filename: string;
+        created_at: string;
+        metadata_analysis?: { summary?: string };
+    }
     let summaryText = `系統已從 ${dept.name} 的 ${fileCount} 份最近文件中提取關鍵情報。`;
     if (files && files.length > 0) {
         // Find files with summaries
-        const filesWithSummary = files.filter((f: any) => f.metadata_analysis?.summary);
+        const filesWithSummary = (files as FileWithMetadata[]).filter((f) => f.metadata_analysis?.summary);
         if (filesWithSummary.length > 0) {
-            const keyPoints = filesWithSummary.slice(0, 3).map((f: any) => f.metadata_analysis.summary).join(' 此外，');
+            const keyPoints = filesWithSummary.slice(0, 3).map((f) => f.metadata_analysis?.summary || '').join(' 此外，');
             summaryText += ` 重點發現：${keyPoints}`;
         } else {
             summaryText += " 目前文件尚待 AI 進一步深度解析。";
@@ -44,8 +50,8 @@ export default async function DepartmentWarRoomPage({ params }: { params: { id: 
 
     const brief = {
         ai_summary: summaryText,
-        top_updates: files?.slice(0, 5).map((f: any) => `新增文件：${f.filename} (${new Date(f.created_at).toLocaleDateString()})`) || [],
-        urgent_items: []
+        top_updates: (files as FileWithMetadata[] | null)?.slice(0, 5).map((f) => `新增文件：${f.filename} (${new Date(f.created_at).toLocaleDateString()})`) || [],
+        urgent_items: [] as string[]
     };
 
     return (
@@ -161,7 +167,7 @@ export default async function DepartmentWarRoomPage({ params }: { params: { id: 
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/[0.02]">
-                                    {files?.map((file: any) => (
+                                    {(files as FileWithMetadata[])?.map((file) => (
                                         <tr key={file.id} className="group hover:bg-white/[0.02] transition-colors">
                                             <td className="py-5 px-2 font-bold text-text-primary tracking-tight group-hover:text-primary-400 transition-colors">{file.filename}</td>
                                             <td className="py-5 px-2 font-mono text-xs text-text-tertiary">{new Date(file.created_at).toLocaleString()}</td>

@@ -1,9 +1,20 @@
 import { DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
+export interface AgentTemplate {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    is_official?: boolean;
+    system_prompt?: string;
+    model_version?: string;
+    temperature?: number;
+}
+
 interface TemplateCardProps {
-    template: any;
+    template: AgentTemplate;
     selected: boolean;
-    onSelect: (template: any) => void;
+    onSelect: (template: AgentTemplate) => void;
 }
 
 export default function TemplateCard({ template, selected, onSelect }: TemplateCardProps) {

@@ -51,7 +51,13 @@ export default function UserRow({ user, departments, dict }: UserRowProps) {
 
     // File view state
     const [isFilesExpanded, setIsFilesExpanded] = useState(false);
-    const [files, setFiles] = useState<any[]>([]);
+    interface UserFile {
+        id: string;
+        filename: string;
+        size_bytes: number;
+        created_at: string;
+    }
+    const [files, setFiles] = useState<UserFile[]>([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     const [hasLoadedFiles, setHasLoadedFiles] = useState(false);
 

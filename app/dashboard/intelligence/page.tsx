@@ -64,7 +64,7 @@ export default async function ExternalIntelligencePage() {
                             </h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {internalRisks.risks.map((risk: any, i: number) => (
+                            {internalRisks.risks.map((risk: { level: string; title: string; description: string; category: string }, i: number) => (
                                 <div
                                     key={i}
                                     className="p-6 rounded-2xl border border-semantic-danger/20 bg-semantic-danger/5 backdrop-blur-sm flex gap-4 transition-all hover:bg-semantic-danger/10"
