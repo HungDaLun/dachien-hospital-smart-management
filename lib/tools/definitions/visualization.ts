@@ -16,7 +16,7 @@ export const generate_chart: ToolDefinition = {
         const { chartType, title, data, xAxisKey, seriesKeys, colors } = params as {
             chartType: string;
             title: string;
-            data: any[];
+            data: Record<string, unknown>[];
             xAxisKey: string;
             seriesKeys: string[];
             colors?: string[];

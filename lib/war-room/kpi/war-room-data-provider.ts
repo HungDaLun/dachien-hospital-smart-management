@@ -204,7 +204,7 @@ export class WarRoomDataProvider {
         return data.map((d, i) => ({ name: `T${i}`, value: Number(d.value) }));
     }
 
-    private processDeptPerf(metrics: { value: number | string; dimensions: any }[], depts: { id: string; name: string }[]): ChartDataPoint[] {
+    private processDeptPerf(metrics: { value: number | string; dimensions: Record<string, unknown> }[], depts: { id: string; name: string }[]): ChartDataPoint[] {
         if (!depts) return [];
         return depts.map(d => {
             const m = metrics?.find(met => met.dimensions?.department_id === d.id) || { value: Math.random() * 40 + 60 };
@@ -279,7 +279,7 @@ export class WarRoomDataProvider {
         return processed;
     }
 
-    private processCategories(files: any[], cats: any[]): ChartDataPoint[] {
+    private processCategories(files: { category_id: string }[], cats: { id: string; name: string }[]): ChartDataPoint[] {
         return this.processResource(files, cats);
     }
 

@@ -1,8 +1,25 @@
 import { createClient } from '@/lib/supabase/server';
 
+export interface HealthMetric {
+    department_id: string;
+    department_name: string;
+    score: number;
+    metrics: {
+        docActivity: number;
+        totalFiles: number;
+        activeAgents: number;
+    };
+}
+
+export interface OperationalHealthReport {
+    overall_health: number;
+    status: string;
+    department_scores: HealthMetric[];
+}
+
 export class OperationalHealthCalculator {
 
-    async calculateHealthScore(userId: string): Promise<any> {
+    async calculateHealthScore(userId: string): Promise<OperationalHealthReport> {
         const supabase = await createClient();
 
         // Log userId to satisfy linter (and potential future use for RLS)
@@ -12,9 +29,9 @@ export class OperationalHealthCalculator {
         // Simplified: Get all departments
         const { data: departments } = await supabase.from('departments').select('id, name');
 
-        if (!departments) return { overall_health: 0, department_scores: [] };
+        if (!departments) return { overall_health: 0, status: 'unknown', department_scores: [] };
 
-        const deptScores = [];
+        const deptScores: HealthMetric[] = [];
 
         for (const dept of departments) {
             // 2. Calculate Doc Activity (Files updated in last 30 days) AND Total Asset Retention

@@ -1,6 +1,7 @@
 export interface ToolDefinition {
   name: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parameters: any; // Allow Zod schema or JSON schema objects - strictly typing this is complex vs FunctionDeclarationSchema
   execute?: (params: Record<string, unknown>, context?: ToolContext) => Promise<unknown>;
 }

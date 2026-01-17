@@ -87,6 +87,7 @@ export class SkillsMPClient {
             const data = await response.json();
 
             // 轉換資料格式以符合既有的前端介面
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const formattedSkills: SkillsMPSkill[] = (data.skills || []).map((s: any) => ({
                 id: s.id,
                 slug: s.name, // 使用 name 作為 slug

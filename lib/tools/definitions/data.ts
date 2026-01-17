@@ -1,8 +1,8 @@
 import { ToolContext } from '../types';
 // import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function query_business_data(params: any, _context: ToolContext) {
-    const { data_type, filters, limit = 10 } = params;
+export async function query_business_data(params: Record<string, unknown>, _context: ToolContext) {
+    const { data_type, filters, limit = 10 } = params as { data_type: string; filters?: Record<string, unknown>; limit?: number };
 
     // Suppress unused warning
     console.log('[Mock Query] Filters:', filters, 'Limit:', limit);

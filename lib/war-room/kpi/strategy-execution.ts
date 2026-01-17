@@ -1,8 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 
+export interface ExecutionReport {
+    execution_rate: number;
+    status: string;
+    related_documents: {
+        id: string;
+        filename: string;
+        ai_summary: string | null;
+    }[];
+    ai_insight: string;
+}
+
 export class StrategyExecutionCalculator {
 
-    async calculateExecutionRate(userId: string): Promise<any> {
+    async calculateExecutionRate(userId: string): Promise<ExecutionReport> {
         const supabase = await createClient();
 
         // 1. Try to find explicit strategy metrics from ETL

@@ -1,7 +1,7 @@
 import { ToolContext } from '../types';
 
 export async function export_csv(params: Record<string, unknown>, _context: ToolContext) {
-    const { data, filename, columns } = params as { data: any[]; filename: string; columns?: string[] };
+    const { data, filename, columns } = params as { data: Record<string, unknown>[]; filename: string; columns?: string[] };
 
     if (!Array.isArray(data) || data.length === 0) {
         return { success: false, error: "Data must be a non-empty array" };

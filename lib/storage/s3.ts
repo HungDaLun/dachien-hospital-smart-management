@@ -112,6 +112,7 @@ export async function downloadFromS3(key: string): Promise<Buffer> {
 
   // 將 Stream 轉換為 Buffer
   const chunks: Uint8Array[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for await (const chunk of response.Body as any) {
     chunks.push(chunk);
   }

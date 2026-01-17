@@ -33,25 +33,25 @@ interface OpenAIAssistantExport {
 
 export class SkillsImporter {
 
-    static detectFormat(content: any): 'claude' | 'openai' | 'eakap' | 'unknown' {
+    static detectFormat(content: Record<string, unknown>): 'claude' | 'openai' | 'eakap' | 'unknown' {
         if (content.required_frameworks && content.system_prompt_template) return 'eakap';
-        if (content.instructions && content.tools?.some((t: any) => t.function)) return 'openai';
+        if (content.instructions && Array.isArray(content.tools) && content.tools.some((t: { function?: unknown }) => t.function)) return 'openai';
         if (content.instructions && !content.model) return 'claude'; // Heuristic
         return 'unknown';
     }
 
     static import(rawContent: string | object): EakapSkill {
-        const content = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+        const content = (typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent) as Record<string, unknown>;
         const format = this.detectFormat(content);
 
         let skill: Partial<EakapSkill> = {};
 
         switch (format) {
             case 'claude':
-                skill = this.importFromClaude(content);
+                skill = this.importFromClaude(content as unknown as ClaudeProjectExport);
                 break;
             case 'openai':
-                skill = this.importFromOpenAI(content);
+                skill = this.importFromOpenAI(content as unknown as OpenAIAssistantExport);
                 break;
             case 'eakap':
                 return EakapSkillSchema.parse(content);

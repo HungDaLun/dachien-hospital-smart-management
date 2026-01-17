@@ -141,7 +141,10 @@ export default function SkillList({
                                                             <span>{skill.author || 'EAKAP'}</span>
                                                             {(() => {
                                                                 const starsTag = skill.tags?.find(t => t.startsWith('stars:'));
-                                                                const stars = skill.metadata?.stars ?? (starsTag ? parseInt(starsTag.split(':')[1]) : undefined);
+                                                                const rawStars = skill.metadata?.stars;
+                                                                const metaStars = typeof rawStars === 'number' ? rawStars : undefined;
+                                                                const stars = metaStars ?? (starsTag ? parseInt(starsTag.split(':')[1]) : undefined);
+
                                                                 if (stars === undefined) return null;
                                                                 return (
                                                                     <>
