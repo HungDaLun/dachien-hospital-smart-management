@@ -30,8 +30,12 @@ export default function FilePreviewModal({ isOpen, onClose, file, dict }: FilePr
         setError(null);
         try {
             // 如果已有 markdown_content 則優先使用 (這是已經 ETL 過的乾淨內容)
-            if ((file as any).markdown_content) {
-                setContent((file as any).markdown_content);
+            interface FileWithMarkdown extends FileData {
+                markdown_content?: string;
+            }
+            const fileWithMd = file as FileWithMarkdown;
+            if (fileWithMd.markdown_content) {
+                setContent(fileWithMd.markdown_content);
                 setLoading(false);
                 return;
             }

@@ -25,7 +25,20 @@ export interface FileData {
     quality_score: number | null;
     created_at: string;
     uploaded_by: string;
-    metadata_analysis?: any; // Start using loose type for JSONB
+    metadata_analysis?: {
+        error?: string;
+        summary?: string;
+        governance?: {
+            domain?: string;
+            version?: string;
+            owner?: string;
+            artifact?: string;
+            sensitivity?: string;
+            retention?: string;
+            [key: string]: unknown;
+        };
+        [key: string]: unknown;
+    };
     file_tags?: Array<{ id: string; tag_key: string; tag_value: string }>;
     department_id?: string;
     category_id?: string | null;
@@ -41,6 +54,12 @@ export interface FileData {
     feedback_count?: number;
 }
 
+interface TagData {
+    id: string;
+    tag_key: string;
+    tag_value: string;
+}
+
 /**
  * 檔案卡片屬性
  */
@@ -49,7 +68,7 @@ interface FileCardProps {
     canManage: boolean;
     onSync?: (id: string) => void;
     onDelete?: (id: string) => void;
-    onUpdateTags?: (id: string, tags: any[]) => void;
+    onUpdateTags?: (id: string, tags: TagData[]) => void;
     dict: Dictionary;
 }
 
@@ -296,14 +315,14 @@ export default function FileCard({ file, canManage, onSync, onDelete, onUpdateTa
                         </div>
 
                         {/* 失敗原因顯示 */}
-                        {file.gemini_state === 'FAILED' && (file.metadata_analysis as any)?.error && (
+                        {file.gemini_state === 'FAILED' && file.metadata_analysis?.error && (
                             <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-100 shadow-sm transition-all animate-in fade-in slide-in-from-top-1 duration-300">
                                 <div className="flex items-start gap-2">
                                     <span className="text-red-500 flex-shrink-0 mt-0.5">⚠️</span>
                                     <div className="flex-1 overflow-hidden">
                                         <p className="text-[11px] text-red-700 font-medium mb-1">分析失敗</p>
                                         <p className="text-[10px] text-red-600 font-mono leading-tight break-words line-clamp-3">
-                                            {String((file.metadata_analysis as any).error).replace(/\[GoogleGenerativeAI Error\]:?\s*/, '').split('\n')[0]}
+                                            {String(file.metadata_analysis.error).replace(/\[GoogleGenerativeAI Error\]:?\s*/, '').split('\n')[0]}
                                         </p>
                                     </div>
                                 </div>

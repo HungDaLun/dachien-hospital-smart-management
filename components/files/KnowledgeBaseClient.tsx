@@ -4,11 +4,12 @@ import { useState, useCallback } from 'react';
 import FileList from './FileList';
 import FileUploader from './FileUploader';
 import { Dictionary } from '@/lib/i18n/dictionaries';
+import type { FileData } from './FileCard';
 
 interface KnowledgeBaseClientProps {
     canUpload: boolean;
     dict: Dictionary;
-    initialFiles?: any[];
+    initialFiles?: FileData[];
     initialTotal?: number;
 }
 

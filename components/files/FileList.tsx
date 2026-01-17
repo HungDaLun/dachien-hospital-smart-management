@@ -568,12 +568,19 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
         }
     };
 
+    interface GovernanceData {
+        sensitivity?: string;
+        retention?: string;
+        artifact?: string;
+        [key: string]: unknown;
+    }
+
     // --- Single Row Actions ---
     const handleReviewConfirm = async (data: {
         filename: string;
         tags: string[];
         categoryId?: string;
-        governance?: any;
+        governance?: GovernanceData;
     }) => {
         if (!reviewFile) return;
         try {
@@ -792,7 +799,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                     <Checkbox
                                                         variant="white-circle"
                                                         checked={isSelected}
-                                                        onChange={(e) => handleSelectRow(file.id, e.target.checked, (e.nativeEvent as any).shiftKey)}
+                                                        onChange={(e) => handleSelectRow(file.id, e.target.checked, (e.nativeEvent as MouseEvent).shiftKey)}
                                                         onClick={(e) => e.stopPropagation()}
                                                     />
                                                 </div>
@@ -888,7 +895,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
 
                                                     {/* 通用標籤區塊 (原本被隱藏的內容) */}
                                                     <div className="flex flex-wrap gap-1 mt-1">
-                                                        {(file.file_tags || []).map((t: any) => (
+                                                        {(file.file_tags || []).map((t) => (
                                                             <span key={t.id} className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/5 bg-white/[0.03] text-text-tertiary whitespace-nowrap hover:bg-white/10 hover:text-primary-400 transition-all uppercase tracking-widest">
                                                                 #{t.tag_value}
                                                             </span>
@@ -927,7 +934,7 @@ export default function FileList({ canManage, dict, refreshTrigger = 0, initialF
                                                     )}
                                                 </div>
                                                 {file.gemini_state === 'FAILED' && (
-                                                    <div className="text-[10px] text-red-500 mt-1 truncate" title={(file.metadata_analysis as any)?.error}>
+                                                    <div className="text-[10px] text-red-500 mt-1 truncate" title={file.metadata_analysis?.error}>
                                                         錯誤
                                                     </div>
                                                 )}
