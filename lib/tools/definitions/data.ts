@@ -1,7 +1,6 @@
 import { ToolContext } from '../types';
 // import { createAdminClient } from '@/lib/supabase/admin';
 
-// @ts-ignore
 export async function query_business_data(params: any, _context: ToolContext) {
     const { data_type, filters, limit = 10 } = params;
 

@@ -8,9 +8,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 // Checking previous conversations, there is a `findRelevantContent` in `lib/knowledge/rag.ts` or similar?
 // I will assume standard Supabase vector search for this implementation attempt.
 
-// @ts-ignore
-export async function search_knowledge(params: any, _context: ToolContext) {
-    const { query, department: _department, max_results = 5 } = params;
+export async function search_knowledge(params: Record<string, unknown>, _context: ToolContext) {
+    const { query, department: _department, max_results = 5 } = params as { query: string; department?: string; max_results?: number };
 
     if (!query) throw new Error("Query is required");
 
@@ -67,8 +66,7 @@ export async function search_knowledge(params: any, _context: ToolContext) {
 export const searchKnowledge = search_knowledge;
 
 
-// @ts-ignore
-export async function summarize_document(_params: any, _context: ToolContext) {
+export async function summarize_document(_params: Record<string, unknown>, _context: ToolContext) {
     return { message: "Not implemented yet (Phase 3)" };
 }
 

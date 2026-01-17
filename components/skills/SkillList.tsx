@@ -70,7 +70,7 @@ export default function SkillList({
         try {
             await onDelete(confirmDeleteId);
             toast.success('技能已刪除');
-        } catch (error) {
+        } catch {
             toast.error('刪除失敗');
         } finally {
             setDeletingId(null);

@@ -1,15 +1,14 @@
 import { ToolContext } from '../types';
 
-// @ts-ignore
-export async function export_csv(params: any, _context: ToolContext) {
-    const { data, filename, columns } = params;
+export async function export_csv(params: Record<string, unknown>, _context: ToolContext) {
+    const { data, filename, columns } = params as { data: any[]; filename: string; columns?: string[] };
 
     if (!Array.isArray(data) || data.length === 0) {
         return { success: false, error: "Data must be a non-empty array" };
     }
 
     // Basic CSV generation
-    const headers = columns || Object.keys(data[0]);
+    const headers = columns || Object.keys(data[0] || {});
     const csvRows = [headers.join(',')];
 
     for (const row of data) {

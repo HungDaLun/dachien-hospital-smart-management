@@ -12,6 +12,14 @@ export const create_task: ToolDefinition = {
         priority: z.enum(['low', 'medium', 'high']).default('medium').describe('Task priority'),
     }),
     execute: async (params) => {
+        const { title, description: _description, assignee: _assignee, dueDate: _dueDate, priority: _priority } = params as {
+            title: string;
+            description?: string;
+            assignee?: string;
+            dueDate?: string;
+            priority?: string;
+        };
+
         // Mock implementation - would typically insert into a 'tasks' table
         console.log('[Mock Tool] Creating Task:', params);
 
@@ -19,7 +27,7 @@ export const create_task: ToolDefinition = {
             taskId: `TASK-${Date.now().toString().slice(-4)}`,
             status: 'created',
             details: params,
-            message: `Task '${params.title}' created successfully.`
+            message: `Task '${title}' created successfully.`
         };
     }
 };
@@ -32,7 +40,8 @@ export const summarize_document: ToolDefinition = {
         maxLength: z.number().optional().default(200).describe('Approximate maximum length of the summary in words.'),
         format: z.enum(['bullet_points', 'paragraph']).default('paragraph').describe('Format of the summary.'),
     }),
-    execute: async ({ content, maxLength: _maxLength, format }) => {
+    execute: async (params) => {
+        const { content, maxLength: _maxLength, format } = params as { content: string; maxLength?: number; format: string };
         // In a real implementation, this might call a separate LLM chain or use a specialized summarization model.
         // For this mock/demo, we'll simulate a summary.
 

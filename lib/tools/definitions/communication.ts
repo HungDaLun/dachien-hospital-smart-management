@@ -1,8 +1,7 @@
 import { ToolContext } from '../types';
 
-// @ts-ignore
-export async function send_email(params: any, _context: ToolContext) {
-    const { to, subject, body } = params;
+export async function send_email(params: Record<string, unknown>, _context: ToolContext) {
+    const { to, subject, body } = params as { to: string; subject: string; body: string };
 
     // Validate params
     if (!to || !subject || !body) {
@@ -25,9 +24,8 @@ export async function send_email(params: any, _context: ToolContext) {
 export const sendEmail = send_email;
 
 
-// @ts-ignore
-export async function send_notification(params: any, _context: ToolContext) {
-    const { channel, message } = params;
+export async function send_notification(params: Record<string, unknown>, _context: ToolContext) {
+    const { channel, message } = params as { channel: string; message: string };
 
     // This tool normally requires an API Key config
     // We would check `context.organizationId` -> get key -> send

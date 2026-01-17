@@ -18,7 +18,7 @@ export default async function SystemConfigPage() {
   try {
     const profile = await getCurrentUserProfile();
     requireSuperAdmin(profile);
-  } catch (error) {
+  } catch {
     redirect('/dashboard');
   }
 

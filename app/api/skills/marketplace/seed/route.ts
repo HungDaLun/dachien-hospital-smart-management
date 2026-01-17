@@ -4,6 +4,19 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getSkillsMPClient } from '@/lib/skills/skillsmp-client';
 import { SkillMarketTranslator } from '@/lib/skills/translator';
 import { toApiResponse } from '@/lib/errors';
+import { TranslatableSkill } from '@/lib/skills/translator';
+
+interface SeededSkill extends TranslatableSkill {
+    slug: string;
+    category?: string;
+    tags?: string[];
+    stars?: number;
+    author?: string;
+    githubUrl?: string;
+    repoFullName?: string;
+    translatedTitle?: string;
+    translatedDescription?: string;
+}
 
 const translator = new SkillMarketTranslator();
 
@@ -30,7 +43,8 @@ export async function POST(_request: NextRequest) {
 
         // 2. 為了確保品質，我們進行批次翻譯 (英翻中)
         console.log('[Seed] Starting translation batch...');
-        const translatedSkills = await translator.translateResults(externalSkills);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const translatedSkills = await translator.translateResults(externalSkills as any) as SeededSkill[];
         console.log(`[Seed] Translation finished. Results: ${translatedSkills.length}`);
 
         const adminSupabase = createAdminClient();

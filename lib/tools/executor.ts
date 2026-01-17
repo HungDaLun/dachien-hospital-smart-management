@@ -32,7 +32,7 @@ const TOOL_IMPLEMENTATIONS: Record<string, ToolImplementation> = {
  */
 export async function executeTool(
     toolName: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     context: ToolContext
 ): Promise<ToolExecutionResult> {
     const supabase = createAdminClient();
@@ -96,8 +96,10 @@ export async function executeTool(
         console.log(`[ToolExecutor] Execution success for ${toolName}`);
         return { success: true, result };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`[ToolExecutor] Execution failed for ${toolName}:`, error);
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
         // 6. Log failure
         if (logEntryId) {
@@ -105,12 +107,12 @@ export async function executeTool(
                 .from('tool_executions_log')
                 .update({
                     status: 'failed',
-                    error_message: error.message || String(error),
+                    error_message: errorMessage,
                     execution_time_ms: Date.now() - startTime
                 })
                 .eq('id', logEntryId);
         }
 
-        return { success: false, error: error.message || 'Unknown error occurred during tool execution' };
+        return { success: false, error: errorMessage };
     }
 }

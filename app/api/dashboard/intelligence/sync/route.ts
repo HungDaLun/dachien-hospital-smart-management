@@ -40,7 +40,7 @@ export async function POST() {
         const fetcher = new NewsFetcher();
         const analyzer = new NewsAnalyzer();
 
-        let allNewIntelligence = [];
+        const allNewIntelligence = [];
 
         for (const topic of topics) {
             // 將關鍵字改用 OR 連接，增加搜尋成功率

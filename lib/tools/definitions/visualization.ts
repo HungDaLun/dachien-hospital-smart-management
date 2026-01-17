@@ -12,7 +12,15 @@ export const generate_chart: ToolDefinition = {
         seriesKeys: z.array(z.string()).describe('The keys in data objects to use for data series (values).'),
         colors: z.array(z.string()).optional().describe('Optional list of hex colors for the series.'),
     }),
-    execute: async ({ chartType, title, data, xAxisKey, seriesKeys, colors }) => {
+    execute: async (params) => {
+        const { chartType, title, data, xAxisKey, seriesKeys, colors } = params as {
+            chartType: string;
+            title: string;
+            data: any[];
+            xAxisKey: string;
+            seriesKeys: string[];
+            colors?: string[];
+        };
         // In a real scenario, we might do data validation or transformation here.
         // For now, we return the config that the frontend can use to render a Recharts component.
 

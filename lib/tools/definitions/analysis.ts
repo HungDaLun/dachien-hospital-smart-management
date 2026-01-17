@@ -8,7 +8,8 @@ export const calculate_statistics: ToolDefinition = {
         dataset: z.array(z.number()).describe('Array of numbers to analyze.'),
         metrics: z.array(z.enum(['mean', 'median', 'mode', 'min', 'max', 'sum', 'std_dev'])).describe('List of metrics to calculate.'),
     }),
-    execute: async ({ dataset, metrics }) => {
+    execute: async (params) => {
+        const { dataset, metrics } = params as { dataset: number[]; metrics: string[] };
         if (dataset.length === 0) {
             return { error: 'Dataset is empty.' };
         }
@@ -59,7 +60,8 @@ export const web_search: ToolDefinition = {
         query: z.string().describe('The search query.'),
         numResults: z.number().optional().default(3).describe('Number of results to return.'),
     }),
-    execute: async ({ query, numResults }) => {
+    execute: async (params) => {
+        const { query, numResults } = params as { query: string; numResults: number };
         // Mock Web Search
         // In production, integrate with Tavily API, Google Custom Search JSON API, or Bing Search API.
         console.log(`[Mock Web Search] Query: ${query}`);

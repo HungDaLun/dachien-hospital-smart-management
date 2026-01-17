@@ -84,7 +84,7 @@ export async function POST(req: Request) {
             try {
                 // Import logic
                 skillData = SkillsImporter.import(body.import_content);
-            } catch (err) {
+            } catch {
                 return NextResponse.json(
                     { error: 'Invalid skill format or import failed' },
                     { status: 400 }

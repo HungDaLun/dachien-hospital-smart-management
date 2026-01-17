@@ -1,7 +1,7 @@
 /**
  * 處理信心度評分
  */
-export function extractConfidence(score: any, reasoning?: any): { score: number; reasoning: string } {
+export function extractConfidence(score: unknown, reasoning?: unknown): { score: number; reasoning: string } {
     let finalScore = 0.5; // 預設值
 
     if (typeof score === 'number') {

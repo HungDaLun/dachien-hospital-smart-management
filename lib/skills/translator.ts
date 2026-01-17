@@ -4,6 +4,20 @@ import { generateContent } from '@/lib/gemini/client';
 /**
  * 技能庫在地化翻譯工具
  */
+export interface TranslatableSkill {
+    name?: string;
+    title?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
+interface TranslatedItem {
+    k: string;
+    t: string;
+    d: string;
+    s: string;
+}
+
 export class SkillMarketTranslator {
     private model = 'gemini-3-flash-preview';
 
@@ -73,7 +87,7 @@ export class SkillMarketTranslator {
         try {
             const result = await generateContent(this.model, prompt);
             // 積極清洗：移除 Markdown 標記、引號、換行
-            let cleaned = result.trim()
+            const cleaned = result.trim()
                 .replace(/```text/g, '')
                 .replace(/```/g, '')
                 .replace(/^"|"$/g, '')
@@ -94,14 +108,14 @@ export class SkillMarketTranslator {
     /**
      * 批次翻譯搜尋結果列表
      */
-    async translateResults(skills: any[]): Promise<any[]> {
+    async translateResults(skills: TranslatableSkill[]): Promise<TranslatableSkill[]> {
         if (skills.length === 0) return [];
 
         console.log(`[Translator] Starting translation for ${skills.length} skills...`);
 
         // 拆分成每 10 個一組，提高成功率與降低超時風險
         const CHUNK_SIZE = 10;
-        const results: any[] = [];
+        const results: TranslatableSkill[] = [];
 
         for (let i = 0; i < skills.length; i += CHUNK_SIZE) {
             const chunk = skills.slice(i, i + CHUNK_SIZE);
@@ -123,7 +137,7 @@ export class SkillMarketTranslator {
     /**
      * 翻譯單一區塊 (Internal helper)
      */
-    private async translateChunk(skills: any[]): Promise<any[]> {
+    private async translateChunk(skills: TranslatableSkill[]): Promise<TranslatableSkill[]> {
         const skillsToTranslate = skills.map((s, index) => ({
             k: `idx-${index}`,
             t: s.name || s.title || '',
@@ -149,11 +163,12 @@ Match the "k" keys exactly. The "s" should be a 1-sentence tip on how to combine
                 return skills;
             }
 
+            const items = parsed as TranslatedItem[];
             return skills.map((original, index) => {
                 const key = `idx-${index}`;
-                let translated = parsed.find((t: any) => t.k === key);
-                if (!translated && parsed.length === skills.length) {
-                    translated = parsed[index];
+                let translated = items.find((t) => t.k === key);
+                if (!translated && items.length === skills.length) {
+                    translated = items[index];
                 }
 
                 if (translated) {
@@ -175,7 +190,7 @@ Match the "k" keys exactly. The "s" should be a 1-sentence tip on how to combine
     /**
      * 強固的 JSON 清理與解析函式
      */
-    private cleanJson(text: string): any {
+    private cleanJson(text: string): unknown {
         try {
             // 嘗試尋找第一個 [ 和最後一個 ]
             const start = text.indexOf('[');
@@ -188,7 +203,7 @@ Match the "k" keys exactly. The "s" should be a 1-sentence tip on how to combine
 
             const jsonPart = text.substring(start, end + 1);
             return JSON.parse(jsonPart);
-        } catch (e) {
+        } catch {
             console.warn('[Translator] Failed to parse JSON:', text.substring(0, 100) + '...');
             return null;
         }

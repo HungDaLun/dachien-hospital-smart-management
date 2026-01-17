@@ -1,8 +1,8 @@
 export interface ToolDefinition {
   name: string;
   description: string;
-  parameters: any; // Allow Zod schema or JSON schema objects
-  execute?: (params: any, context?: any) => Promise<any>;
+  parameters: any; // Allow Zod schema or JSON schema objects - strictly typing this is complex vs FunctionDeclarationSchema
+  execute?: (params: Record<string, unknown>, context?: ToolContext) => Promise<unknown>;
 }
 
 export interface ToolContext {
@@ -14,12 +14,12 @@ export interface ToolContext {
 
 export interface ToolExecutionResult {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 
 export interface ToolImplementation {
-  (params: any, context: ToolContext): Promise<any>;
+  (params: Record<string, unknown>, context: ToolContext): Promise<unknown>;
 }
 
 export interface Tool {
@@ -41,8 +41,8 @@ export interface ToolLogEntry {
   session_id?: string;
   user_id?: string;
   tool_name: string;
-  input_params: any;
-  output_result?: any;
+  input_params: Record<string, unknown>;
+  output_result?: unknown;
   status: 'pending' | 'running' | 'success' | 'failed';
   error_message?: string;
   execution_time_ms?: number;

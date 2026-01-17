@@ -81,7 +81,7 @@ export default function ReviewWorkspace({ file }: ReviewWorkspaceProps) {
                 toast.success('Document rejected');
                 router.push('/dashboard/knowledge/review');
             }
-        } catch (e) {
+        } catch {
             toast.error('Error rejecting');
         } finally {
             setLoading(false);

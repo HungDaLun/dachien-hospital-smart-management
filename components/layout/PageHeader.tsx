@@ -23,7 +23,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                         ) : React.isValidElement(Icon) ? (
                             Icon
                         ) : (
-                            //@ts-ignore
+                            // @ts-expect-error - icon component props mismatch
                             <Icon size={28} strokeWidth={2.5} />
                         )}
                     </div>

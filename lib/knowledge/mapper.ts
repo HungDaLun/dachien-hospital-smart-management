@@ -16,7 +16,7 @@ export async function autoMapDocumentToFrameworks(fileId: string, supabaseClient
     if (!supabase) {
         try {
             supabase = await createClient();
-        } catch (e) {
+        } catch {
             console.log('[Mapper] Falling back to Admin Client...');
             supabase = createAdminClient();
         }

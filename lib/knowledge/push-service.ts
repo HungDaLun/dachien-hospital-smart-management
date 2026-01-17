@@ -71,7 +71,7 @@ export class KnowledgePushService {
 
         if (!interests || interests.length === 0) return [];
 
-        let recommendations: Recommendation[] = [];
+        const recommendations: Recommendation[] = [];
         const seenFiles = new Set<string>();
 
         // 2. Search for each interest

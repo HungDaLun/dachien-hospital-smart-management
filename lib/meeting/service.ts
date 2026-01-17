@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { MeetingConfig, MeetingMessage, ParticipantType } from './types';
+import { MeetingConfig, MeetingMessage, ParticipantType, ChairpersonDecision, MeetingMinutes } from './types';
 import { MeetingSpeakerScheduler } from './scheduler';
 import { KnowledgeIsolator } from './knowledge-isolator';
 import { CitationValidator, CitationValidationResult } from './citation-validator';
@@ -133,7 +133,7 @@ export class MeetingService {
 
 
         // 2. Special Case: Opening (First Turn)
-        let chairpersonDecision: any = { action: 'continue' };
+        let chairpersonDecision: ChairpersonDecision = { action: 'continue' };
 
         if (messages.length === 0) {
             // Force Chairperson to open the meeting for ALL modes
@@ -272,7 +272,7 @@ export class MeetingService {
 
         // 5. Generate Content
         // Convert messages to string context
-        const contextStr = messages.map((m: any) => `${m.speaker_name}: ${m.content}`).join('\n');
+        const contextStr = messages.map((m) => `${m.speaker_name}: ${m.content}`).join('\n');
 
         let prompt = '';
 
@@ -302,8 +302,10 @@ ${safeguardProcessor.getSystemPromptSuffix()}
         } else {
             const isolator = new KnowledgeIsolator();
             if (nextSpeaker.type === 'department') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 prompt = await (isolator as any).buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
             } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 prompt = await (isolator as any).buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
             }
             prompt += safeguardProcessor.getSystemPromptSuffix();
@@ -435,8 +437,9 @@ ${safeguardProcessor.getSystemPromptSuffix()}
                     }
 
                     controller.close();
-                } catch (err: any) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`));
+                } catch (err: unknown) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: message })}\n\n`));
                     controller.close();
                 }
             }
@@ -481,7 +484,7 @@ ${safeguardProcessor.getSystemPromptSuffix()}
                 ownerDisplayName = userProfile.display_name || "會議發起人";
                 if (userProfile.department_id) {
                     ownerDepartmentId = userProfile.department_id;
-                    // @ts-ignore - supabase query types alignment
+                    // @ts-expect-error - supabase query types alignment
                     ownerDepartmentName = userProfile.departments?.name || "管理部";
                 }
             }
@@ -503,7 +506,7 @@ ${safeguardProcessor.getSystemPromptSuffix()}
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) return;
 
-        const contextStr = messages.map((m: any) => `[${m.speaker_type}] ${m.speaker_name}: ${m.content}`).join('\n');
+        const contextStr = messages.map((m) => `[${m.speaker_type}] ${m.speaker_name}: ${m.content}`).join('\n');
 
         const prompt = `
 你是首席戰略官的秘書。你的任務是將以下會議記錄總結為一份符合 **SMART** 原則的正式紀錄。
@@ -580,7 +583,7 @@ JSON Schema:
 
             const result = await model.generateContent(prompt);
             const responseText = result.response.text();
-            const minutesData = JSON.parse(responseText);
+            const minutesData = JSON.parse(responseText) as MeetingMinutes;
 
             // 4. Save to meeting_minutes
             await supabase.from('meeting_minutes').upsert({
@@ -602,7 +605,7 @@ JSON Schema:
 ${minutesData.executive_summary}
 
 ## SMART 行動計畫
-${minutesData.content.recommended_actions.map((action: any) => `
+${minutesData.content.recommended_actions.map((action) => `
 ### ${action.action}
 - **負責單位**: ${action.responsible_department} (優先級: ${action.priority})
 - **S (具體)**: ${action.smart_specific}
@@ -613,12 +616,12 @@ ${minutesData.content.recommended_actions.map((action: any) => `
 `).join('\n')}
 
 ## 部門立場
-${minutesData.content.department_positions.map((dept: any) => `
+${minutesData.content.department_positions.map((dept) => `
 - **${dept.department_name}**: ${dept.position_summary} (${dept.final_stance})
 `).join('\n')}
 
 ## 專家觀點
-${minutesData.content.consultant_insights.map((cons: any) => `
+${minutesData.content.consultant_insights.map((cons) => `
 - **${cons.consultant_name}**: ${cons.key_insights.join('; ')}
 `).join('\n')}
 

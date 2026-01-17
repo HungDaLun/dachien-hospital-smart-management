@@ -30,7 +30,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
     if (!supabase) {
         try {
             supabase = await createClient();
-        } catch (e) {
+        } catch {
             // Fallback for scripts/cron where cookies() is not available
             console.log('[Ingestion] Falling back to Admin Client...');
             supabase = createAdminClient();
@@ -63,7 +63,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
             if (file.s3_etag && !file.s3_etag.startsWith('mock-')) {
                 try {
                     buffer = await downloadFromS3(file.s3_storage_path);
-                } catch (s3Error) {
+                } catch {
                     throw new Error('無法取得檔案內容 (S3 下載失敗)');
                 }
             } else {
@@ -111,7 +111,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         ));
 
         const cleanedJsonString = metadataJsonString.replace(/```json\n?|\n?```/g, '').trim();
-        let metadata: any = {};
+        let metadata: Record<string, any> = {};
         try {
             metadata = JSON.parse(cleanedJsonString);
         } catch (e) {
@@ -160,7 +160,7 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
             // 分析失敗不影響前面的同步結果
         }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error(`[Ingestion] Failed for ${fileId}:`, err);
         const errorMessage = err instanceof Error ? err.message : String(err);
 

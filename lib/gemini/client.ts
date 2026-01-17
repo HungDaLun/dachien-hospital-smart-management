@@ -2,7 +2,7 @@
  * Google Gemini API 客戶端
  * 用於與 Gemini 模型互動，包含檔案上傳與對話功能
  */
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part, GenerationConfig } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
 import path from 'path';
@@ -131,7 +131,7 @@ export async function deleteFileFromGemini(uri: string): Promise<void> {
     }
 
     // 完整 name 格式通常為 files/NAME
-    let name = `files/${fileName}`;
+    const name = `files/${fileName}`;
 
     const fileManager = new GoogleAIFileManager(apiKey);
     await fileManager.deleteFile(name);
@@ -174,7 +174,7 @@ export async function chatWithGemini(
   });
 
   // 建構當前請求內容
-  const parts = [];
+  const parts: Part[] = [];
 
   // 加入檔案 (如果有的話)
   for (const file of fileData) {
@@ -220,7 +220,7 @@ export async function generateContent(
   prompt: string,
   fileUri?: string,
   mimeType?: string,
-  config: any = {}
+  config: GenerationConfig = {}
 ): Promise<string> {
   // 使用異步客戶端以確保能拿到 DB 金鑰
   const genAI = await createGeminiClientAsync();
@@ -232,7 +232,7 @@ export async function generateContent(
     }
   });
 
-  const parts: any[] = [];
+  const parts: Part[] = [];
   if (fileUri && mimeType) {
     parts.push({
       fileData: {
@@ -265,7 +265,7 @@ export async function retryWithBackoff<T>(
 
     // 檢查是否為可重試的錯誤
     const statusCode = (error as { statusCode?: number })?.statusCode;
-    if (statusCode && !retryConfig.retryableErrors.includes(statusCode as any)) {
+    if (statusCode && !retryConfig.retryableErrors.includes(statusCode as typeof retryConfig.retryableErrors[number])) {
       throw error;
     }
 

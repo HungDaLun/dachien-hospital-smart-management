@@ -344,12 +344,12 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
             const url = isEditing ? `/api/agents/${formData.id}` : '/api/agents';
             const method = isEditing ? 'PUT' : 'POST';
 
-            let payload = { ...formData };
+            const payload = { ...formData };
             try {
                 if (typeof payload.mcp_config === 'string') {
                     payload.mcp_config = JSON.parse(payload.mcp_config);
                 }
-            } catch (e) {
+            } catch {
                 throw new Error('Invalid JSON in Skills Configuration');
             }
 

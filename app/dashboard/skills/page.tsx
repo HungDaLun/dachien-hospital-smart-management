@@ -42,7 +42,7 @@ export default function SkillsMarketplace() {
             } else {
                 toast.error('同步失敗：' + (data.error?.message || '未知錯誤'));
             }
-        } catch (err) {
+        } catch {
             toast.error('同步過程發生錯誤');
         } finally {
             setIsSeeding(false);
@@ -60,7 +60,7 @@ export default function SkillsMarketplace() {
             } else {
                 toast.error('翻譯失敗：' + (data.error?.message || '未知錯誤'));
             }
-        } catch (err) {
+        } catch {
             toast.error('翻譯過程發生錯誤');
         } finally {
             setIsTranslating(false);

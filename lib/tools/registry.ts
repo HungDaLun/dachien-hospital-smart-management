@@ -28,13 +28,25 @@ export async function loadAllTools(forceRefresh = false): Promise<Tool[]> {
         return [];
     }
 
-    toolsCache = tools.map((t: any) => ({
+    interface ToolRegistryRow {
+        name: string;
+        display_name: string;
+        description: string;
+        icon?: string;
+        category: string;
+        function_declaration: ToolDefinition;
+        requires_api_key?: boolean;
+        api_key_config?: Record<string, { name: string; description: string }>;
+        is_premium?: boolean;
+    }
+
+    toolsCache = (tools as unknown as ToolRegistryRow[]).map((t) => ({
         name: t.name,
         displayName: t.display_name,
         description: t.description,
         icon: t.icon,
         category: t.category,
-        functionDeclaration: t.function_declaration as ToolDefinition,
+        functionDeclaration: t.function_declaration,
         requiresApiKey: t.requires_api_key,
         apiKeyConfig: t.api_key_config,
         isPremium: t.is_premium

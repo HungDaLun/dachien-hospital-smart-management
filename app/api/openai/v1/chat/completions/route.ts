@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
             .eq('agent_id', agent.id);
 
         let knowledgeContext = '';
-        let matchedFileIds: Set<string> = new Set();
+        const matchedFileIds: Set<string> = new Set();
         let departmentIds: string[] = [];
 
         if (rules && rules.length > 0) {
@@ -253,7 +253,7 @@ ${knowledgeContext}
                 }
             };
 
-            // @ts-ignore
+            // @ts-expect-error - streaming response type mismatch
             return new Response(streamIterator(), {
                 headers: {
                     'Content-Type': 'text/event-stream; charset=utf-8',

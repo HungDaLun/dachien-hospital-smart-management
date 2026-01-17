@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             .select('rule_type, rule_value')
             .eq('agent_id', agent.id);
 
-        let matchedFileIds: Set<string> = new Set(agent.knowledge_files || []);
+        const matchedFileIds: Set<string> = new Set(agent.knowledge_files || []);
         const adminSupabase = createAdminClient();
         let departmentIds: string[] = [];
 
@@ -314,7 +314,7 @@ ${safeguardProcessor.getSystemPromptSuffix()}
                                     if (data.type === 'text' && data.content) {
                                         fullAiResponse += data.content;
                                     }
-                                } catch (e) {
+                                } catch {
                                     // ignore parse error for chunks
                                 }
                             }

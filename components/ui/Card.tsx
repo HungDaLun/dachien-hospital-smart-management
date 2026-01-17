@@ -116,8 +116,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             clickable,
             interactive, // 舊 API 兼容
             rounded = true, // 舊 API 兼容（預設有圓角）
-            shadow = true, // 舊 API 兼容（預設有陰影）
-            bordered = false, // 舊 API 兼容
+            shadow: _shadow = true, // 舊 API 兼容（預設有陰影）
+            bordered: _bordered = false, // 舊 API 兼容
             className = '',
             children,
             ...props

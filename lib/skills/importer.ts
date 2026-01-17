@@ -10,7 +10,7 @@ interface ClaudeProjectExport {
     tools?: Array<{
         name: string;
         description?: string;
-        input_schema: any;
+        input_schema: Record<string, unknown>;
     }>;
 }
 
@@ -25,7 +25,7 @@ interface OpenAIAssistantExport {
         function?: {
             name: string;
             description?: string;
-            parameters: any;
+            parameters: Record<string, unknown>;
         };
     }>;
     metadata?: Record<string, string>;

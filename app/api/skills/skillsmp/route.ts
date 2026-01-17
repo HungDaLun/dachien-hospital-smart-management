@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
         // 取得搜尋參數
         const searchParams = request.nextUrl.searchParams;
-        let query = searchParams.get('q');
+        const query = searchParams.get('q');
         const mode = searchParams.get('mode') || 'keyword';
         const limit = parseInt(searchParams.get('limit') || '20');
         const sortBy = searchParams.get('sortBy') as string | null;
@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
         let finalSkills = result.data.skills;
         if (finalSkills.length > 0) {
             console.log(`[Marketplace] Translating results batch: ${finalSkills.length} items`);
-            finalSkills = await translator.translateResults(finalSkills);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            finalSkills = await translator.translateResults(finalSkills as any) as any;
         }
 
         return NextResponse.json({

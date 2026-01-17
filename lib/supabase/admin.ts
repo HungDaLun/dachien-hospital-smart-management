@@ -23,7 +23,6 @@ export function createAdminClient() {
         },
         global: {
             // Force fetch to not cache using Next.js compatible options
-            // @ts-ignore
             fetch: (url, options) => {
                 return fetch(url, {
                     ...options,

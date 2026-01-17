@@ -17,7 +17,7 @@ export async function GET() {
 
     for (const file of files) {
         // 2. 嘗試解析目前的 metadata
-        let metadata = file.metadata_analysis || {};
+        const metadata = file.metadata_analysis || {};
 
         // 如果已經處理過（有 type 欄位），則跳過
         if (metadata.type === 'meeting_minutes') {
