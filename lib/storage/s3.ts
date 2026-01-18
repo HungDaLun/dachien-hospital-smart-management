@@ -110,14 +110,9 @@ export async function downloadFromS3(key: string): Promise<Buffer> {
     throw new Error('檔案不存在或無法讀取');
   }
 
-  // 將 Stream 轉換為 Buffer
-  const chunks: Uint8Array[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for await (const chunk of response.Body as any) {
-    chunks.push(chunk);
-  }
-
-  return Buffer.concat(chunks);
+  // 使用 SDK 內建方法轉換為 Buffer，避免使用 any 強制轉型
+  const byteArray = await response.Body.transformToByteArray();
+  return Buffer.from(byteArray);
 }
 
 /**

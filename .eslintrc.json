@@ -4,20 +4,20 @@
     "next/typescript"
   ],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-unused-vars": [
-      "warn",
+      "error",
       {
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
       }
     ],
-    "@typescript-eslint/ban-ts-comment": "warn",
-    "@typescript-eslint/no-empty-object-type": "warn",
-    "@typescript-eslint/no-require-imports": "warn",
-    "prefer-const": "warn",
+    "@typescript-eslint/ban-ts-comment": "error",
+    "@typescript-eslint/no-empty-object-type": "error",
+    "@typescript-eslint/no-require-imports": "error",
+    "prefer-const": "error",
     "react/no-unescaped-entities": "off",
-    "react/display-name": "warn",
-    "@next/next/no-img-element": "warn"
+    "react/display-name": "error",
+    "@next/next/no-img-element": "error"
   }
 }

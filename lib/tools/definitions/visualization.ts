@@ -1,17 +1,43 @@
 import { ToolDefinition } from '../types';
-import { z } from 'zod';
+import { SchemaType } from '@google/generative-ai';
 
 export const generate_chart: ToolDefinition = {
     name: 'generate_chart',
     description: 'Generate a structured JSON configuration for rendering charts (Bar, Line, Pie, Area) based on provided data.',
-    parameters: z.object({
-        chartType: z.enum(['bar', 'line', 'pie', 'area']).describe('The type of chart to generate.'),
-        title: z.string().describe('The title of the chart.'),
-        data: z.array(z.record(z.any())).describe('The array of data objects to visualize.'),
-        xAxisKey: z.string().describe('The key in data objects to use for the X-axis (category).'),
-        seriesKeys: z.array(z.string()).describe('The keys in data objects to use for data series (values).'),
-        colors: z.array(z.string()).optional().describe('Optional list of hex colors for the series.'),
-    }),
+    parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+            chartType: {
+                type: SchemaType.STRING,
+                enum: ['bar', 'line', 'pie', 'area'],
+                description: 'The type of chart to generate.'
+            },
+            title: {
+                type: SchemaType.STRING,
+                description: 'The title of the chart.'
+            },
+            data: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.OBJECT },
+                description: 'The array of data objects to visualize.'
+            },
+            xAxisKey: {
+                type: SchemaType.STRING,
+                description: 'The key in data objects to use for the X-axis (category).'
+            },
+            seriesKeys: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+                description: 'The keys in data objects to use for data series (values).'
+            },
+            colors: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+                description: 'Optional list of hex colors for the series.'
+            }
+        },
+        required: ['chartType', 'title', 'data', 'xAxisKey', 'seriesKeys']
+    },
     execute: async (params) => {
         const { chartType, title, data, xAxisKey, seriesKeys, colors } = params as {
             chartType: string;

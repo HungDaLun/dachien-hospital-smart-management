@@ -1,13 +1,28 @@
 import { ToolDefinition } from '../types';
-import { z } from 'zod';
+import { SchemaType } from '@google/generative-ai';
 
 export const calculate_statistics: ToolDefinition = {
     name: 'calculate_statistics',
     description: 'Perform basic statistical analysis on a dataset.',
-    parameters: z.object({
-        dataset: z.array(z.number()).describe('Array of numbers to analyze.'),
-        metrics: z.array(z.enum(['mean', 'median', 'mode', 'min', 'max', 'sum', 'std_dev'])).describe('List of metrics to calculate.'),
-    }),
+    parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+            dataset: {
+                type: SchemaType.ARRAY,
+                description: 'Array of numbers to analyze.',
+                items: { type: SchemaType.NUMBER }
+            },
+            metrics: {
+                type: SchemaType.ARRAY,
+                description: 'List of metrics to calculate.',
+                items: {
+                    type: SchemaType.STRING,
+                    enum: ['mean', 'median', 'mode', 'min', 'max', 'sum', 'std_dev']
+                }
+            }
+        },
+        required: ['dataset', 'metrics']
+    },
     execute: async (params) => {
         const { dataset, metrics } = params as { dataset: number[]; metrics: string[] };
         if (dataset.length === 0) {
@@ -56,10 +71,20 @@ export const calculate_statistics: ToolDefinition = {
 export const web_search: ToolDefinition = {
     name: 'web_search',
     description: 'Search the public web for information. Use this when you need current information not available in your internal knowledge base.',
-    parameters: z.object({
-        query: z.string().describe('The search query.'),
-        numResults: z.number().optional().default(3).describe('Number of results to return.'),
-    }),
+    parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+            query: {
+                type: SchemaType.STRING,
+                description: 'The search query.'
+            },
+            numResults: {
+                type: SchemaType.NUMBER,
+                description: 'Number of results to return.'
+            }
+        },
+        required: ['query']
+    },
     execute: async (params) => {
         const { query, numResults } = params as { query: string; numResults: number };
         // Mock Web Search

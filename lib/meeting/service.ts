@@ -302,11 +302,9 @@ ${safeguardProcessor.getSystemPromptSuffix()}
         } else {
             const isolator = new KnowledgeIsolator();
             if (nextSpeaker.type === 'department') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                prompt = await (isolator as any).buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
+                prompt = await isolator.buildDepartmentPrompt(nextSpeaker.id, nextSpeaker.name, meeting.topic, contextStr);
             } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                prompt = await (isolator as any).buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
+                prompt = await isolator.buildConsultantPrompt(nextSpeaker.id, meeting.topic, contextStr);
             }
             prompt += safeguardProcessor.getSystemPromptSuffix();
         }

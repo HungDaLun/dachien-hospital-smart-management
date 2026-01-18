@@ -29,7 +29,7 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet: { name: string; value: string; options: any }[]) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      setAll(cookiesToSet: { name: string; value: string; options: { path?: string; domain?: string; maxAge?: number; expires?: Date; sameSite?: "lax" | "strict" | "none" | boolean; secure?: boolean; httpOnly?: boolean; priority?: "low" | "medium" | "high" } }[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);

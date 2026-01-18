@@ -1,16 +1,36 @@
 import { ToolDefinition } from '../types';
-import { z } from 'zod';
+import { SchemaType } from '@google/generative-ai';
 
 export const create_task: ToolDefinition = {
     name: 'create_task',
     description: 'Create a new task in the project management system.',
-    parameters: z.object({
-        title: z.string().describe('Task title'),
-        description: z.string().optional().describe('Task description'),
-        assignee: z.string().optional().describe('Email or name of the assignee'),
-        dueDate: z.string().optional().describe('Due date in ISO format (YYYY-MM-DD)'),
-        priority: z.enum(['low', 'medium', 'high']).default('medium').describe('Task priority'),
-    }),
+    parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+            title: {
+                type: SchemaType.STRING,
+                description: 'Task title'
+            },
+            description: {
+                type: SchemaType.STRING,
+                description: 'Task description'
+            },
+            assignee: {
+                type: SchemaType.STRING,
+                description: 'Email or name of the assignee'
+            },
+            dueDate: {
+                type: SchemaType.STRING,
+                description: 'Due date in ISO format (YYYY-MM-DD)'
+            },
+            priority: {
+                type: SchemaType.STRING,
+                enum: ['low', 'medium', 'high'],
+                description: 'Task priority'
+            }
+        },
+        required: ['title']
+    },
     execute: async (params) => {
         const { title, description: _description, assignee: _assignee, dueDate: _dueDate, priority: _priority } = params as {
             title: string;
@@ -35,11 +55,25 @@ export const create_task: ToolDefinition = {
 export const summarize_document: ToolDefinition = {
     name: 'summarize_document',
     description: 'Summarize a long piece of text or specific content.',
-    parameters: z.object({
-        content: z.string().describe('The text content to summarize.'),
-        maxLength: z.number().optional().default(200).describe('Approximate maximum length of the summary in words.'),
-        format: z.enum(['bullet_points', 'paragraph']).default('paragraph').describe('Format of the summary.'),
-    }),
+    parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+            content: {
+                type: SchemaType.STRING,
+                description: 'The text content to summarize.'
+            },
+            maxLength: {
+                type: SchemaType.NUMBER,
+                description: 'Approximate maximum length of the summary in words.'
+            },
+            format: {
+                type: SchemaType.STRING,
+                enum: ['bullet_points', 'paragraph'],
+                description: 'Format of the summary.'
+            }
+        },
+        required: ['content']
+    },
     execute: async (params) => {
         const { content, maxLength: _maxLength, format } = params as { content: string; maxLength?: number; format: string };
         // In a real implementation, this might call a separate LLM chain or use a specialized summarization model.
