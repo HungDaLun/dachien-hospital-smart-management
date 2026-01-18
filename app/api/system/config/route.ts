@@ -108,7 +108,7 @@ export async function GET(_request: NextRequest) {
         cron_secret: getConfigStatus('cron_secret', 'CRON_SECRET'),
       },
       app: {
-        app_url: settingsMap['app_url']?.value || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        app_url: settingsMap['app_url']?.value || process.env.NEXT_PUBLIC_APP_URL || 'https://nexus-ai.zeabur.app',
         node_env: process.env.NODE_ENV || 'development',
       },
     };

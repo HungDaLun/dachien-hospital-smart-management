@@ -32,13 +32,10 @@ class SuperAssistantLLM(llm.LLM):
 
         # Call Next.js API
         async with aiohttp.ClientSession() as session:
-            # Note: In a real scenario, we need the user's auth token. 
-            # For localhost dev, we might bypass or use a system key.
-            # Here we assume the API can handle a simpler request for dev purposes 
-            # or we pass a hardcoded dev token if needed.
-            # For now, we'll try to hit the API. If auth fails, we'll need a Dev Bypass in the API.
+            # Get base URL from environment
+            base_url = os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
             async with session.post(
-                "http://localhost:3000/api/super-assistant/chat",
+                f"{base_url}/api/super-assistant/chat",
                 json={"text": user_msg, "sessionId": "voice-dev"},
                 # Add headers if needed, e.g. mock auth for dev
                 # headers={"Authorization": "Bearer ..."} 

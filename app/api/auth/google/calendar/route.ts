@@ -37,7 +37,7 @@ async function getGoogleOAuthConfig(): Promise<{
     const clientId = settings.google_oauth_client_id;
     const clientSecret = settings.google_oauth_client_secret;
     const redirectUri = settings.google_oauth_redirect_uri ||
-        `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/calendar/callback`;
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://nexus-ai.zeabur.app'}/api/auth/google/calendar/callback`;
 
     if (!clientId || !clientSecret) {
         return null;
