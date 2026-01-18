@@ -11,8 +11,8 @@ import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
-import { Hexagon } from 'lucide-react';
 import SuperAssistantButton from '@/components/executive-assistant/SuperAssistantButton';
+import Image from 'next/image';
 
 export default async function DashboardLayout({
   children,
@@ -73,8 +73,8 @@ export default async function DashboardLayout({
             {/* Logo */}
             <div className="flex items-center gap-6">
               <Link href="/dashboard" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-400 group-hover:bg-primary-500/20 group-hover:text-primary-300 transition-all shadow-lg shadow-primary-500/10">
-                  <Hexagon className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center overflow-hidden group-hover:bg-primary-500/20 transition-all shadow-lg shadow-primary-500/10">
+                  <Image src="/branding/logo-master.png" alt="NEXUS Logo" width={32} height={32} className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                 </div>
                 <div className="flex flex-col -space-y-1">
                   <div className="flex items-center gap-2">
