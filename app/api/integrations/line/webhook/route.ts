@@ -83,8 +83,14 @@ async function handleMessageEvent(
 
     // 查找是否有綁定的系統使用者
     const { data: connection } = await supabase
-        .from('user_social_connections')
-        .select('user_id')
+        .from('user_social_connections') // JOIN user_profiles
+        .select(`
+            user_id,
+            user_profiles (
+                display_name,
+                role
+            )
+        `)
         .eq('provider', 'line')
         .eq('provider_account_id', userId)
         .eq('is_active', true)
@@ -96,8 +102,14 @@ async function handleMessageEvent(
 
         if (connection?.user_id) {
             // 已綁定使用者 - 使用 Orchestrator 處理
+            const profile = (connection.user_profiles as any) || {};
+
             const gateway = getUnifiedGateway();
-            const orchestrator = createOrchestratorAgent({ systemUserId: connection.user_id });
+            const orchestrator = createOrchestratorAgent({
+                systemUserId: connection.user_id,
+                userName: profile.display_name || 'User',
+                userRole: profile.role || 'USER'
+            });
 
             const unifiedMessage = await gateway.processLineMessage({
                 lineUserId: userId,

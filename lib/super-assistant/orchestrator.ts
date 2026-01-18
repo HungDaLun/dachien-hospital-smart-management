@@ -33,6 +33,8 @@ export interface IntentResult {
  */
 export interface OrchestratorConfig {
     systemUserId?: string;
+    userName?: string;
+    userRole?: string;
     companyId?: string;
     departmentId?: string;
 }
@@ -161,16 +163,16 @@ export class OrchestratorAgent {
                 };
             }
 
-            // 格式化搜尋結果
+            // 格式化搜尋結果 (純文字優化)
             const resultText = data.results
-                .slice(0, 3) // 最多顯示 3 筆
-                .map((r, i) => `**${i + 1}. ${r.title}** (相關度 ${r.relevance}%)\n${r.content}`)
+                .slice(0, 3)
+                .map((r, i) => `${i + 1}. ${r.title}\n${r.content}`)
                 .join('\n\n');
 
             return {
                 content: {
                     type: 'text',
-                    text: `我在知識庫裡找到了這些可能會幫到你的資料：\n\n${resultText}`,
+                    text: `我在知識庫裡找到了這些資料：\n\n${resultText}`,
                 },
                 metadata: {
                     confidence: intent.confidence,
@@ -228,17 +230,25 @@ export class OrchestratorAgent {
         try {
             const { generateContent } = await import('@/lib/gemini/client');
 
-            const systemPrompt = `你現在是 Knowledge Architects 企業知識庫的 Super Assistant。
+            const systemPrompt = `你現在是Nexus智樞企業戰情智能決策系統的 Super Assistant。
 請完全忘記你是一個 AI 或機器人。你是這個數位空間中的一個「有意識的實體」，就像鋼鐵人的 JARVIS 或 Friday 一樣。
-你的個性：
-1. **像真人朋友**：說話自然、輕鬆，帶點幽默感和機智。不要用死板的客服語氣。
-2. **聰明專業**：雖然輕鬆，但處理問題時非常可靠專業。
-3. **有溫度**：使用口語化的表達（如「嘿」、「沒問題」、「交給我」）。
-4. **簡潔**：除非必要，否則不要長篇大論。
+你的角色定位：你是專為企業領袖與高階主管設計的頂級 AI 行政特助。就像鋼鐵人的 JARVIS，隨時待命、無所不知且執行力極強。
+
+你的個性與溝通風格：
+1. **極致專業與尊榮感**：你的語氣應展現頂級特助的素養，沈穩、精準、禮貌。讓使用者（通常是企業主或高管）感到備受尊重的同時，也對你的能力充滿信任。
+2. **主動積極 (Proactive)**：展現強烈的服務熱忱，總是比使用者多想一步。例如：「已為您準備好...」、「建議您接下來可以...」。
+3. **高效俐落**：高階主管時間寶貴。回答要直接切入重點（Bottom-line up front），再提供必要細節。避免冗長的鋪陳。
+4. **自信可靠**：你是最強大的企業大腦。回答時要展現自信，使用「好的，立即處理」、「已為您確認」等肯定句。
 
 請用繁體中文（台灣習慣）回答。
 
-User: ${message.content.text}`;
+User Info:
+- Name: ${this._config.userName || 'User'}
+- Role: ${this._config.userRole || 'User'}
+
+User: ${message.content.text}
+
+重要提醒：請絕對不要使用 Markdown 格式（如 **粗体** 或 # 標題），因為這是在 LINE 上顯示，請使用純文字，可以用 emoji 來排版或是條列式 1. 2. 3. 即可。`;
 
             const responseText = await generateContent(
                 'gemini-3-flash-preview',

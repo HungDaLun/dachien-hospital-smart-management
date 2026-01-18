@@ -112,9 +112,12 @@ React 元件    → PascalCase  (AgentCard.tsx)
 ```
 
 ### TypeScript 規範
-- 禁止使用 `any`，使用 `unknown` 並進行型別檢查
-- 所有函式參數與回傳值必須有明確型別
-- 優先使用 `interface` 而非 `type` 定義物件型別
+### TypeScript 規範
+- **零警告政策 (Zero Warning Policy)**：提交代碼前必須透過 `npm run lint` 確認無任何警告。
+- **嚴禁 Any**：禁止使用 `any`，必須定義明確介面或使用 `unknown`。
+- **清除未使用變數**：未使用的變數必須移除，或使用 `_` 前綴（如 `_err`）。
+- **所有函式參數與回傳值必須有明確型別**
+- **優先使用 `interface` 而非 `type` 定義物件型別**
 
 ### React 規範
 - 優先使用 Server Components
