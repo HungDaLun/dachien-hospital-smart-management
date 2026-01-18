@@ -154,7 +154,7 @@ ${message.content.text}
   "reason": "簡短說明決策原因"
 }`;
 
-            const response = await generateContent('gemini-2.0-flash', prompt);
+            const response = await generateContent('gemini-3-flash-preview', prompt);
 
             // 嘗試解析 JSON (處理可能的 Markdown code block 標記)
             const cleanJson = response.replace(/```json\n?|```/g, '').trim();
@@ -235,18 +235,34 @@ ${message.content.text}
         try {
             // 優先處理行事曆查詢
             if (intent.subType === 'calendar' && this._config.systemUserId) {
+                // 優化：針對行事曆查詢，過濾掉指令型用語，避免過度過濾搜尋結果
+                let cleanQuery = queryText;
+                const stopWords = ['查詢', '搜尋', '找一下', '幫我', '看看', '確認', '顯示', '列出', '我的', '我', '本週', '下週', '今天', '明天', '後天', '行程', '行事曆', '會議', '安排', '有沒有', '是否', '能看到', '看到', '能', '知道', '告訴', '啥', '他', '的'];
+
+                stopWords.forEach(word => {
+                    cleanQuery = cleanQuery.replace(new RegExp(word, 'g'), '');
+                });
+
+                cleanQuery = cleanQuery.trim();
+
+                // 如果只剩標點符號或空字串，則視為查詢所有
+                if (!cleanQuery || /^[\s,.?!。，？！]+$/.test(cleanQuery)) {
+                    cleanQuery = '';
+                }
+
                 const calendarResult = await toolRegistry.executeTool('list_calendar_events', {
                     userId: this._config.systemUserId,
-                    query: queryText,
+                    query: cleanQuery || undefined, // undefined 會查詢全部
                 });
 
                 if (calendarResult.success) {
                     const data = calendarResult.data as CalendarData;
                     if (data.events.length === 0) {
+                        const targetText = cleanQuery ? `關於「${cleanQuery}」的` : '任何';
                         return {
                             content: {
                                 type: 'text',
-                                text: `📅 報告主管，我在接下來一週的行程表裡，沒有看到關於「${queryText}」的安排耶。`,
+                                text: `📅 報告主管，我在接下來一週的行程表裡，沒有看到${targetText}安排耶。`,
                             },
                         };
                     }
@@ -336,6 +352,49 @@ ${message.content.text}
      */
     private async handleAction(message: UnifiedMessage, intent: IntentResult): Promise<UnifiedResponse> {
         const text = message.content.text || '';
+
+        // 處理 Line 訊息發送
+        if (text.toLowerCase().includes('line') || text.includes('訊息') || text.includes('發送') || text.includes('寄送')) {
+            if (!this._config.systemUserId) {
+                return {
+                    content: {
+                        type: 'text',
+                        text: `⚠️ 我不知道你是誰耶。請確認系統設定中已正確設定 System User ID。`,
+                    }
+                };
+            }
+
+            // 簡單的訊息內容提取：移除關鍵字
+            let messageContent = text
+                .replace(/幫我|請|發送|寄送|line|訊息|給|我|關於|問候/gi, '')
+                .trim();
+
+            if (!messageContent) {
+                messageContent = "您好！這是來自超級管家的問候。"; // Default greeting
+            }
+
+            const toolRegistry = getToolRegistry();
+            const result = await toolRegistry.executeTool('send_line_message', {
+                userId: this._config.systemUserId,
+                message: messageContent
+            });
+
+            if (result.success) {
+                return {
+                    content: {
+                        type: 'text',
+                        text: `✅ 已為您發送 Line 訊息：\n「${messageContent}」`,
+                    }
+                };
+            } else {
+                return {
+                    content: {
+                        type: 'text',
+                        text: `❌ 發送 Line 訊息失敗：${result.error}\n請檢查系統設定中的 Line 整合設定。`,
+                    }
+                };
+            }
+        }
 
         // 處理行事曆建立 (目前為初步實作，之後應配合 LLM 提取參數)
         if (intent.subType === 'calendar' && this._config.systemUserId) {
@@ -518,7 +577,7 @@ User: ${message.content.text}
 使用繁體中文回覆 issue 內容。`;
 
         try {
-            const response = await generateContent('gemini-2.0-flash', prompt);
+            const response = await generateContent('gemini-3-flash-preview', prompt);
             const cleanJson = response.replace(/```json\n?|```/g, '').trim();
             return JSON.parse(cleanJson);
         } catch {

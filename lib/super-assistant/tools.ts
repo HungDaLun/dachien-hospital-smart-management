@@ -6,6 +6,7 @@
 import { ANNSemanticSearchEngine, SearchResult } from '@/lib/knowledge/ann-search';
 import { getGoogleCalendarSyncService } from './google-calendar-sync';
 import { AgentDelegationTool, AgentDelegationParams } from './tools/agent-delegation';
+import { getNotificationService } from './notification';
 
 // ==================== Types ====================
 
@@ -313,6 +314,57 @@ export class CalendarTool {
     }
 }
 
+// ==================== Line Notification Tool ====================
+
+/**
+ * Line 通知工具
+ * 用於發送訊息到使用者的 Line
+ */
+export class LineNotificationTool {
+    private notificationService = getNotificationService();
+
+    /**
+     * 發送訊息
+     */
+    async execute(userId: string, message: string): Promise<ToolExecutionResult> {
+        if (!userId) {
+            return { success: false, error: '未提供使用者識別 ID' };
+        }
+        if (!message) {
+            return { success: false, error: '未提供訊息內容' };
+        }
+
+        try {
+            const results = await this.notificationService.send(
+                { userId, channels: ['line'] },
+                {
+                    title: '來自超級管家的訊息',
+                    body: message
+                }
+            );
+
+            const lineResult = results.find(r => r.channel === 'line');
+            if (lineResult && !lineResult.success) {
+                return { success: false, error: lineResult.error || 'Line 訊息發送失敗' };
+            }
+
+            return {
+                success: true,
+                data: {
+                    message: '訊息已發送',
+                },
+            };
+        } catch (error) {
+            console.error('[LineNotificationTool] Error:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Line 訊息發送失敗',
+            };
+        }
+    }
+}
+
+
 // ==================== Tool Registry ====================
 
 /**
@@ -324,12 +376,14 @@ export class ToolRegistry {
     private warRoomData: WarRoomDataTool;
     private calendar: CalendarTool;
     private agentDelegation: AgentDelegationTool;
+    private lineNotification: LineNotificationTool;
 
     constructor() {
         this.knowledgeSearch = new KnowledgeSearchTool();
         this.warRoomData = new WarRoomDataTool();
         this.calendar = new CalendarTool();
         this.agentDelegation = new AgentDelegationTool();
+        this.lineNotification = new LineNotificationTool();
     }
 
     /**
@@ -364,6 +418,11 @@ export class ToolRegistry {
             {
                 name: 'create_calendar_event',
                 description: '在 Google Calendar 中建立新的行程',
+                category: 'action',
+            },
+            {
+                name: 'send_line_message',
+                description: '發送 Line 訊息給使用者 (需要提供訊息內容)',
                 category: 'action',
             },
         ];
@@ -406,6 +465,12 @@ export class ToolRegistry {
 
             case 'agent_delegation':
                 return this.agentDelegation.execute(params as unknown as AgentDelegationParams);
+
+            case 'send_line_message':
+                return this.lineNotification.execute(
+                    params.userId as string,
+                    params.message as string
+                );
 
             default:
                 return {
