@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, FormEvent, useRef, ChangeEvent } from 'react';
+import { useState, FormEvent, useRef, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Card } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { MessageCircle, CheckCircle2, Link2, Unlink2, Copy } from 'lucide-react';
 
 
 
@@ -62,7 +63,76 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // LINE 綁定狀態
+  const [lineConnection, setLineConnection] = useState<{ provider_account_id: string } | null>(null);
+  const [lineUserId, setLineUserId] = useState('');
+  const [isBinding, setIsBinding] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 載入 LINE 綁定資訊
+  useEffect(() => {
+    const fetchLineConnection = async () => {
+      try {
+        const res = await fetch('/api/user/line/bind');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setLineConnection(data.data);
+        }
+      } catch (err) {
+        console.error('Fetch line connection failed:', err);
+      }
+    };
+    fetchLineConnection();
+  }, []);
+
+  const handleLineBind = async () => {
+    if (!lineUserId) return;
+    setIsBinding(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/user/line/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineUserId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLineConnection({ provider_account_id: lineUserId });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError(data.error || '綁定失敗');
+      }
+    } catch (err) {
+      setError('連線錯誤');
+    } finally {
+      setIsBinding(false);
+    }
+  };
+
+  const handleLineUnbind = async () => {
+    if (!window.confirm('確定要解除 LINE 帳號綁定嗎？')) return;
+    setIsBinding(true);
+    try {
+      const res = await fetch('/api/user/line/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unbind' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLineConnection(null);
+        setLineUserId('');
+      } else {
+        setError(data.error || '解除失敗');
+      }
+    } catch (err) {
+      setError('連線錯誤');
+    } finally {
+      setIsBinding(false);
+    }
+  };
 
   const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     try {
@@ -436,6 +506,80 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
             />
           </div>
         </div>
+      </div>
+
+      {/* ===== 社群帳號綁定 ===== */}
+      <div className="space-y-6 pt-8 border-t border-white/10">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
+            <span className="w-10 h-px bg-primary-500/40" /> 社群帳號綁定
+          </h3>
+          <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+            <MessageCircle size={14} className="text-green-500" />
+            <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Line Integration</span>
+          </div>
+        </div>
+
+        <Card variant="glass" className="p-6 border-white/5 bg-white/[0.02]">
+          {lineConnection ? (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center border border-green-500/30">
+                  <CheckCircle2 size={24} className="text-green-500" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold">LINE 已綁定</h4>
+                  <p className="text-xs text-text-tertiary mt-1 font-mono">
+                    ID: {lineConnection.provider_account_id.substring(0, 8)}...
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleLineUnbind}
+                disabled={isBinding}
+                className="text-semantic-danger hover:bg-semantic-danger/10 border-semantic-danger/20"
+              >
+                <Unlink2 size={16} className="mr-2" />
+                解除綁定
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-text-secondary leading-relaxed">
+                綁定 LINE 帳號後，您可以直接透過 LINE 與您的個人 AI 助理對話。
+                <br />
+                <span className="text-xs text-text-tertiary opacity-70">
+                  * 請先在 LINE 傳送任何訊息給機器人，並複製它回傳的 User ID。
+                </span>
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    value={lineUserId}
+                    onChange={(e) => setLineUserId(e.target.value)}
+                    placeholder="貼上您的 LINE User ID (例如：U123456...)"
+                    disabled={isBinding}
+                    fullWidth
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="cta"
+                  onClick={handleLineBind}
+                  disabled={!lineUserId || isBinding}
+                  loading={isBinding}
+                  className="h-[50px] shadow-glow-green/20"
+                >
+                  <Link2 size={18} className="mr-2" />
+                  確認綁定
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
       </div>
 
 
