@@ -6,9 +6,7 @@ import { Button, Input, Card } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
-import { MessageCircle, CheckCircle2, Link2, Unlink2, Copy } from 'lucide-react';
-
-
+import { MessageCircle, CheckCircle2, Link2, Unlink2 } from 'lucide-react';
 
 interface SettingsFormProps {
   profile: {
@@ -36,8 +34,6 @@ interface SettingsFormProps {
   departments: { id: string; name: string }[];
 }
 
-
-
 export default function SettingsForm({ profile, email, dict, lastLoginAt, departments }: SettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -54,8 +50,6 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
   const [jobTitle, setJobTitle] = useState(profile.job_title || '');
   const [employeeId, setEmployeeId] = useState(profile.employee_id || '');
   const [location, setLocation] = useState(profile.location || '');
-
-
 
   // 狀態
   const [isLoading, setIsLoading] = useState(false);
@@ -79,8 +73,8 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
         if (data.success && data.data) {
           setLineConnection(data.data);
         }
-      } catch (err) {
-        console.error('Fetch line connection failed:', err);
+      } catch (_err) {
+        console.error('Fetch line connection failed:', _err);
       }
     };
     fetchLineConnection();
@@ -104,7 +98,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
       } else {
         setError(data.error || '綁定失敗');
       }
-    } catch (err) {
+    } catch {
       setError('連線錯誤');
     } finally {
       setIsBinding(false);
@@ -127,7 +121,7 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
       } else {
         setError(data.error || '解除失敗');
       }
-    } catch (err) {
+    } catch {
       setError('連線錯誤');
     } finally {
       setIsBinding(false);
@@ -244,8 +238,6 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
   };
 
   // 格式化日期
-
-
   const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('zh-TW', {
@@ -430,8 +422,6 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
         </div>
       </div>
 
-
-
       {/* ===== 帳戶資訊區 ===== */}
       <div className="space-y-6 pt-8 border-t border-white/10">
         <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-[0.2em]">
@@ -582,24 +572,19 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
         </Card>
       </div>
 
-
       {/* 錯誤訊息 */}
-      {
-        error && (
-          <div className="bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-            <span className="mr-2">⚠️</span> {error}
-          </div>
-        )
-      }
+      {error && (
+        <div className="bg-semantic-danger/10 border border-semantic-danger/20 text-semantic-danger px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+          <span className="mr-2">⚠️</span> {error}
+        </div>
+      )}
 
       {/* 成功訊息 */}
-      {
-        success && (
-          <div className="bg-semantic-success/10 border border-semantic-success/20 text-semantic-success px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-            <span className="mr-2">🎉</span> {dict.settings.save_success}
-          </div>
-        )
-      }
+      {success && (
+        <div className="bg-semantic-success/10 border border-semantic-success/20 text-semantic-success px-6 py-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+          <span className="mr-2">🎉</span> {dict.settings.save_success}
+        </div>
+      )}
 
       {/* 儲存按鈕 */}
       <div className="flex justify-end gap-3 pt-8 border-t border-white/5">
@@ -614,6 +599,6 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
           {isLoading ? dict.settings.updating : dict.common.save}
         </Button>
       </div>
-    </form >
+    </form>
   );
 }
