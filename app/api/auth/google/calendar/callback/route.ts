@@ -17,20 +17,34 @@ const DEFAULT_APP_URL = 'https://nexus-ai.zeabur.app';
 
 /**
  * 取得應用程式的基礎 URL
- * 優先順序：環境變數 > 預設值
+ * 優先順序：環境變數 > 動態偵測 > 預設值
+ * 
+ * ⚠️ 安全檢查：永遠不會返回 localhost:8080
  */
 function getAppUrl(request?: NextRequest): string {
-    // 1. 優先使用環境變數
+    // 1. 優先使用環境變數（但需要驗證）
     if (process.env.NEXT_PUBLIC_APP_URL) {
-        return process.env.NEXT_PUBLIC_APP_URL;
+        const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+        // 安全檢查：拒絕 localhost:8080
+        if (envUrl.includes('localhost:8080')) {
+            console.warn('[getAppUrl] 環境變數包含 localhost:8080，使用預設值:', envUrl);
+            return DEFAULT_APP_URL;
+        }
+        return envUrl;
     }
 
     // 2. 嘗試從 request 動態取得（用於處理不同部署環境）
     if (request) {
         const host = request.headers.get('host');
         const protocol = request.headers.get('x-forwarded-proto') || 'https';
+        // 安全檢查：拒絕 localhost:8080
         if (host && !host.includes('localhost')) {
-            return `${protocol}://${host}`;
+            const dynamicUrl = `${protocol}://${host}`;
+            if (dynamicUrl.includes('localhost:8080')) {
+                console.warn('[getAppUrl] 動態偵測到 localhost:8080，使用預設值');
+                return DEFAULT_APP_URL;
+            }
+            return dynamicUrl;
         }
     }
 
@@ -71,8 +85,31 @@ async function getGoogleOAuthConfig(request?: NextRequest): Promise<{
     const clientId = settings['google_oauth_client_id'];
     const clientSecret = settings['google_oauth_client_secret'];
     const appUrl = getAppUrl(request);
-    const redirectUri = settings['google_oauth_redirect_uri'] ||
+    
+    // 取得 redirect URI（優先使用資料庫設定，否則動態生成）
+    let redirectUri = settings['google_oauth_redirect_uri'] ||
         `${appUrl}/api/auth/google/calendar/callback`;
+
+    // ⚠️ 安全檢查：拒絕 localhost:8080
+    if (redirectUri.includes('localhost:8080')) {
+        console.error('[getGoogleOAuthConfig] 偵測到無效的 redirect URI（包含 localhost:8080）:', redirectUri);
+        // 強制使用正確的 URL
+        redirectUri = `${appUrl}/api/auth/google/calendar/callback`;
+        console.warn('[getGoogleOAuthConfig] 已修正為:', redirectUri);
+    }
+
+    // 驗證 redirect URI 格式
+    try {
+        const uri = new URL(redirectUri);
+        if (!uri.pathname.includes('/api/auth/google/calendar/callback')) {
+            console.warn('[getGoogleOAuthConfig] redirect URI 路徑不正確，已修正');
+            redirectUri = `${appUrl}/api/auth/google/calendar/callback`;
+        }
+    } catch {
+        // URL 格式錯誤，使用預設值
+        console.error('[getGoogleOAuthConfig] redirect URI 格式錯誤，使用預設值:', redirectUri);
+        redirectUri = `${appUrl}/api/auth/google/calendar/callback`;
+    }
 
     if (!clientId || !clientSecret) {
         return null;
