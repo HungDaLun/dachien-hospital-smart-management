@@ -6,9 +6,8 @@ export class Chairperson {
 
     constructor() {
         this.apiKey = process.env.GEMINI_API_KEY || '';
-        if (!this.apiKey) {
-            console.warn("GEMINI_API_KEY is not defined, Chairperson will be disabled.");
-        }
+        // Note: No warning here to prevent build-time noise. 
+        // Checks are performed in evaluate() and auditConclusion().
     }
 
     /**

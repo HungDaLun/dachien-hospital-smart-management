@@ -1,12 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is not defined");
-}
+let genAI: GoogleGenerativeAI | null = null;
+let embeddingModel: any = null;
 
-const genAI = new GoogleGenerativeAI(apiKey);
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+function getEmbeddingModel() {
+  if (embeddingModel) return embeddingModel;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // During build time, we don't want to throw error if the key is missing
+    // only throw when actually called.
+    throw new Error("GEMINI_API_KEY is not defined");
+  }
+
+  genAI = new GoogleGenerativeAI(apiKey);
+  embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  return embeddingModel;
+}
 
 /**
  * Generates an embedding vector for the given text.
@@ -21,8 +31,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     // A safe approximation is around 6000-8000 characters.
     // We'll use 8000 characters for now.
     const truncatedText = text.slice(0, 8000);
-    
-    const result = await embeddingModel.embedContent(truncatedText);
+
+    const model = getEmbeddingModel();
+    const result = await model.embedContent(truncatedText);
     const embedding = result.embedding;
     return embedding.values;
   } catch (error) {
