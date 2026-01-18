@@ -1,12 +1,13 @@
 /**
- * 系統設定頁面
+ * 系統設定頁面（重新設計版）
  * 僅 SUPER_ADMIN 可以存取
+ * 統一設計語言、清晰分組、改善使用者體驗
  */
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserProfile, requireSuperAdmin } from '@/lib/permissions';
-import SystemConfigClient from './SystemConfigClient';
-import ToolApiKeysConfig from './ToolApiKeysConfig';
+import SystemSettingsClient from './SystemSettingsClient';
+// import SystemSettingsClient from './SystemSettingsClientSimple';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -23,31 +24,37 @@ export default async function SystemConfigPage() {
   }
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-700">
-      {/* 返回按鈕 */}
-      <div>
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors"
-        >
-          <span>←</span>
-          <span>返回系統管理</span>
-        </Link>
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-b from-black via-black to-gray-900">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-black text-text-primary uppercase tracking-tight">{dict.admin.system.title}</h1>
-          <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">{dict.admin.system.subtitle}</p>
+      <div className="border-b border-white/5 bg-black/40 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/dashboard/admin"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-tertiary hover:text-text-primary transition-colors rounded-xl hover:bg-white/5"
+              >
+                <span>←</span>
+                <span>返回系統管理</span>
+              </Link>
+              <div className="h-6 w-px bg-white/10" />
+              <div>
+                <h1 className="text-2xl font-black text-text-primary uppercase tracking-tight">
+                  {dict.admin.system.title}
+                </h1>
+                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-1 opacity-60">
+                  {dict.admin.system.subtitle}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 系統基礎設定 (Gemini, S3, Email, 新聞, 通知, App) */}
-      <SystemConfigClient dict={dict} />
-
-      {/* MCP 工具 API Key 設定 - 動態讀取需要 API Key 的工具 */}
-      <ToolApiKeysConfig dict={dict} />
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <SystemSettingsClient dict={dict} />
+      </div>
     </div>
   );
 }

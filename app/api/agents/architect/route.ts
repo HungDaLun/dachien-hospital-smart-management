@@ -59,6 +59,29 @@ export async function POST(request: NextRequest) {
 
     const availableSkills = skills?.map(s => `- [${s.name}] ${s.display_name}: ${s.description}`).join('\n') || "暫無可用技能";
 
+    // 2.3 Fetch Available MCP Servers (系統層級設定)
+    let availableMCPServers = "暫無可用的 MCP Servers（系統管理員可在系統設定頁面註冊）";
+    try {
+      const { data: mcpServers, error: mcpError } = await supabase
+        .from('mcp_servers')
+        .select('name, display_name, description, capabilities')
+        .eq('is_active', true);
+
+      if (!mcpError && mcpServers && mcpServers.length > 0) {
+        availableMCPServers = mcpServers.map(m => {
+          const capabilities = Array.isArray(m.capabilities) 
+            ? m.capabilities.join(', ') 
+            : (typeof m.capabilities === 'string' ? m.capabilities : '無');
+          return `- [${m.name}] ${m.display_name}: ${m.description || '無描述'}
+  能力: ${capabilities}`;
+        }).join('\n\n');
+      }
+    } catch (err) {
+      // 如果表不存在或其他錯誤，使用預設訊息
+      console.warn('[Architect] MCP Servers table may not exist:', err);
+      availableMCPServers = "暫無可用的 MCP Servers（系統管理員可在系統設定頁面註冊）";
+    }
+
     // Simple keyword matching for tactical framework selection
     interface TacticalTemplate {
       name: string;
@@ -136,6 +159,9 @@ export async function POST(request: NextRequest) {
     **可用技能列表 (Available Skills)**:
     ${availableSkills}
 
+    **可用 MCP Servers (Available MCP Servers)**:
+    ${availableMCPServers}
+
     ---
     
     **任務**:
@@ -192,8 +218,17 @@ export async function POST(request: NextRequest) {
       "mcp_config": { ... }
     }
 
-    **動態技能配置 (MCP Config - 舊版相容)**:
-    如果上述 \`suggested_tools\` 無法滿足需求，且需要底層 MCP 配置，才生成 \`mcp_config\`。一般情況請優先使用 \`suggested_tools\`。
+    **MCP 配置建議 (MCP Configuration)**:
+    如果 Agent 需要連接外部服務（如 Gmail、Slack、Notion），可以使用以下方式：
+    1. **優先使用 \`suggested_tools\`**：如果工具已註冊到 tools_registry，直接使用工具名稱
+    2. **使用 \`mcp_config\`**：只有在需要複雜的 MCP Server 整合時，才在 \`mcp_config\` 中配置對應的 MCP Server 名稱
+    3. **MCP Server 名稱**：請使用上述「可用 MCP Servers」列表中的 name 欄位值
+    
+    範例：
+    - 如果需要 Gmail 功能，且系統已註冊 Gmail MCP Server (name: "gmail")：
+      \`mcp_config: { "gmail": {} }\`
+    
+    **一般情況下，優先使用 \`suggested_tools\`，只有在需要複雜的 MCP 整合時才使用 \`mcp_config\`。**
 
     **語言要求**:
     - \`name\`, \`description\`, \`system_prompt\` 必須全為 **繁體中文 (Traditional Chinese)**。

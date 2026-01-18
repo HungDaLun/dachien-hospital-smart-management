@@ -12,7 +12,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button, Spinner, ConfirmDialog } from '@/components/ui';
-import { Dictionary } from '@/lib/i18n/dictionaries';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
 
 interface ArchitectResponse {
     name: string;

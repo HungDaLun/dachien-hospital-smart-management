@@ -10,8 +10,11 @@ import { Card, Button, Spinner, Badge, Input, Select, ConfirmDialog } from '@/co
 import { Dictionary } from '@/lib/i18n/dictionaries';
 import ArchitectChat from './ArchitectModal';
 import FilePickerModal from './FilePickerModal';
-import { ToolSelector } from './ToolSelector';
-import { SkillSelector } from './SkillSelector';
+import SkillPickerModal from './SkillPickerModal';
+import ToolPickerModal from './ToolPickerModal';
+// 移除手動選擇器，改由 AI 代理架構師自動推薦 (現已恢復手動管理作為輔助)
+// import { ToolSelector } from './ToolSelector';
+// import { SkillSelector } from './SkillSelector';
 import {
     Users,
     MessageSquare,
@@ -19,7 +22,6 @@ import {
     Trash2,
     ChevronLeft,
     ArrowRight,
-    Sparkles,
     FileText,
     Plus,
     X,
@@ -28,7 +30,8 @@ import {
     Zap,
     AlertCircle,
     Database,
-    BrainCircuit
+    BrainCircuit,
+    Wrench
 } from 'lucide-react';
 
 interface KnowledgeRule {
@@ -109,6 +112,8 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
     const [newTag, setNewTag] = useState({ key: '', value: '' });
     const [newDept, setNewDept] = useState('');
     const [showFilePicker, setShowFilePicker] = useState(false);
+    const [showSkillPicker, setShowSkillPicker] = useState(false);
+    const [showToolPicker, setShowToolPicker] = useState(false);
 
     // Confirm Dialog States
     const [restorePrompt, setRestorePrompt] = useState<string | null>(null);
@@ -262,57 +267,54 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
 
     const handleArchitectApply = (blueprint: ArchitectBlueprint) => {
         setFormData(prev => {
-            const existingRules = prev.knowledge_rules || [];
-            const suggestedRules = blueprint.suggested_knowledge_rules || [];
-            const mergedRules = [...existingRules];
+            // Knowledge Rules: If suggested, REPLACE existing. If undefined, KEEP existing.
+            const newRules = blueprint.suggested_knowledge_rules !== undefined
+                ? blueprint.suggested_knowledge_rules
+                : (prev.knowledge_rules || []);
 
-            suggestedRules.forEach((sRule) => {
-                const exists = mergedRules.some(r =>
-                    r.rule_type === sRule.rule_type &&
-                    r.rule_value === sRule.rule_value
-                );
-                if (!exists) mergedRules.push(sRule);
-            });
+            // Knowledge Files: If suggested, REPLACE existing. If undefined, KEEP existing.
+            let newFiles = prev.knowledge_files || [];
+            if (blueprint.suggested_knowledge_files !== undefined) {
+                newFiles = blueprint.suggested_knowledge_files.map((item: string) => {
+                    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item);
+                    if (!isUuid) {
+                        const found = allFiles.find(f => f.filename === item);
+                        return found ? found.id : null;
+                    }
+                    return item;
+                }).filter((item): item is string => item !== null);
+            }
 
-            const existingFiles = prev.knowledge_files || [];
-            const suggestedFilesRaw = blueprint.suggested_knowledge_files || [];
+            // Tools: If suggested, REPLACE existing. If undefined, KEEP existing.
+            const newTools = blueprint.suggested_tools !== undefined
+                ? blueprint.suggested_tools
+                : (prev.enabled_tools || []);
 
-            const suggestedFilesResolved = suggestedFilesRaw.map((item: string) => {
-                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item);
-                if (!isUuid) {
-                    const found = allFiles.find(f => f.filename === item);
-                    return found ? found.id : null;
-                }
-                return item;
-            }).filter((item): item is string => item !== null);
-
-            const mergedFiles = Array.from(new Set([...existingFiles, ...suggestedFilesResolved])) as string[];
+            // Skills: If suggested, REPLACE existing. If undefined, KEEP existing.
+            let newSkills = prev.enabled_skills || [];
+            if (blueprint.suggested_skills !== undefined) {
+                newSkills = blueprint.suggested_skills.map((sName: string) => {
+                    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sName);
+                    if (!isUuid) {
+                        const found = allSkills.find(s => s.name === sName);
+                        return found ? found.id : null;
+                    }
+                    return sName;
+                }).filter((item): item is string => item !== null);
+            }
 
             return {
                 ...prev,
                 name: blueprint.name || prev.name,
                 description: blueprint.description || prev.description,
                 system_prompt: blueprint.system_prompt || prev.system_prompt,
-                knowledge_rules: mergedRules,
-                knowledge_files: mergedFiles,
+                knowledge_rules: newRules,
+                knowledge_files: newFiles,
                 mcp_config: (blueprint.mcp_config && Object.keys(blueprint.mcp_config as object).length > 0)
                     ? JSON.stringify(blueprint.mcp_config, null, 2)
                     : prev.mcp_config,
-                enabled_tools: blueprint.suggested_tools
-                    ? [...new Set([...(prev.enabled_tools || []), ...blueprint.suggested_tools])]
-                    : prev.enabled_tools,
-                enabled_skills: blueprint.suggested_skills
-                    ? [...new Set([
-                        ...(prev.enabled_skills || []),
-                        ...blueprint.suggested_skills.map((sName: string) => {
-                            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sName);
-                            if (!isUuid) {
-                                const found = allSkills.find(s => s.name === sName);
-                                return found ? found.id : null;
-                            }
-                            return sName;
-                        }).filter((item): item is string => item !== null)
-                    ])] : prev.enabled_skills
+                enabled_tools: newTools,
+                enabled_skills: newSkills
             };
         });
     };
@@ -586,51 +588,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                         )}
                     </Card>
 
-                    {/* Capabilities Layer (Tools & Skills) */}
-                    <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/[0.03] blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-glow-purple/5">
-                                <Zap size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">功能與技能 <span className="opacity-30">|</span> CAPABILITIES</h3>
-                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">賦予 Agent 執行任務與專業技能的能力</p>
-                            </div>
-                        </div>
-
-                        <div className="mb-8 p-6 bg-purple-500/[0.03] border border-purple-500/10 rounded-[24px] relative group/tip overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500/40" />
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
-                                    <BrainCircuit size={20} className="animate-pulse-slow" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-purple-400 uppercase tracking-widest mb-1">PRO_TIP :: 自動配置建議</p>
-                                    <p className="text-xs font-bold text-text-secondary leading-relaxed opacity-80">
-                                        不知道該選哪些工具？請使用 <span className="text-purple-400 underline decoration-purple-500/30">AI 代理架構師</span>，它會根據您的需求自動推薦適合的工具與技能包。
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-10">
-                            {/* Tools Selector */}
-                            <ToolSelector
-                                selectedTools={formData.enabled_tools || []}
-                                onChange={(tools) => setFormData(prev => ({ ...prev, enabled_tools: tools }))}
-                                className="border-b border-white/5 pb-10"
-                            />
-
-                            {/* Skills Selector */}
-                            <SkillSelector
-                                selectedSkills={formData.enabled_skills || []}
-                                onChange={(skills) => setFormData(prev => ({ ...prev, enabled_skills: skills }))}
-                            />
-                        </div>
-                    </Card>
-
                     {/* Knowledge Integration Layer */}
                     <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/[0.03] blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
@@ -656,22 +613,6 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                                 <Plus size={16} className="mr-2" />
                                 掛載知識資產
                             </Button>
-                        </div>
-
-                        {/* Tip Box */}
-                        <div className="mb-10 p-6 bg-primary-500/[0.03] border border-primary-500/10 rounded-[24px] relative group/tip overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-primary-500/40" />
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="p-2 bg-primary-500/10 rounded-xl text-primary-400">
-                                    <Sparkles size={20} className="animate-pulse-slow" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-primary-400 uppercase tracking-widest mb-1">PRO_TIP :: 智能建構助推器</p>
-                                    <p className="text-xs font-bold text-text-secondary leading-relaxed opacity-80">
-                                        使用右下角的 <span className="text-primary-400 underline decoration-primary-500/30">AI 代理架構師</span>，可根據 Agent 定義自動生成指令集並精準匹配相關知識檔案。
-                                    </p>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -804,6 +745,142 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                             </div>
                         </div>
                     </Card>
+
+                    {/* Capabilities Layer (Tools & Skills) */}
+                    <Card variant="glass" className="p-8 border-white/10 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/[0.03] blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-glow-purple/5">
+                                <Zap size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">功能與技能 <span className="opacity-30">|</span> CAPABILITIES</h3>
+                                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">賦予 Agent 執行任務與專業技能的能力</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* Tools Section */}
+                            <div className="space-y-4 pb-8 border-b border-white/5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                            <Wrench size={16} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-text-primary uppercase tracking-tight">
+                                                啟用功能 (Tools)
+                                            </h4>
+                                            <p className="text-[9px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
+                                                系統原生能力模組
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowToolPicker(true)}
+                                        className="h-8 px-3 text-[10px] border-blue-500/20 text-blue-400 hover:bg-blue-500/10"
+                                    >
+                                        <Plus size={12} className="mr-1.5" />
+                                        管理功能
+                                    </Button>
+                                </div>
+
+                                {formData.enabled_tools && formData.enabled_tools.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.enabled_tools.map((toolId) => (
+                                            <Badge
+                                                key={toolId}
+                                                variant="outline"
+                                                className="px-3 py-1.5 bg-blue-500/10 border-blue-500/20 text-blue-400 text-xs font-bold rounded-xl pr-2"
+                                            >
+                                                <Zap size={12} className="mr-1.5" />
+                                                {toolNames[toolId] || toolId}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        enabled_tools: prev.enabled_tools?.filter(t => t !== toolId)
+                                                    }))}
+                                                    className="ml-2 opacity-40 hover:opacity-100 hover:text-white transition-opacity p-0.5"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 bg-white/[0.02] rounded-xl border border-dashed border-white/10 text-xs text-text-tertiary">
+                                        未啟用任何工具
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Skills Section */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                            <BrainCircuit size={16} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-text-primary uppercase tracking-tight">
+                                                裝備技能 (Skills)
+                                            </h4>
+                                            <p className="text-[9px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
+                                                專業領域知識與流程
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowSkillPicker(true)}
+                                        className="h-8 px-3 text-[10px] border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
+                                    >
+                                        <Plus size={12} className="mr-1.5" />
+                                        管理技能
+                                    </Button>
+                                </div>
+
+                                {formData.enabled_skills && formData.enabled_skills.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.enabled_skills.map((skillId) => {
+                                            const skillName = skillNames[skillId] || allSkills.find(s => s.id === skillId || s.name === skillId)?.display_name || skillId;
+                                            return (
+                                                <Badge
+                                                    key={skillId}
+                                                    variant="outline"
+                                                    className="px-3 py-1.5 bg-purple-500/10 border-purple-500/20 text-purple-400 text-xs font-bold rounded-xl pr-2"
+                                                >
+                                                    <BrainCircuit size={12} className="mr-1.5" />
+                                                    {skillName}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({
+                                                            ...prev,
+                                                            enabled_skills: prev.enabled_skills?.filter(s => s !== skillId)
+                                                        }))}
+                                                        className="ml-2 opacity-40 hover:opacity-100 hover:text-white transition-opacity p-0.5"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </Badge>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 bg-white/[0.02] rounded-xl border border-dashed border-white/10 text-xs text-text-tertiary">
+                                        未裝備任何技能
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
                 </div>
 
                 {/* Footer Command Bar (Static) */}
@@ -864,6 +941,24 @@ export default function AgentEditor({ initialData, isEditing = false, dict }: Ag
                 selectedFiles={formData.knowledge_files || []}
                 onConfirm={(fileIds) => {
                     setFormData(prev => ({ ...prev, knowledge_files: fileIds }));
+                }}
+            />
+
+            <SkillPickerModal
+                isOpen={showSkillPicker}
+                onClose={() => setShowSkillPicker(false)}
+                selectedSkills={formData.enabled_skills || []}
+                onConfirm={(skillIds) => {
+                    setFormData(prev => ({ ...prev, enabled_skills: skillIds }));
+                }}
+            />
+
+            <ToolPickerModal
+                isOpen={showToolPicker}
+                onClose={() => setShowToolPicker(false)}
+                selectedTools={formData.enabled_tools || []}
+                onConfirm={(toolIds) => {
+                    setFormData(prev => ({ ...prev, enabled_tools: toolIds }));
                 }}
             />
 
