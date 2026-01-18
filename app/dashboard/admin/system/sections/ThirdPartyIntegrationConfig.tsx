@@ -19,7 +19,9 @@ import {
   Lock,
   Save,
   X,
-  Sparkles
+  Sparkles,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface ConfigStatus {
@@ -83,6 +85,24 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<EditableFields>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [baseUrl, setBaseUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBaseUrl(window.location.origin);
+    }
+  }, []);
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   // 密碼確認 Modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -427,9 +447,33 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                   </span>
                 </div>
               </SettingRow>
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-xs text-text-tertiary">
-                  📌 Webhook URL: <code className="bg-black/30 px-2 py-0.5 rounded">/api/integrations/line/webhook</code>
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-text-tertiary">
+                    📌 Webhook URL (用於 LINE Developers)
+                  </p>
+                  <button
+                    onClick={() => handleCopy(`${baseUrl}/api/integrations/line/webhook`)}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-primary-400 hover:text-primary-300 transition-colors bg-primary-500/10 px-2 py-1 rounded-lg border border-primary-500/20"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={12} />
+                        已複製
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        複製網址
+                      </>
+                    )}
+                  </button>
+                </div>
+                <code className="block w-full bg-black/30 px-3 py-2 rounded-xl text-[11px] text-text-secondary border border-white/5 break-all">
+                  {baseUrl ? `${baseUrl}/api/integrations/line/webhook` : '/api/integrations/line/webhook'}
+                </code>
+                <p className="text-[10px] text-text-tertiary opacity-50 italic">
+                  * 請將此網址複製並貼至 LINE Developers Console 的 Webhook URL 欄位
                 </p>
               </div>
             </div>
