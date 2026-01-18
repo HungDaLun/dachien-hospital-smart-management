@@ -102,7 +102,12 @@ async function handleMessageEvent(
 
         if (connection?.user_id) {
             // 已綁定使用者 - 使用 Orchestrator 處理
-            const profile = (connection.user_profiles as any) || {};
+            // 定義 JOIN 查詢的結果型別
+            type UserProfileJoin = {
+                display_name: string | null;
+                role: string | null;
+            };
+            const profile = (connection.user_profiles as unknown as UserProfileJoin) || {};
 
             const gateway = getUnifiedGateway();
             const orchestrator = createOrchestratorAgent({

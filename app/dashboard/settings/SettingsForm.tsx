@@ -6,7 +6,7 @@ import { Button, Input, Card } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
-import { MessageCircle, CheckCircle2, Link2, Unlink2 } from 'lucide-react';
+import { MessageCircle, CheckCircle2, Link2, Unlink2, RefreshCw } from 'lucide-react';
 
 interface SettingsFormProps {
   profile: {
@@ -57,27 +57,43 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // LINE 綁定狀態
-  const [lineConnection, setLineConnection] = useState<{ provider_account_id: string } | null>(null);
+  // 統合狀態
+  const [integrations, setIntegrations] = useState<{
+    line: { connected: boolean; provider_account_id: string | null };
+    google_calendar: { connected: boolean; updated_at: string | null };
+  } | null>(null);
   const [lineUserId, setLineUserId] = useState('');
   const [isBinding, setIsBinding] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 載入 LINE 綁定資訊
+  // 載入統合資訊
   useEffect(() => {
-    const fetchLineConnection = async () => {
+    const fetchIntegrations = async () => {
       try {
-        const res = await fetch('/api/user/line/bind');
+        const res = await fetch('/api/user/integrations');
         const data = await res.json();
         if (data.success && data.data) {
-          setLineConnection(data.data);
+          setIntegrations(data.data);
         }
       } catch (_err) {
-        console.error('Fetch line connection failed:', _err);
+        console.error('Fetch integrations failed:', _err);
       }
     };
-    fetchLineConnection();
+    fetchIntegrations();
+
+    // 處理 URL 參數 (Google Auth 回傳)
+    const params = new URLSearchParams(window.location.search);
+    const googleAuthStatus = params.get('google_auth');
+    if (googleAuthStatus === 'success') {
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
+      // 清除參數
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (googleAuthStatus === 'error') {
+      setError('Google 授權失敗，請重試');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const handleLineBind = async () => {
@@ -92,7 +108,10 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
       });
       const data = await res.json();
       if (data.success) {
-        setLineConnection({ provider_account_id: lineUserId });
+        setIntegrations(prev => prev ? {
+          ...prev,
+          line: { connected: true, provider_account_id: lineUserId }
+        } : null);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       } else {
@@ -116,7 +135,10 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
       });
       const data = await res.json();
       if (data.success) {
-        setLineConnection(null);
+        setIntegrations(prev => prev ? {
+          ...prev,
+          line: { connected: false, provider_account_id: null }
+        } : null);
         setLineUserId('');
       } else {
         setError(data.error || '解除失敗');
@@ -511,64 +533,125 @@ export default function SettingsForm({ profile, email, dict, lastLoginAt, depart
         </div>
 
         <Card variant="glass" className="p-6 border-white/5 bg-white/[0.02]">
-          {lineConnection ? (
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center border border-green-500/30">
-                  <CheckCircle2 size={24} className="text-green-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* LINE 綁定 */}
+            <Card variant="glass" className="p-6 border-white/5 bg-white/[0.02] flex flex-col justify-between">
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <MessageCircle size={20} className="text-green-500" />
+                  </div>
+                  <h4 className="text-white font-bold tracking-wider">Line 帳號</h4>
                 </div>
-                <div>
-                  <h4 className="text-white font-bold">LINE 已綁定</h4>
-                  <p className="text-xs text-text-tertiary mt-1 font-mono">
-                    ID: {lineConnection.provider_account_id.substring(0, 8)}...
+
+                {integrations?.line.connected ? (
+                  <div>
+                    <div className="flex items-center gap-2 text-green-500 mb-2">
+                      <CheckCircle2 size={16} />
+                      <span className="text-sm font-bold uppercase">已綁定連動</span>
+                    </div>
+                    <p className="text-xs text-text-tertiary font-mono bg-black/20 p-2 rounded-lg border border-white/5">
+                      ID: {integrations.line.provider_account_id?.substring(0, 12)}...
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    綁定後可直接透過 LINE 與您的個人 AI 助理對話。
+                    <span className="block text-[10px] text-text-tertiary mt-2 opacity-70">
+                      * 請在 LINE 傳送訊息給機器人並複製 User ID。
+                    </span>
                   </p>
-                </div>
+                )}
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleLineUnbind}
-                disabled={isBinding}
-                className="text-semantic-danger hover:bg-semantic-danger/10 border-semantic-danger/20"
-              >
-                <Unlink2 size={16} className="mr-2" />
-                解除綁定
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-text-secondary leading-relaxed">
-                綁定 LINE 帳號後，您可以直接透過 LINE 與您的個人 AI 助理對話。
-                <br />
-                <span className="text-xs text-text-tertiary opacity-70">
-                  * 請先在 LINE 傳送任何訊息給機器人，並複製它回傳的 User ID。
-                </span>
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
-                  <Input
-                    type="text"
-                    value={lineUserId}
-                    onChange={(e) => setLineUserId(e.target.value)}
-                    placeholder="貼上您的 LINE User ID (例如：U123456...)"
-                    disabled={isBinding}
-                    fullWidth
-                  />
+
+              {integrations?.line.connected ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleLineUnbind}
+                  disabled={isBinding}
+                  className="w-full text-semantic-danger hover:bg-semantic-danger/10 border-semantic-danger/20"
+                >
+                  <Unlink2 size={16} className="mr-2" />
+                  解除 LINE 綁定
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      value={lineUserId}
+                      onChange={(e) => setLineUserId(e.target.value)}
+                      placeholder="U123456..."
+                      disabled={isBinding}
+                      fullWidth
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="cta"
+                    onClick={handleLineBind}
+                    disabled={!lineUserId || isBinding}
+                    loading={isBinding}
+                    className="w-full shadow-glow-green/20"
+                  >
+                    <Link2 size={18} className="mr-2" />
+                    立即綁定 LINE
+                  </Button>
                 </div>
+              )}
+            </Card>
+
+            {/* Google 日曆 綁定 */}
+            <Card variant="glass" className="p-6 border-white/5 bg-white/[0.02] flex flex-col justify-between">
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <span className="text-2xl">📅</span>
+                  </div>
+                  <h4 className="text-white font-bold tracking-wider">Google 日曆</h4>
+                </div>
+
+                {integrations?.google_calendar.connected ? (
+                  <div>
+                    <div className="flex items-center gap-2 text-blue-400 mb-2">
+                      <CheckCircle2 size={16} />
+                      <span className="text-sm font-bold uppercase">已授權存取</span>
+                    </div>
+                    <p className="text-xs text-text-tertiary">
+                      最後更新：{formatDateTime(integrations.google_calendar.updated_at)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    授權後，系統將能讀取並管理您的 Google 行事曆，實現智慧預約與提醒。
+                  </p>
+                )}
+              </div>
+
+              {integrations?.google_calendar.connected ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => window.location.href = '/api/auth/google/calendar'}
+                  className="w-full text-blue-400 hover:bg-blue-500/10 border-blue-500/20"
+                >
+                  <RefreshCw size={16} className="mr-2" />
+                  重新更新授權
+                </Button>
+              ) : (
                 <Button
                   type="button"
                   variant="cta"
-                  onClick={handleLineBind}
-                  disabled={!lineUserId || isBinding}
-                  loading={isBinding}
-                  className="h-[50px] shadow-glow-green/20"
+                  onClick={() => window.location.href = '/api/auth/google/calendar'}
+                  className="w-full shadow-glow-blue/20 bg-blue-600 hover:bg-blue-500"
                 >
                   <Link2 size={18} className="mr-2" />
-                  確認綁定
+                  開始 Google 授權
                 </Button>
-              </div>
-            </div>
-          )}
+              )}
+            </Card>
+          </div>
         </Card>
       </div>
 
