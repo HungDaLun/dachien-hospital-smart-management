@@ -566,8 +566,8 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
 
             <div className="space-y-4">
               <SettingRow
-                title="Server URL"
-                description="WebSocket 連線地址 (wss://...)"
+                title="Websocket URL"
+                description="LiveKit Cloud 連線地址 (wss://...)"
               >
                 <div className="flex gap-2">
                   <input
@@ -623,17 +623,17 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               </div>
               <div>
                 <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
-                  AI 語音服務 (OpenAI)
+                  OpenAI 語音服務 (選填)
                 </h3>
                 <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
-                  STT / TTS 引擎
+                  STT / TTS 引擎 (若使用 Gemini 方案可略過)
                 </p>
               </div>
             </div>
 
             <SettingRow
               title="OpenAI API Key"
-              description="用於語音轉文字 (Whisper) 與文字轉語音"
+              description="用於語音轉文字 (Whisper) 與文字轉語音，若使用 Deepgram/Google TTS 則無需設定"
               status={config?.openai.api_key}
             >
               <SecretInput
