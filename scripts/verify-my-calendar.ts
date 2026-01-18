@@ -111,9 +111,9 @@ async function verifyMyCalendar() {
         departmentId: validUser.department_id || undefined
     });
 
-    // 4. Test Scenario: Check Schedule
-    console.log('\n📅 [Verification] Querying "My Schedule"...');
-    const query = "確認他能看到我本週的行程"; // Using user's exact wording style
+    // 4. Test Scenario: Check Schedule AND Send Line
+    console.log('\n📅 [Verification] Querying "My Schedule" AND "Send Line"...');
+    const query = "幫我列出本週行程，並且用 Line 傳給我";
     console.log(`   User Query: "${query}"`);
 
     // NOTE: This will trigger 'list_calendar_events' tool.

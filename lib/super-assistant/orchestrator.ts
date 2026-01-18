@@ -187,8 +187,19 @@ ${message.content.text}
         const text = message.content.text?.toLowerCase() || '';
 
         // 行事曆關鍵字 (優先權高)
+        // 行事曆關鍵字 (優先權高)
         const calendarKeywords = ['行事曆', '行程', '會議', '約', '排', '幾點', '什麼時候', '行程表'];
         if (calendarKeywords.some((kw) => text.includes(kw))) {
+            // 如果同時包含發送指令，則視為 Action
+            const isSendAction = ['line', '發送', '寄送', '傳給'].some(kw => text.includes(kw));
+            if (isSendAction) {
+                return {
+                    type: 'action',
+                    confidence: 0.95,
+                    subType: 'calendar'
+                };
+            }
+
             const isAction = ['約', '排', '建立', '設定'].some(kw => text.includes(kw));
             return {
                 type: isAction ? 'action' : 'query',
@@ -237,7 +248,10 @@ ${message.content.text}
             if (intent.subType === 'calendar' && this._config.systemUserId) {
                 // 優化：針對行事曆查詢，過濾掉指令型用語，避免過度過濾搜尋結果
                 let cleanQuery = queryText;
-                const stopWords = ['查詢', '搜尋', '找一下', '幫我', '看看', '確認', '顯示', '列出', '我的', '我', '本週', '下週', '今天', '明天', '後天', '行程', '行事曆', '會議', '安排', '有沒有', '是否', '能看到', '看到', '能', '知道', '告訴', '啥', '他', '的'];
+                const stopWords = ['查詢', '搜尋', '找一下', '幫我', '看看', '確認', '顯示', '列出', '我的', '我', '本週', '下週', '今天', '明天', '後天', '行程', '行事曆', '會議', '安排', '有沒有', '是否', '能看到', '看到', '能', '知道', '告訴', '啥', '他', '的', '且'];
+
+                // Sort by length desc to handle overlapping words (e.g. 並且 vs 並)
+                stopWords.sort((a, b) => b.length - a.length);
 
                 stopWords.forEach(word => {
                     cleanQuery = cleanQuery.replace(new RegExp(word, 'g'), '');
@@ -364,33 +378,98 @@ ${message.content.text}
                 };
             }
 
-            // 簡單的訊息內容提取：移除關鍵字
-            let messageContent = text
+            // [New Feature] 複合指令：查詢行程並發送 Line
+            // 如果同時包含行程關鍵字，則先查詢行程
+            if (text.includes('行程') || text.includes('行事曆')) {
+                const toolRegistry = getToolRegistry();
+
+                // 1. 查詢行程
+                // 簡單過濾，同 handleQuery
+                // 簡單過濾，同 handleQuery
+                let cleanQuery = text;
+                const stopWords = ['查詢', '搜尋', '找一下', '幫我', '看看', '確認', '顯示', '列出', '我的', '我', '本週', '下週', '今天', '明天', '後天', '行程', '行事曆', '會議', '安排', '有沒有', '是否', '能看到', '看到', '能', '知道', '告訴', '啥', '他', '的', '並', '用', 'line', '發送', '寄送', '傳給', '並且', '提醒', '且'];
+
+                // Sort by length desc
+                stopWords.sort((a, b) => b.length - a.length);
+
+                stopWords.forEach(word => {
+                    cleanQuery = cleanQuery.replace(new RegExp(word, 'gi'), '');
+                });
+                cleanQuery = cleanQuery.trim();
+                if (!cleanQuery || /^[\s,.?!。，？！]+$/.test(cleanQuery)) {
+                    cleanQuery = '';
+                }
+
+                const calendarResult = await toolRegistry.executeTool('list_calendar_events', {
+                    userId: this._config.systemUserId,
+                    query: cleanQuery || undefined,
+                });
+
+                let messageContent = '';
+                if (calendarResult.success) {
+                    const data = calendarResult.data as CalendarData;
+                    if (data.events.length === 0) {
+                        messageContent = `📅 (自動通知) 目前沒有查到接下來一週的行程。`;
+                    } else {
+                        const eventsText = data.events
+                            .map((e) => `- ${new Date(e.start).toLocaleString('zh-TW', { hour12: false })}: ${e.summary}`)
+                            .join('\n');
+                        messageContent = `📅 (自動通知) 您的行程如下：\n\n${eventsText}`;
+                    }
+                } else {
+                    messageContent = `⚠️ (自動通知) 查詢行程時發生錯誤：${calendarResult.error}`;
+                }
+
+                // 2. 發送 Line
+                const result = await toolRegistry.executeTool('send_line_message', {
+                    userId: this._config.systemUserId,
+                    message: messageContent
+                });
+
+                if (result.success) {
+                    return {
+                        content: {
+                            type: 'text',
+                            text: `✅ 已查詢行程並發送 Line 給您：\n\n${messageContent}`,
+                        }
+                    };
+                } else {
+                    return {
+                        content: {
+                            type: 'text',
+                            text: `❌ 發送 Line 失敗：${result.error}`,
+                        }
+                    };
+                }
+            } // End of calendar + line logic
+
+            // 一般純文字訊息發送邏輯 (如果不包含行程查詢)
+            let simpleMessageContent = text
                 .replace(/幫我|請|發送|寄送|line|訊息|給|我|關於|問候/gi, '')
                 .trim();
 
-            if (!messageContent) {
-                messageContent = "您好！這是來自超級管家的問候。"; // Default greeting
+            if (!simpleMessageContent) {
+                simpleMessageContent = "您好！這是來自超級管家的問候。"; // Default greeting
             }
 
-            const toolRegistry = getToolRegistry();
-            const result = await toolRegistry.executeTool('send_line_message', {
+            const registry = getToolRegistry();
+            const simpleResult = await registry.executeTool('send_line_message', {
                 userId: this._config.systemUserId,
-                message: messageContent
+                message: simpleMessageContent
             });
 
-            if (result.success) {
+            if (simpleResult.success) {
                 return {
                     content: {
                         type: 'text',
-                        text: `✅ 已為您發送 Line 訊息：\n「${messageContent}」`,
+                        text: `✅ 已為您發送 Line 訊息：\n「${simpleMessageContent}」`,
                     }
                 };
             } else {
                 return {
                     content: {
                         type: 'text',
-                        text: `❌ 發送 Line 訊息失敗：${result.error}\n請檢查系統設定中的 Line 整合設定。`,
+                        text: `❌ 發送 Line 訊息失敗：${simpleResult.error}\n請檢查系統設定中的 Line 整合設定。`,
                     }
                 };
             }
