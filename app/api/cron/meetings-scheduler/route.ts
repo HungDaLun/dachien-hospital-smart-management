@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { MeetingService } from '@/lib/meeting/service';
 
-// 使用 service role key 來繞過 RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+
+// 使用 service role key 來繞過 RLS (惰性初始化，避免編譯時報錯)
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin(): SupabaseClient {
+    if (supabaseAdmin) return supabaseAdmin;
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+        throw new Error('Missing Supabase environment variables for admin client');
+    }
+
+    supabaseAdmin = createClient(url, key);
+    return supabaseAdmin;
+}
 
 /**
  * Cron Job: 自動啟動到期的預約會議並執行對談
@@ -31,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     try {
         // 1. 查詢所有到期但尚未啟動的預約會議
-        const { data: dueMeetings, error: fetchError } = await supabaseAdmin
+        const { data: dueMeetings, error: fetchError } = await getSupabaseAdmin()
             .from('meetings')
             .select('id, title, topic, user_id, scheduled_start_time, mode, duration_minutes')
             .eq('status', 'scheduled')
@@ -56,7 +69,7 @@ export async function GET(req: NextRequest) {
 
             try {
                 // 2. 更新會議狀態為進行中
-                const { error: updateError } = await supabaseAdmin
+                const { error: updateError } = await getSupabaseAdmin()
                     .from('meetings')
                     .update({
                         status: 'in_progress',
