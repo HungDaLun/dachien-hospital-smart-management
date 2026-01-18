@@ -48,7 +48,8 @@ const nextConfig = {
       // Referrer 政策
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       // 權限政策
-      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      // 允許麥克風使用，以支援超級管家語音功能
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=*' },
     ];
 
     // CSP 設定
@@ -60,7 +61,7 @@ const nextConfig = {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://*.supabase.co",
         "font-src 'self'",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://*.livekit.cloud wss://*.livekit.cloud",
         "frame-ancestors 'self'",
       ].join('; '),
     };
