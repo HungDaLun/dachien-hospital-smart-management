@@ -32,6 +32,8 @@ interface SystemConfig {
   };
   notification: {
     line_channel_token: ConfigStatus;
+    line_channel_secret: ConfigStatus;
+    line_webhook_enabled: ConfigStatus;
     slack_webhook_url: ConfigStatus;
   };
 }
@@ -39,6 +41,8 @@ interface SystemConfig {
 interface EditableFields {
   news_api_key?: string;
   line_channel_token?: string;
+  line_channel_secret?: string;
+  line_webhook_enabled?: string;
   slack_webhook_url?: string;
 }
 
@@ -100,6 +104,12 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
       if (editData.line_channel_token) {
         updates.line_channel_token = editData.line_channel_token;
       }
+      if (editData.line_channel_secret) {
+        updates.line_channel_secret = editData.line_channel_secret;
+      }
+      if (editData.line_webhook_enabled !== undefined) {
+        updates.line_webhook_enabled = editData.line_webhook_enabled;
+      }
       if (editData.slack_webhook_url) {
         updates.slack_webhook_url = editData.slack_webhook_url;
       }
@@ -140,6 +150,8 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
         ...prev,
         news_api_key: undefined,
         line_channel_token: undefined,
+        line_channel_secret: undefined,
+        line_webhook_enabled: undefined,
         slack_webhook_url: undefined,
       }));
 
@@ -284,6 +296,7 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
             <div className="space-y-4">
               <SettingRow
                 title="Line Channel Token"
+                description="Line Messaging API 的 Channel Access Token"
                 status={config?.notification.line_channel_token}
               >
                 <SecretInput
@@ -295,6 +308,59 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                   onToggleSecret={() => setShowSecrets({ ...showSecrets, line: !showSecrets['line'] })}
                 />
               </SettingRow>
+              <SettingRow
+                title="Line Channel Secret"
+                description="用於驗證 Webhook 簽章"
+                status={config?.notification.line_channel_secret}
+              >
+                <SecretInput
+                  value={editData.line_channel_secret || ''}
+                  onChange={(value) => setEditData({ ...editData, line_channel_secret: value })}
+                  placeholder={config?.notification.line_channel_secret?.configured && !editData.line_channel_secret ? "********" : "輸入 Line Channel Secret"}
+                  disabled={!isEditing}
+                  showSecret={showSecrets['line_secret']}
+                  onToggleSecret={() => setShowSecrets({ ...showSecrets, line_secret: !showSecrets['line_secret'] })}
+                />
+              </SettingRow>
+              <SettingRow
+                title="Line Webhook"
+                description="啟用後可透過 Line 與超級管家對話"
+                status={config?.notification.line_webhook_enabled}
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={!isEditing}
+                    onClick={() => setEditData({
+                      ...editData,
+                      line_webhook_enabled: editData.line_webhook_enabled === 'true' ? 'false' : 'true'
+                    })}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${(editData.line_webhook_enabled === 'true' ||
+                        (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
+                        ? 'bg-green-500'
+                        : 'bg-white/10'
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(editData.line_webhook_enabled === 'true' ||
+                          (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
+                          ? 'translate-x-6'
+                          : 'translate-x-1'
+                        }`}
+                    />
+                  </button>
+                  <span className="text-sm text-text-secondary">
+                    {(editData.line_webhook_enabled === 'true' ||
+                      (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
+                      ? '已啟用' : '已停用'}
+                  </span>
+                </div>
+              </SettingRow>
+              <div className="pt-2 border-t border-white/5">
+                <p className="text-xs text-text-tertiary">
+                  📌 Webhook URL: <code className="bg-black/30 px-2 py-0.5 rounded">/api/integrations/line/webhook</code>
+                </p>
+              </div>
               <SettingRow
                 title="Slack Webhook URL"
                 status={config?.notification.slack_webhook_url}

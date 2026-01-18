@@ -71,7 +71,12 @@ export async function GET(_request: NextRequest) {
       },
       // 新增：即時通知設定
       notification: {
-        line_channel_token: getConfigStatus('line_channel_token', 'LINE_CHANNEL_ACCESS_TOKEN'),
+        line_channel_token: getConfigStatus('line_channel_access_token', 'LINE_CHANNEL_ACCESS_TOKEN'),
+        line_channel_secret: getConfigStatus('line_channel_secret', 'LINE_CHANNEL_SECRET'),
+        line_webhook_enabled: {
+          configured: settingsMap['line_webhook_enabled']?.value === 'true',
+          source: settingsMap['line_webhook_enabled']?.value ? 'database' : 'none' as 'database' | 'env' | 'none',
+        },
         slack_webhook_url: getConfigStatus('slack_webhook_url', 'SLACK_WEBHOOK_URL'),
       },
       // 新增：MCP 工具設定
@@ -121,8 +126,10 @@ export async function PUT(request: NextRequest) {
       sendgrid_api_key,
       // 新增：新聞與情資設定
       news_api_key,
-      // 新增：即時通知設定
+      // 新增：即時通知設定 (Line 擴充)
       line_channel_token,
+      line_channel_secret,
+      line_webhook_enabled,
       slack_webhook_url,
       // 新增：MCP 工具設定
       web_search_api_key,
@@ -144,6 +151,7 @@ export async function PUT(request: NextRequest) {
     if (sendgrid_api_key !== undefined) requireConfirmation.push('sendgrid_api_key');
     if (news_api_key !== undefined) requireConfirmation.push('news_api_key');
     if (line_channel_token !== undefined) requireConfirmation.push('line_channel_token');
+    if (line_channel_secret !== undefined) requireConfirmation.push('line_channel_secret');
     if (slack_webhook_url !== undefined) requireConfirmation.push('slack_webhook_url');
     if (web_search_api_key !== undefined) requireConfirmation.push('web_search_api_key');
     if (cron_secret !== undefined) requireConfirmation.push('cron_secret');
@@ -283,7 +291,15 @@ export async function PUT(request: NextRequest) {
 
     // 新增：即時通知設定
     if (line_channel_token !== undefined) {
-      updates.push({ key: 'line_channel_token', value: line_channel_token || null, encrypted: true });
+      updates.push({ key: 'line_channel_access_token', value: line_channel_token || null, encrypted: true });
+    }
+
+    if (line_channel_secret !== undefined) {
+      updates.push({ key: 'line_channel_secret', value: line_channel_secret || null, encrypted: true });
+    }
+
+    if (line_webhook_enabled !== undefined) {
+      updates.push({ key: 'line_webhook_enabled', value: line_webhook_enabled, encrypted: false });
     }
 
     if (slack_webhook_url !== undefined) {
