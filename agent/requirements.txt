@@ -1,5 +1,0 @@
-livekit-agents==0.9.1
-livekit-plugins-openai==0.6.1
-livekit-plugins-silero==0.6.1
-python-dotenv==1.0.1
-aiohttp==3.9.1

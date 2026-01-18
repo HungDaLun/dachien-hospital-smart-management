@@ -1,7 +1,7 @@
 /**
  * Super Assistant Standalone Page
  * 獨立頁面模式，支援多螢幕與全螢幕操作
- * 包含 LiveKit 語音整合
+ * 包含 Vapi 語音整合
  */
 
 'use client';
@@ -10,113 +10,52 @@ import { useState, useEffect } from 'react';
 import { X, Mic, Send, MessageSquare, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceOrb from '@/components/executive-assistant/VoiceOrb';
-import {
-    LiveKitRoom,
-    RoomAudioRenderer,
-    useVoiceAssistant,
-} from '@livekit/components-react';
-import '@livekit/components-styles';
-
-// 自定義 Hook 處理 Token 取得
-function useLiveKitAuth() {
-    const [token, setToken] = useState<string>("");
-    const [url, setUrl] = useState<string>("");
-    const [error, setError] = useState<string>("");
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const resp = await fetch('/api/voice/token', {
-                    method: 'POST',
-                    body: JSON.stringify({}),
-                });
-                const data = await resp.json();
-                if (data.token && data.url) {
-                    setToken(data.token);
-                    setUrl(data.url);
-                } else {
-                    // Try alternate response format if any
-                    setToken(data.accessToken || data.token);
-                    setUrl(data.url);
-                }
-            } catch (e) {
-                setError(e instanceof Error ? e.message : "Network error");
-            }
-        })();
-    }, []);
-
-    return { token, url, error };
-}
-
-// 內部組件：處理連線後的語音狀態
-function VoiceAssistantSession({
-    setDisplayText,
-    setStatus,
-    setVolume
-}: {
-    displayText: string;
-    setDisplayText: (text: string) => void;
-    setStatus: (status: 'idle' | 'listening' | 'processing' | 'speaking' | 'error') => void;
-    volume: number;
-    setVolume: (vol: number) => void;
-}) {
-    const { state, audioTrack: _audioTrack } = useVoiceAssistant();
-
-    useEffect(() => {
-        // 將 LiveKit 狀態映射到 UI 狀態
-        switch (state) {
-            case 'listening':
-                setStatus('listening');
-                break;
-            case 'thinking':
-                setStatus('processing');
-                setDisplayText("正在思考...");
-                break;
-            case 'speaking':
-                setStatus('speaking');
-                setDisplayText("正在回應...");
-                break;
-            default:
-                setStatus('idle');
-        }
-    }, [state, setStatus, setDisplayText]);
-
-    // 簡單的音量模擬
-    useEffect(() => {
-        if (state === 'speaking' || state === 'listening') {
-            const interval = setInterval(() => {
-                setVolume(Math.random());
-            }, 100);
-            return () => clearInterval(interval);
-        } else {
-            setVolume(0);
-            return undefined;
-        }
-    }, [state, setVolume]);
-
-    return (
-        <RoomAudioRenderer />
-    );
-}
+import { useVapi, VapiStatus } from '@/hooks/use-vapi';
 
 export default function SuperAssistantPage() {
     const [mode, setMode] = useState<'voice' | 'text'>('voice');
-    const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error'>('idle');
     const [displayText, setDisplayText] = useState('系統連線完成。嘿，今天有什麼我可以幫忙的嗎？');
     const [inputText, setInputText] = useState('');
-    const [volume, setVolume] = useState(0);
 
-    const { token, url, error } = useLiveKitAuth();
+    // 使用 Vapi Hook
+    const { status, isSessionActive, volumeLevel, toggleSession, startSession } = useVapi();
 
-    // 處理發送訊息 (文字模式)
+    // 當切換到 Voice 模式且未連線時，自動連線
+    useEffect(() => {
+        if (mode === 'voice' && !isSessionActive && status === VapiStatus.IDLE) {
+            // 自動啟動有點侵入性，視情況決定，這裡先讓使用者手動點擊或保持 Vapi 待命
+            // startSession(); 
+        }
+    }, [mode, isSessionActive, status, startSession]);
+
+    // 將 Vapi 狀態轉換為 VoiceOrb 狀態
+    const getOrbStatus = () => {
+        switch (status) {
+            case VapiStatus.LISTENING:
+                return 'listening';
+            case VapiStatus.SPEAKING:
+                return 'speaking';
+            case VapiStatus.CONNECTING:
+            case VapiStatus.LOADING:
+                return 'processing';
+            case VapiStatus.ERROR:
+                return 'error';
+            case VapiStatus.CONNECTED:
+                return 'idle'; // 已連線但沒在說話
+            default:
+                return 'idle';
+        }
+    };
+
+    // 處理文字輸入 (混合模式)
     const handleSendText = async () => {
         if (!inputText.trim()) return;
 
         const query = inputText;
         setInputText('');
         setDisplayText(`正在思考：${query}...`);
-        setStatus('processing');
 
+        // 這裡暫時維持原本的 API 呼叫，未來可以考慮讓 Vapi 也能接收文字指令
         try {
             const response = await fetch('/api/super-assistant/chat', {
                 method: 'POST',
@@ -128,58 +67,18 @@ export default function SuperAssistantPage() {
 
             const data = await response.json();
             setDisplayText(data.text || '我收到您的請求了，正在處理中。');
-            setStatus('speaking');
-
-            // 模擬說話結束
-            setTimeout(() => setStatus('idle'), 3000);
         } catch (error) {
             console.error('Send error:', error);
-            setStatus('error');
             setDisplayText('抱歉，發生了點錯誤。');
         }
     };
 
-    // 關閉視窗
     const handleClose = () => {
         window.close();
     };
 
-    if (error) {
-        return <div className="h-screen flex items-center justify-center text-red-500">Error: {error}</div>;
-    }
-
-    if (!token || !url) {
-        return (
-            <div className="h-[100dvh] w-screen bg-black flex items-center justify-center text-white">
-                <div className="flex flex-col items-center gap-4">
-                    <Sparkles className="animate-spin text-amber-500" size={32} />
-                    <p>正在初始化語音系統...</p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <LiveKitRoom
-            token={token}
-            serverUrl={url}
-            connect={true}
-            audio={true}
-            video={false}
-            onConnected={() => console.log("LiveKit Connected")}
-            onDisconnected={() => console.log("LiveKit Disconnected")}
-            className="h-[100dvh] w-screen bg-black text-white overflow-hidden flex flex-col fixed inset-0"
-        >
-            {mode === 'voice' ? (
-                <VoiceAssistantSession
-                    displayText={displayText}
-                    setDisplayText={setDisplayText}
-                    setStatus={setStatus}
-                    volume={volume}
-                    setVolume={setVolume}
-                />
-            ) : null}
-
+        <div className="h-[100dvh] w-screen bg-black text-white overflow-hidden flex flex-col fixed inset-0">
             <div className="flex-1 flex flex-col bg-gradient-to-b from-slate-900/50 via-slate-950/80 to-black relative">
 
                 {/* 頂部控制列 */}
@@ -191,8 +90,10 @@ export default function SuperAssistantPage() {
                         <div>
                             <h2 className="text-white font-bold tracking-wide">SUPER ASSISTANT</h2>
                             <div className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${status !== 'idle' && status !== 'error' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System Online</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${status === VapiStatus.CONNECTED || status === VapiStatus.SPEAKING || status === VapiStatus.LISTENING ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                                    {status === VapiStatus.IDLE ? 'Offline' : 'System Online'}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -216,8 +117,13 @@ export default function SuperAssistantPage() {
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 className="flex flex-col items-center"
                             >
-                                <div className="mb-6">
-                                    <VoiceOrb status={status} volume={volume} />
+                                <div className="mb-6 cursor-pointer" onClick={toggleSession}>
+                                    <VoiceOrb status={getOrbStatus()} volume={volumeLevel} />
+                                    {!isSessionActive && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <span className="bg-black/50 px-3 py-1 rounded-full text-xs text-amber-500 font-bold border border-amber-500/30 backdrop-blur-sm">Click to Start</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Fixed height text container to prevent overlap */}
@@ -228,7 +134,7 @@ export default function SuperAssistantPage() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed text-center line-clamp-3"
                                     >
-                                        {displayText}
+                                        {status === VapiStatus.LISTENING ? "聆聽中..." : (status === VapiStatus.SPEAKING ? "回應中..." : displayText)}
                                     </motion.p>
                                 </div>
                             </motion.div>
@@ -301,6 +207,6 @@ export default function SuperAssistantPage() {
                     </button>
                 </div>
             </div>
-        </LiveKitRoom>
+        </div>
     );
 }
