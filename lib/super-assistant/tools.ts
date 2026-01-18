@@ -29,6 +29,16 @@ export interface CreateEventParams {
     isAllDay?: boolean;
 }
 
+export interface ToolDefinition {
+    name: string;
+    description: string;
+    parameters: {
+        type: string;
+        properties: Record<string, unknown>;
+        required?: string[];
+    };
+}
+
 
 // ==================== Knowledge Search Tool ====================
 
@@ -387,7 +397,7 @@ export class ToolRegistry {
     }
 
     /**
-     * 取得可用工具清單
+     * 取得可用工具清單 (Simple Format)
      */
     getAvailableTools(): Array<{
         name: string;
@@ -425,6 +435,98 @@ export class ToolRegistry {
                 description: '發送 Line 訊息給使用者 (需要提供訊息內容)',
                 category: 'action',
             },
+        ];
+    }
+
+    /**
+     * 取得工具定義 (LLM Function Calling Schema)
+     */
+    getToolDefinitions(): ToolDefinition[] {
+        return [
+            {
+                name: 'list_calendar_events',
+                description: '查詢行事曆行程。可用於查詢特定時間範圍、特定關鍵字的行程。當使用者問"下週行程"時，應自動計算 timeMin/timeMax。',
+                parameters: {
+                    type: 'OBJECT',
+                    properties: {
+                        userId: {
+                            type: 'STRING',
+                            description: 'System User ID (通常由系統自動注入，但在 Function Call 中可由 Context 提供)',
+                        },
+                        query: {
+                            type: 'STRING',
+                            description: '搜尋關鍵字(可選)，例如"會議"、"台積電"。若為一般時間查詢則留空。',
+                        },
+                        timeMin: {
+                            type: 'STRING',
+                            description: '搜尋起始時間 (ISO 8601 format, e.g. 2026-01-01T00:00:00Z)',
+                        },
+                        timeMax: {
+                            type: 'STRING',
+                            description: '搜尋結束時間 (ISO 8601 format)',
+                        },
+                        maxResults: {
+                            type: 'INTEGER',
+                            description: '最大回傳筆數 (預設 10)',
+                        }
+                    },
+                    required: [], // userId 通常由系統 context 注入，這裡暫不強制 LLM 輸出
+                }
+            },
+            {
+                name: 'send_line_message',
+                description: '發送 Line 訊息給使用者。當需要通知使用者、發送查詢結果時使用。',
+                parameters: {
+                    type: 'OBJECT',
+                    properties: {
+                        message: {
+                            type: 'STRING',
+                            description: '要發送的訊息內容。若為轉發行程，請將行程格式化為易讀的清單文字。',
+                        }
+                    },
+                    required: ['message']
+                }
+            },
+            {
+                name: 'knowledge_search',
+                description: '搜尋企業知識庫。當問題涉及公司規章、流程、文件內容時使用。',
+                parameters: {
+                    type: 'OBJECT',
+                    properties: {
+                        query: {
+                            type: 'STRING',
+                            description: '搜尋關鍵字',
+                        },
+                        topK: {
+                            type: 'INTEGER',
+                            description: '回傳筆數',
+                        }
+                    },
+                    required: ['query']
+                }
+            },
+            {
+                name: 'agent_delegation',
+                description: '將問題委派給其他專業 Agent 處理。當問題超出您的能力範圍，或屬於特定領域(如財務、法律、HR)時使用。',
+                parameters: {
+                    type: 'OBJECT',
+                    properties: {
+                        targetAgentId: {
+                            type: 'STRING',
+                            description: '目標 Agent ID (可從 context 或 available agents 列表獲取)',
+                        },
+                        reason: {
+                            type: 'STRING',
+                            description: '委派原因',
+                        },
+                        query: {
+                            type: 'STRING',
+                            description: '要傳遞給目標 Agent 的問題 (通常是原問題)',
+                        }
+                    },
+                    required: ['targetAgentId', 'reason', 'query']
+                }
+            }
         ];
     }
 
