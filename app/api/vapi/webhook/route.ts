@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUnifiedGateway, createOrchestratorAgent } from '@/lib/super-assistant';
 
 /**
  * Vapi Webhook API
