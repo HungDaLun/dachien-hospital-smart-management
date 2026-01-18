@@ -111,6 +111,15 @@ npm start
 - 權限矩陣
 - 錯誤處理規範
 
+## 📚 說明文件
+
+詳細的設定與開發指南請參考 `docs/` 目錄：
+
+- [API 申請與設定指南 (Line, LiveKit, Google, OpenAI)](docs/API_APPLICATION_GUIDE.md)
+- [環境變數設定完整指南](docs/ENV_VARIABLES_GUIDE.md)
+- [語音 AI 助理方案評估](docs/04.VOICE_AI_ASSISTANT_SOLUTIONS.md)
+- [超級管家設計文件](docs/10.SUPER_ASSISTANT_DESIGN.md)
+
 ## 授權
 
 私有專案

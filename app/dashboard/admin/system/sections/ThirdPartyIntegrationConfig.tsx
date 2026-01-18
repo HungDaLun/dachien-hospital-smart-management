@@ -32,6 +32,7 @@ interface SystemConfig {
     news_api_key: ConfigStatus;
   };
   notification: {
+    line_channel_id: ConfigStatus;
     line_channel_token: ConfigStatus;
     line_channel_secret: ConfigStatus;
     line_webhook_enabled: ConfigStatus;
@@ -54,10 +55,10 @@ interface SystemConfig {
 
 interface EditableFields {
   news_api_key?: string;
+  line_channel_id?: string;
   line_channel_token?: string;
   line_channel_secret?: string;
   line_webhook_enabled?: string;
-  slack_webhook_url?: string;
   google_oauth_client_id?: string;
   google_oauth_client_secret?: string;
   google_oauth_redirect_uri?: string;
@@ -122,6 +123,9 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
       if (editData.news_api_key) {
         updates.news_api_key = editData.news_api_key;
       }
+      if (editData.line_channel_id) {
+        updates.line_channel_id = editData.line_channel_id;
+      }
       if (editData.line_channel_token) {
         updates.line_channel_token = editData.line_channel_token;
       }
@@ -131,8 +135,8 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
       if (editData.line_webhook_enabled !== undefined) {
         updates.line_webhook_enabled = editData.line_webhook_enabled;
       }
-      if (editData.slack_webhook_url) {
-        updates.slack_webhook_url = editData.slack_webhook_url;
+      if (editData.line_webhook_enabled !== undefined) {
+        updates.line_webhook_enabled = editData.line_webhook_enabled;
       }
       if (editData.google_oauth_client_id) {
         updates.google_oauth_client_id = editData.google_oauth_client_id;
@@ -191,10 +195,10 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
       setEditData(prev => ({
         ...prev,
         news_api_key: undefined,
+        line_channel_id: undefined,
         line_channel_token: undefined,
         line_channel_secret: undefined,
         line_webhook_enabled: undefined,
-        slack_webhook_url: undefined,
         google_oauth_client_id: undefined,
         google_oauth_client_secret: undefined,
         google_oauth_redirect_uri: undefined,
@@ -314,7 +318,7 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
             >
               <SecretInput
                 value={editData.news_api_key || ''}
-                onChange={(value) => setEditData({ ...editData, news_api_key: value })}
+                onChange={(value) => setEditData(prev => ({ ...prev, news_api_key: value }))}
                 placeholder={config?.news.news_api_key.configured && !editData.news_api_key ? "********" : "輸入 NewsAPI Key"}
                 disabled={!isEditing}
                 showSecret={showSecrets['news']}
@@ -337,12 +341,30 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                   即時通知頻道
                 </h3>
                 <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
-                  Line / Slack 整合
+                  Line 整合
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
+              <SettingRow
+                title="Line Channel ID"
+                description="Line Developers Console 中的 Channel ID"
+                status={config?.notification.line_channel_id}
+              >
+                <input
+                  value={editData.line_channel_id || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditData(prev => ({ ...prev, line_channel_id: val }));
+                  }}
+                  autoComplete="off"
+                  placeholder={config?.notification.line_channel_id?.configured && !editData.line_channel_id ? "********" : "輸入 Channel ID"}
+                  disabled={!isEditing}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  type="text"
+                />
+              </SettingRow>
               <SettingRow
                 title="Line Channel Token"
                 description="Line Messaging API 的 Channel Access Token"
@@ -350,7 +372,7 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               >
                 <SecretInput
                   value={editData.line_channel_token || ''}
-                  onChange={(value) => setEditData({ ...editData, line_channel_token: value })}
+                  onChange={(value) => setEditData(prev => ({ ...prev, line_channel_token: value }))}
                   placeholder={config?.notification.line_channel_token.configured && !editData.line_channel_token ? "********" : "輸入 Line Token"}
                   disabled={!isEditing}
                   showSecret={showSecrets['line']}
@@ -364,7 +386,7 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               >
                 <SecretInput
                   value={editData.line_channel_secret || ''}
-                  onChange={(value) => setEditData({ ...editData, line_channel_secret: value })}
+                  onChange={(value) => setEditData(prev => ({ ...prev, line_channel_secret: value }))}
                   placeholder={config?.notification.line_channel_secret?.configured && !editData.line_channel_secret ? "********" : "輸入 Line Channel Secret"}
                   disabled={!isEditing}
                   showSecret={showSecrets['line_secret']}
@@ -380,10 +402,10 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                   <button
                     type="button"
                     disabled={!isEditing}
-                    onClick={() => setEditData({
-                      ...editData,
-                      line_webhook_enabled: editData.line_webhook_enabled === 'true' ? 'false' : 'true'
-                    })}
+                    onClick={() => setEditData(prev => ({
+                      ...prev,
+                      line_webhook_enabled: prev.line_webhook_enabled === 'true' ? 'false' : 'true'
+                    }))}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${(editData.line_webhook_enabled === 'true' ||
                       (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
                       ? 'bg-green-500'
@@ -410,25 +432,12 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                   📌 Webhook URL: <code className="bg-black/30 px-2 py-0.5 rounded">/api/integrations/line/webhook</code>
                 </p>
               </div>
-              <SettingRow
-                title="Slack Webhook URL"
-                status={config?.notification.slack_webhook_url}
-              >
-                <SecretInput
-                  value={editData.slack_webhook_url || ''}
-                  onChange={(value) => setEditData({ ...editData, slack_webhook_url: value })}
-                  placeholder={config?.notification.slack_webhook_url.configured && !editData.slack_webhook_url ? "********" : "輸入 Slack Webhook URL"}
-                  disabled={!isEditing}
-                  showSecret={showSecrets['slack']}
-                  onToggleSecret={() => setShowSecrets({ ...showSecrets, slack: !showSecrets['slack'] })}
-                />
-              </SettingRow>
             </div>
           </div>
-        </Card>
+        </Card >
 
         {/* Google OAuth 設定 */}
-        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+        < Card variant="glass" className="p-6 border-white/10 relative overflow-hidden" >
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-6">
@@ -491,10 +500,10 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               </SettingRow>
             </div>
           </div>
-        </Card>
+        </Card >
 
         {/* LiveKit Server 設定 */}
-        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+        < Card variant="glass" className="p-6 border-white/10 relative overflow-hidden" >
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-6">
@@ -558,10 +567,10 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               </SettingRow>
             </div>
           </div>
-        </Card>
+        </Card >
 
         {/* AI 語音服務 (OpenAI) */}
-        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+        < Card variant="glass" className="p-6 border-white/10 relative overflow-hidden" >
           <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-6">
@@ -593,46 +602,48 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
               />
             </SettingRow>
           </div>
-        </Card>
+        </Card >
 
-      </div>
+      </div >
 
       {/* 密碼確認 Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Card variant="glass" className="w-full max-w-md p-6 border-white/10 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 text-purple-500">
-              <Lock size={24} />
-              <h3 className="text-xl font-bold">二次驗證確認</h3>
-            </div>
-            <p className="text-text-secondary mb-6 text-sm">
-              修改敏感 API 金鑰需要輸入您的登入密碼以確保安全性。
-            </p>
-            <div className="space-y-4">
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="輸入您的當前密碼"
-                autoFocus
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSave(confirmPassword);
-                }}
-              />
-              <div className="flex gap-3 pt-2">
-                <Button variant="ghost" className="flex-1" onClick={() => setShowPasswordModal(false)}>
-                  取消
-                </Button>
-                <Button variant="cta" className="flex-1" onClick={() => handleSave(confirmPassword)} loading={saving}>
-                  確認並儲存
-                </Button>
+      {
+        showPasswordModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <Card variant="glass" className="w-full max-w-md p-6 border-white/10 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4 text-purple-500">
+                <Lock size={24} />
+                <h3 className="text-xl font-bold">二次驗證確認</h3>
               </div>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
+              <p className="text-text-secondary mb-6 text-sm">
+                修改敏感 API 金鑰需要輸入您的登入密碼以確保安全性。
+              </p>
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="輸入您的當前密碼"
+                  autoFocus
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSave(confirmPassword);
+                  }}
+                />
+                <div className="flex gap-3 pt-2">
+                  <Button variant="ghost" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+                    取消
+                  </Button>
+                  <Button variant="cta" className="flex-1" onClick={() => handleSave(confirmPassword)} loading={saving}>
+                    確認並儲存
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )
+      }
+    </div >
   );
 }
 

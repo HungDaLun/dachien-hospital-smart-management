@@ -67,7 +67,7 @@ export default function SuperAssistantPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white overflow-hidden flex flex-col">
+        <div className="h-screen w-screen bg-black text-white overflow-hidden flex flex-col fixed inset-0">
             <div className="flex-1 flex flex-col bg-gradient-to-b from-slate-900/50 via-slate-950/80 to-black relative">
 
                 {/* 頂部控制列 */}
@@ -104,7 +104,7 @@ export default function SuperAssistantPage() {
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 className="flex flex-col items-center" // Removed gap-12, effectively handling spacing manually or via fixed containers
                             >
-                                <div className="mb-12">
+                                <div className="mb-6">
                                     <VoiceOrb status={status} volume={volume} />
                                 </div>
 
@@ -141,7 +141,7 @@ export default function SuperAssistantPage() {
                 </div>
 
                 {/* 全域輸入框 */}
-                <div className="px-8 pb-4 w-full flex justify-center z-10">
+                <div className="px-8 pb-2 w-full flex justify-center z-10">
                     <div className="w-full max-w-2xl flex gap-3 bg-white/5 p-3 rounded-full border border-white/10 focus-within:border-amber-500/50 transition-all backdrop-blur-md">
                         <textarea
                             autoFocus
@@ -167,7 +167,7 @@ export default function SuperAssistantPage() {
                 </div>
 
                 {/* 底部功能列 */}
-                <div className="p-8 flex justify-center gap-8 border-t border-white/5 bg-black/20">
+                <div className="p-4 flex justify-center gap-8 border-t border-white/5 bg-black/20">
                     <button
                         onClick={() => setMode('voice')}
                         className={`flex flex-col items-center gap-2 group transition-all ${mode === 'voice' ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'}`}

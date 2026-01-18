@@ -71,6 +71,7 @@ export async function GET(_request: NextRequest) {
       },
       // 新增：即時通知設定
       notification: {
+        line_channel_id: getConfigStatus('line_channel_id', 'LINE_CHANNEL_ID'),
         line_channel_token: getConfigStatus('line_channel_access_token', 'LINE_CHANNEL_ACCESS_TOKEN'),
         line_channel_secret: getConfigStatus('line_channel_secret', 'LINE_CHANNEL_SECRET'),
         line_webhook_enabled: {
@@ -149,6 +150,7 @@ export async function PUT(request: NextRequest) {
       // 新增：新聞與情資設定
       news_api_key,
       // 新增：即時通知設定 (Line 擴充)
+      line_channel_id,
       line_channel_token,
       line_channel_secret,
       line_webhook_enabled,
@@ -182,6 +184,7 @@ export async function PUT(request: NextRequest) {
     if (resend_api_key !== undefined) requireConfirmation.push('resend_api_key');
     if (sendgrid_api_key !== undefined) requireConfirmation.push('sendgrid_api_key');
     if (news_api_key !== undefined) requireConfirmation.push('news_api_key');
+    if (line_channel_id !== undefined) requireConfirmation.push('line_channel_id');
     if (line_channel_token !== undefined) requireConfirmation.push('line_channel_token');
     if (line_channel_secret !== undefined) requireConfirmation.push('line_channel_secret');
     if (slack_webhook_url !== undefined) requireConfirmation.push('slack_webhook_url');
@@ -327,6 +330,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // 新增：即時通知設定
+    if (line_channel_id !== undefined) {
+      updates.push({ key: 'line_channel_id', value: line_channel_id || null, encrypted: false });
+    }
+
     if (line_channel_token !== undefined) {
       updates.push({ key: 'line_channel_access_token', value: line_channel_token || null, encrypted: true });
     }

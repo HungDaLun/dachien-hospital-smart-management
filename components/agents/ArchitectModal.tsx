@@ -213,65 +213,19 @@ export default function ArchitectChat({ onApply, departmentContext, currentState
 
     return (
         <>
-            {/* 右下角浮動按鈕 */}
+            {/* 右下角浮動按鈕 (Pill Style - Stacked above Super Assistant) */}
             {!isOpen && (
                 <button
                     onClick={handleOpen}
-                    className="fixed bottom-6 right-6 w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:shadow-[0_0_30px_rgba(124,58,237,0.8)] transition-all duration-300 flex items-center justify-center text-white z-50 hover:scale-110 group border-2 border-white/20 overflow-hidden"
+                    className="fixed bottom-28 right-8 z-50 group p-4 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:shadow-[0_0_30px_rgba(124,58,237,0.6)] transition-all flex items-center gap-2 overflow-hidden border border-white/20 hover:scale-105"
                     title={t.open_architect}
                 >
                     {/* 脈動動畫底層 */}
-                    <span className="absolute inset-0 rounded-full bg-violet-500 animate-ping opacity-20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
 
-                    {/* SVG 內容：機器人臉與環繞文字 */}
-                    <svg viewBox="0 0 100 100" className="w-full h-full p-1 drop-shadow-lg transform transition-transform group-hover:scale-105">
-                        <defs>
-                            {/* 橫排模式下不再需要底部的弧線路徑 */}
-                        </defs>
-
-                        {/* 機器人臉部 (保持橫向比例，位置微調以配合下方橫排文字) */}
-                        <g transform="translate(50, 42) scale(0.9)">
-                            {/* 天線環 */}
-                            <circle cx="0" cy="-30" r="3.5" fill="#A78BFA" />
-                            <rect x="-1" y="-28" width="2" height="8" fill="#A78BFA" ry="1" />
-
-                            {/* 頭部外殼 (橫向平衡比例) */}
-                            <rect x="-24" y="-18" width="48" height="34" rx="14" fill="url(#headGradient)" />
-                            <defs>
-                                <linearGradient id="headGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#FFFFFF" />
-                                    <stop offset="100%" stopColor="#CBD5E1" />
-                                </linearGradient>
-                            </defs>
-
-                            {/* 數位螢幕面罩 */}
-                            <rect x="-19" y="-13" width="38" height="24" rx="10" fill="#0F172A" />
-
-                            {/* 數位眼睛 (科技感橫向圓點) */}
-                            <g className="animate-[pulse_4s_infinite]">
-                                <circle cx="-9" cy="-1" r="4.5" fill="#22D3EE" />
-                                <circle cx="9" cy="-1" r="4.5" fill="#22D3EE" />
-                                <circle cx="-10.5" cy="-2.5" r="1.5" fill="white" opacity="0.8" />
-                                <circle cx="7.5" cy="-2.5" r="1.5" fill="white" opacity="0.8" />
-                            </g>
-
-                            {/* 能量感應器 (下方裝飾) */}
-                            <rect x="-6" y="7" width="12" height="1.5" rx="0.75" fill="#22D3EE" opacity="0.3" />
-                        </g>
-
-                        {/* 橫排文字 (不再繞圓圈) */}
-                        <text
-                            x="50"
-                            y="86"
-                            textAnchor="middle"
-                            fontSize="11"
-                            fontWeight="900"
-                            fill="white"
-                            className="select-none tracking-tighter"
-                        >
-                            AI代理架構師
-                        </text>
-                    </svg>
+                    {/* Icon & Text */}
+                    <span className="relative z-10 text-xl">🤖</span>
+                    <span className="relative z-10 font-bold tracking-wider text-sm">AI 架構師</span>
                 </button>
             )}
 

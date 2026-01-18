@@ -36,7 +36,7 @@ export default function VoiceOrb({ status, volume = 0 }: VoiceOrbProps) {
     const secondaryColor = status === 'error' ? '#dc2626' : '#d97706';
 
     return (
-        <div className="relative flex items-center justify-center w-[500px] h-[500px]" style={{ perspective: '1000px' }}>
+        <div className="relative flex items-center justify-center w-[300px] h-[300px] lg:w-[400px] lg:h-[400px]" style={{ perspective: '1000px' }}>
 
             {/* Main 3D Container - Rotates continuously */}
             <motion.div
