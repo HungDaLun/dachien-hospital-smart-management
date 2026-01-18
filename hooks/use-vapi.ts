@@ -1,11 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Vapi from '@vapi-ai/web';
 
 // 請在 Vapi Dashboard 取得您的 Public Key 並設定到 .env.local
 // NEXT_PUBLIC_VAPI_PUBLIC_KEY=your_public_key
-// NEXT_PUBLIC_VAPI_ASSISTANT_ID=your_assistant_id (可選，若要在切換不同助理時使用)
-
-const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || '');
+// NEXT_PUBLIC_VAPI_ASSISTANT_ID=your_assistant_id
 
 export enum VapiStatus {
     LOADING = 'loading',
@@ -21,98 +19,151 @@ export const useVapi = () => {
     const [status, setStatus] = useState<VapiStatus>(VapiStatus.IDLE);
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [volumeLevel, setVolumeLevel] = useState(0);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // 使用 useRef 來保存 Vapi 實例，避免 SSR 問題
+    const vapiRef = useRef<Vapi | null>(null);
+    const isInitializedRef = useRef(false);
+
+    // 初始化 Vapi 實例
     useEffect(() => {
-        if (!process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY) {
+        // 只在客戶端執行
+        if (typeof window === 'undefined') return;
+
+        // 避免重複初始化
+        if (isInitializedRef.current) return;
+
+        const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
+
+        if (!publicKey) {
             console.error('Missing NEXT_PUBLIC_VAPI_PUBLIC_KEY');
             setStatus(VapiStatus.ERROR);
+            setErrorMessage('缺少 Vapi Public Key 設定');
             return;
         }
 
+        console.log('[Vapi] Initializing with public key:', publicKey.substring(0, 8) + '...');
+
+        // 建立 Vapi 實例
+        const vapi = new Vapi(publicKey);
+        vapiRef.current = vapi;
+        isInitializedRef.current = true;
+
         // 事件監聽
         vapi.on('call-start', () => {
+            console.log('[Vapi] Call started');
             setStatus(VapiStatus.CONNECTED);
             setIsSessionActive(true);
+            setErrorMessage(null);
         });
 
         vapi.on('call-end', () => {
+            console.log('[Vapi] Call ended');
             setStatus(VapiStatus.IDLE);
             setIsSessionActive(false);
             setVolumeLevel(0);
         });
 
         vapi.on('speech-start', () => {
+            console.log('[Vapi] User speech started');
             setStatus(VapiStatus.LISTENING);
         });
 
         vapi.on('speech-end', () => {
-            setStatus(VapiStatus.CONNECTED); // 回到已連線狀態，等待 AI 回應
+            console.log('[Vapi] User speech ended');
+            setStatus(VapiStatus.CONNECTED);
         });
 
-        vapi.on('volume-level', (level) => {
+        vapi.on('volume-level', (level: number) => {
             setVolumeLevel(level);
-            // 如果正在說話且音量大於某個值，可以視為 speaking
-            if (level > 0.1 && status === VapiStatus.CONNECTED) {
-                // 這裡可以做更細緻的狀態判斷
-            }
         });
 
-        vapi.on('message', (message) => {
-            // 處理自定義訊息或轉錄內容
+        vapi.on('message', (message: { type: string; transcriptType?: string; transcript?: string }) => {
             if (message.type === 'transcript' && message.transcriptType === 'final') {
-                console.log('User said:', message.transcript);
+                console.log('[Vapi] User said:', message.transcript);
             }
         });
 
-        vapi.on('error', (e) => {
-            console.error('Vapi error:', e);
+        vapi.on('error', (e: Error | { message?: string }) => {
+            const errorMsg = e instanceof Error ? e.message : (e?.message || '未知錯誤');
+            console.error('[Vapi] Error:', errorMsg);
             setStatus(VapiStatus.ERROR);
             setIsSessionActive(false);
+            setErrorMessage(errorMsg);
         });
 
+        // 清理函數
         return () => {
-            // 清理監聽器 (Vapi SDK 目前似乎沒有 removeAllListeners，這裡僅做參考)
+            if (vapiRef.current) {
+                vapiRef.current.stop();
+            }
         };
     }, []);
 
-    const startDetail = {
-        model: {
-            provider: "openai",
-            model: "gpt-4o",
-            systemPrompt: "你是一個專業、親切的超級管家助理。請用繁體中文回應。你的名字是 Nexus。",
-        },
-        voice: {
-            provider: "11labs",
-            voiceId: "cjVigY5qzO86Huf0OWal", // Eric - 穩重男聲，可換
-        },
-        transcriber: {
-            provider: "deepgram",
-            model: "nova-2",
-            language: "zh-TW" // 設定中文辨識
-        }
-    };
-
     const startSession = useCallback(async (assistantId?: string) => {
+        const vapi = vapiRef.current;
+
+        if (!vapi) {
+            console.error('[Vapi] Vapi instance not initialized');
+            setStatus(VapiStatus.ERROR);
+            setErrorMessage('Vapi 尚未初始化，請重新整理頁面');
+            return;
+        }
+
         try {
             setStatus(VapiStatus.CONNECTING);
+            setErrorMessage(null);
 
-            // 如果有指定 Assistant ID (在 Vapi Dashboard 設定好的)
-            if (assistantId || process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID) {
-                await vapi.start(assistantId || process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || '');
+            const targetAssistantId = assistantId || process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+
+            console.log('[Vapi] Starting session with assistant:', targetAssistantId?.substring(0, 8) + '...');
+
+            if (targetAssistantId) {
+                // 使用 Dashboard 上設定的 Assistant
+                await vapi.start(targetAssistantId);
             } else {
-                // 或者直接用程式碼定義配置 (不推薦生產環境，建議用 Dashboard 管理)
-                await vapi.start(startDetail as any);
+                // 沒有 Assistant ID，使用 inline 配置（備用方案）
+                console.warn('[Vapi] No assistant ID, using inline config');
+                await vapi.start({
+                    model: {
+                        provider: "openai",
+                        model: "gpt-4o",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "你是一個專業、親切的超級管家助理。請用繁體中文回應。你的名字是 Nexus。"
+                            }
+                        ]
+                    },
+                    voice: {
+                        provider: "openai",
+                        voiceId: "alloy",
+                    },
+                    transcriber: {
+                        provider: "deepgram",
+                        model: "nova-2",
+                        language: "zh-TW"
+                    }
+                } as Parameters<typeof vapi.start>[0]);
             }
 
+            console.log('[Vapi] Session started successfully');
+
         } catch (e) {
-            console.error('Failed to start Vapi session:', e);
+            const errorMsg = e instanceof Error ? e.message : '啟動失敗';
+            console.error('[Vapi] Failed to start session:', errorMsg);
             setStatus(VapiStatus.ERROR);
             setIsSessionActive(false);
+            setErrorMessage(errorMsg);
         }
     }, []);
 
     const stopSession = useCallback(() => {
-        vapi.stop();
+        const vapi = vapiRef.current;
+        if (vapi) {
+            console.log('[Vapi] Stopping session');
+            vapi.stop();
+        }
     }, []);
 
     const toggleSession = useCallback(() => {
@@ -127,6 +178,7 @@ export const useVapi = () => {
         status,
         isSessionActive,
         volumeLevel,
+        errorMessage,
         startSession,
         stopSession,
         toggleSession,

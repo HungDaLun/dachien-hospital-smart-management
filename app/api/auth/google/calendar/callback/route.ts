@@ -11,8 +11,32 @@ export const dynamic = 'force-dynamic';
 // ==================== Constants ====================
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const DEFAULT_APP_URL = 'https://nexus-ai.zeabur.app';
 
 // ==================== Helpers ====================
+
+/**
+ * 取得應用程式的基礎 URL
+ * 優先順序：環境變數 > 預設值
+ */
+function getAppUrl(request?: NextRequest): string {
+    // 1. 優先使用環境變數
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL;
+    }
+
+    // 2. 嘗試從 request 動態取得（用於處理不同部署環境）
+    if (request) {
+        const host = request.headers.get('host');
+        const protocol = request.headers.get('x-forwarded-proto') || 'https';
+        if (host && !host.includes('localhost')) {
+            return `${protocol}://${host}`;
+        }
+    }
+
+    // 3. 使用預設值
+    return DEFAULT_APP_URL;
+}
 
 function getSupabaseAdmin() {
     return createClient(
@@ -21,7 +45,7 @@ function getSupabaseAdmin() {
     );
 }
 
-async function getGoogleOAuthConfig(): Promise<{
+async function getGoogleOAuthConfig(request?: NextRequest): Promise<{
     clientId: string;
     clientSecret: string;
     redirectUri: string;
@@ -46,8 +70,9 @@ async function getGoogleOAuthConfig(): Promise<{
 
     const clientId = settings['google_oauth_client_id'];
     const clientSecret = settings['google_oauth_client_secret'];
+    const appUrl = getAppUrl(request);
     const redirectUri = settings['google_oauth_redirect_uri'] ||
-        `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/calendar/callback`;
+        `${appUrl}/api/auth/google/calendar/callback`;
 
     if (!clientId || !clientSecret) {
         return null;
@@ -59,6 +84,9 @@ async function getGoogleOAuthConfig(): Promise<{
 // ==================== GET - Handle OAuth Callback ====================
 
 export async function GET(request: NextRequest) {
+    // 取得應用程式 URL（用於所有重導向）
+    const appUrl = getAppUrl(request);
+
     try {
         const { searchParams } = new URL(request.url);
         const code = searchParams.get('code');
@@ -69,13 +97,13 @@ export async function GET(request: NextRequest) {
         if (error) {
             console.warn('[Google OAuth Callback] User denied access:', error);
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=denied`
+                `${appUrl}/dashboard/settings?google_auth=denied`
             );
         }
 
         if (!code || !state) {
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=missing_params`
+                `${appUrl}/dashboard/settings?google_auth=error&message=missing_params`
             );
         }
 
@@ -88,20 +116,20 @@ export async function GET(request: NextRequest) {
             // 驗證 state 是否過期（5 分鐘）
             if (Date.now() - stateData.timestamp > 5 * 60 * 1000) {
                 return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=state_expired`
+                    `${appUrl}/dashboard/settings?google_auth=error&message=state_expired`
                 );
             }
         } catch {
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=invalid_state`
+                `${appUrl}/dashboard/settings?google_auth=error&message=invalid_state`
             );
         }
 
         // 取得 Google OAuth 設定
-        const config = await getGoogleOAuthConfig();
+        const config = await getGoogleOAuthConfig(request);
         if (!config) {
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=config_missing`
+                `${appUrl}/dashboard/settings?google_auth=error&message=config_missing`
             );
         }
 
@@ -124,7 +152,7 @@ export async function GET(request: NextRequest) {
             const errorText = await tokenResponse.text();
             console.error('[Google OAuth Callback] Token exchange failed:', errorText);
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=token_exchange_failed`
+                `${appUrl}/dashboard/settings?google_auth=error&message=token_exchange_failed`
             );
         }
 
@@ -151,18 +179,18 @@ export async function GET(request: NextRequest) {
         if (upsertError) {
             console.error('[Google OAuth Callback] Save auth error:', upsertError);
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=save_failed`
+                `${appUrl}/dashboard/settings?google_auth=error&message=save_failed`
             );
         }
 
         // 成功，重導向回設定頁面
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=success`
+            `${appUrl}/dashboard/settings?google_auth=success`
         );
     } catch (error) {
         console.error('[Google OAuth Callback] Error:', error);
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?google_auth=error&message=unknown`
+            `${appUrl}/dashboard/settings?google_auth=error&message=unknown`
         );
     }
 }

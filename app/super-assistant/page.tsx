@@ -16,9 +16,15 @@ export default function SuperAssistantPage() {
     const [mode, setMode] = useState<'voice' | 'text'>('voice');
     const [displayText, setDisplayText] = useState('系統連線完成。嘿，今天有什麼我可以幫忙的嗎？');
     const [inputText, setInputText] = useState('');
+    const [isMounted, setIsMounted] = useState(false);
 
     // 使用 Vapi Hook
-    const { status, isSessionActive, volumeLevel, toggleSession, startSession } = useVapi();
+    const { status, isSessionActive, volumeLevel, errorMessage, toggleSession, startSession } = useVapi();
+
+    // 確保只在客戶端渲染後才顯示動態內容
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // 當切換到 Voice 模式且未連線時，自動連線
     useEffect(() => {
@@ -134,9 +140,14 @@ export default function SuperAssistantPage() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed text-center line-clamp-3"
                                     >
-                                        {status === VapiStatus.LISTENING ? "聆聽中..." : (status === VapiStatus.SPEAKING ? "回應中..." : displayText)}
+                                        {status === VapiStatus.CONNECTING ? "連線中..." :
+                                         status === VapiStatus.LISTENING ? "聆聽中..." :
+                                         status === VapiStatus.SPEAKING ? "回應中..." :
+                                         status === VapiStatus.ERROR ? (errorMessage || "發生錯誤") :
+                                         displayText}
                                     </motion.p>
                                 </div>
+
                             </motion.div>
                         ) : (
                             <motion.div

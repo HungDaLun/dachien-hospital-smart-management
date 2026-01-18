@@ -1,7 +1,7 @@
 /**
  * Google Calendar OAuth API
  * 處理 Google Calendar 授權流程
- * 
+ *
  * GET  /api/auth/google/calendar - 開始授權流程（重導向到 Google）
  * GET  /api/auth/google/calendar/callback - 處理 Google 回呼
  */
@@ -20,10 +20,34 @@ const GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events',
 ].join(' ');
+const DEFAULT_APP_URL = 'https://nexus-ai.zeabur.app';
 
 // ==================== Helpers ====================
 
-async function getGoogleOAuthConfig(): Promise<{
+/**
+ * 取得應用程式的基礎 URL
+ * 優先順序：環境變數 > 動態偵測 > 預設值
+ */
+function getAppUrl(request?: NextRequest): string {
+    // 1. 優先使用環境變數
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL;
+    }
+
+    // 2. 嘗試從 request 動態取得（用於處理不同部署環境）
+    if (request) {
+        const host = request.headers.get('host');
+        const protocol = request.headers.get('x-forwarded-proto') || 'https';
+        if (host && !host.includes('localhost')) {
+            return `${protocol}://${host}`;
+        }
+    }
+
+    // 3. 使用預設值
+    return DEFAULT_APP_URL;
+}
+
+async function getGoogleOAuthConfig(request?: NextRequest): Promise<{
     clientId: string;
     clientSecret: string;
     redirectUri: string;
@@ -36,8 +60,9 @@ async function getGoogleOAuthConfig(): Promise<{
 
     const clientId = settings.google_oauth_client_id;
     const clientSecret = settings.google_oauth_client_secret;
+    const appUrl = getAppUrl(request);
     const redirectUri = settings.google_oauth_redirect_uri ||
-        `${process.env.NEXT_PUBLIC_APP_URL || 'https://nexus-ai.zeabur.app'}/api/auth/google/calendar/callback`;
+        `${appUrl}/api/auth/google/calendar/callback`;
 
     if (!clientId || !clientSecret) {
         return null;
@@ -48,12 +73,12 @@ async function getGoogleOAuthConfig(): Promise<{
 
 // ==================== GET - Start OAuth Flow ====================
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
     try {
         const profile = await getCurrentUserProfile();
 
-        // 取得 Google OAuth 設定
-        const config = await getGoogleOAuthConfig();
+        // 取得 Google OAuth 設定（傳入 request 以便動態偵測 host）
+        const config = await getGoogleOAuthConfig(request);
         if (!config) {
             return NextResponse.json(
                 { error: 'Google OAuth 未設定，請聯繫系統管理員' },
