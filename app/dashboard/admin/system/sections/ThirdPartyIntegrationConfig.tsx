@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Lock,
   Save,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 
 interface ConfigStatus {
@@ -36,6 +37,19 @@ interface SystemConfig {
     line_webhook_enabled: ConfigStatus;
     slack_webhook_url: ConfigStatus;
   };
+  google_oauth: {
+    client_id: ConfigStatus;
+    client_secret: ConfigStatus;
+    redirect_uri: { value: string; source: 'database' | 'env' | 'none' };
+  };
+  livekit: {
+    url: { value: string; source: 'database' | 'env' | 'none' };
+    api_key: ConfigStatus;
+    api_secret: ConfigStatus;
+  };
+  openai: {
+    api_key: ConfigStatus;
+  };
 }
 
 interface EditableFields {
@@ -44,6 +58,13 @@ interface EditableFields {
   line_channel_secret?: string;
   line_webhook_enabled?: string;
   slack_webhook_url?: string;
+  google_oauth_client_id?: string;
+  google_oauth_client_secret?: string;
+  google_oauth_redirect_uri?: string;
+  livekit_url?: string;
+  livekit_api_key?: string;
+  livekit_api_secret?: string;
+  openai_api_key?: string;
 }
 
 interface Props {
@@ -113,6 +134,27 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
       if (editData.slack_webhook_url) {
         updates.slack_webhook_url = editData.slack_webhook_url;
       }
+      if (editData.google_oauth_client_id) {
+        updates.google_oauth_client_id = editData.google_oauth_client_id;
+      }
+      if (editData.google_oauth_client_secret) {
+        updates.google_oauth_client_secret = editData.google_oauth_client_secret;
+      }
+      if (editData.google_oauth_redirect_uri) {
+        updates.google_oauth_redirect_uri = editData.google_oauth_redirect_uri;
+      }
+      if (editData.livekit_url) {
+        updates.livekit_url = editData.livekit_url;
+      }
+      if (editData.livekit_api_key) {
+        updates.livekit_api_key = editData.livekit_api_key;
+      }
+      if (editData.livekit_api_secret) {
+        updates.livekit_api_secret = editData.livekit_api_secret;
+      }
+      if (editData.openai_api_key) {
+        updates.openai_api_key = editData.openai_api_key;
+      }
 
       if (Object.keys(updates).length === 0) {
         setError('沒有變更需要儲存');
@@ -153,6 +195,13 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
         line_channel_secret: undefined,
         line_webhook_enabled: undefined,
         slack_webhook_url: undefined,
+        google_oauth_client_id: undefined,
+        google_oauth_client_secret: undefined,
+        google_oauth_redirect_uri: undefined,
+        livekit_url: undefined,
+        livekit_api_key: undefined,
+        livekit_api_secret: undefined,
+        openai_api_key: undefined,
       }));
 
       await loadConfig();
@@ -336,16 +385,16 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                       line_webhook_enabled: editData.line_webhook_enabled === 'true' ? 'false' : 'true'
                     })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${(editData.line_webhook_enabled === 'true' ||
-                        (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
-                        ? 'bg-green-500'
-                        : 'bg-white/10'
+                      (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
+                      ? 'bg-green-500'
+                      : 'bg-white/10'
                       }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(editData.line_webhook_enabled === 'true' ||
-                          (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
-                          ? 'translate-x-6'
-                          : 'translate-x-1'
+                        (editData.line_webhook_enabled === undefined && config?.notification.line_webhook_enabled?.configured))
+                        ? 'translate-x-6'
+                        : 'translate-x-1'
                         }`}
                     />
                   </button>
@@ -375,6 +424,174 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
                 />
               </SettingRow>
             </div>
+          </div>
+        </Card>
+
+        {/* Google OAuth 設定 */}
+        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                <Globe size={20} className="text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
+                  Google OAuth
+                </h3>
+                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
+                  行事曆同步授權
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <SettingRow
+                title="Client ID"
+                status={config?.google_oauth.client_id}
+              >
+                <input
+                  value={editData.google_oauth_client_id || ''}
+                  onChange={(e) => setEditData({ ...editData, google_oauth_client_id: e.target.value })}
+                  placeholder={config?.google_oauth.client_id.configured && !editData.google_oauth_client_id ? "********" : "輸入 Client ID"}
+                  disabled={!isEditing}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  type="text"
+                />
+              </SettingRow>
+              <SettingRow
+                title="Client Secret"
+                status={config?.google_oauth.client_secret}
+              >
+                <SecretInput
+                  value={editData.google_oauth_client_secret || ''}
+                  onChange={(value) => setEditData({ ...editData, google_oauth_client_secret: value })}
+                  placeholder={config?.google_oauth.client_secret.configured && !editData.google_oauth_client_secret ? "********" : "輸入 Client Secret"}
+                  disabled={!isEditing}
+                  showSecret={showSecrets['google']}
+                  onToggleSecret={() => setShowSecrets({ ...showSecrets, google: !showSecrets['google'] })}
+                />
+              </SettingRow>
+              <SettingRow
+                title="Redirect URI"
+                description="需與 Google Console 設定一致"
+              >
+                <div className="flex gap-2">
+                  <input
+                    value={editData.google_oauth_redirect_uri || config?.google_oauth.redirect_uri.value || ''}
+                    onChange={(e) => setEditData({ ...editData, google_oauth_redirect_uri: e.target.value })}
+                    disabled={!isEditing}
+                    className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    type="text"
+                  />
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full self-center whitespace-nowrap ${config?.google_oauth.redirect_uri.source === 'database' ? 'bg-semantic-success/10 text-semantic-success' : 'bg-white/5 text-text-tertiary'}`}>
+                    {config?.google_oauth.redirect_uri.source === 'database' ? 'DB' : 'ENV'}
+                  </span>
+                </div>
+              </SettingRow>
+            </div>
+          </div>
+        </Card>
+
+        {/* LiveKit Server 設定 */}
+        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                <RefreshCw size={20} className="text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
+                  LiveKit Server
+                </h3>
+                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
+                  語音通訊伺服器
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <SettingRow
+                title="Server URL"
+                description="WebSocket 連線地址 (wss://...)"
+              >
+                <div className="flex gap-2">
+                  <input
+                    value={editData.livekit_url || config?.livekit.url.value || ''}
+                    onChange={(e) => setEditData({ ...editData, livekit_url: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="wss://..."
+                    className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    type="text"
+                  />
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full self-center whitespace-nowrap ${config?.livekit.url.source === 'database' ? 'bg-semantic-success/10 text-semantic-success' : 'bg-white/5 text-text-tertiary'}`}>
+                    {config?.livekit.url.source === 'database' ? 'DB' : 'ENV'}
+                  </span>
+                </div>
+              </SettingRow>
+              <SettingRow
+                title="API Key"
+                status={config?.livekit.api_key}
+              >
+                <input
+                  value={editData.livekit_api_key || ''}
+                  onChange={(e) => setEditData({ ...editData, livekit_api_key: e.target.value })}
+                  placeholder={config?.livekit.api_key.configured && !editData.livekit_api_key ? "********" : "輸入 API Key"}
+                  disabled={!isEditing}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  type="text"
+                />
+              </SettingRow>
+              <SettingRow
+                title="API Secret"
+                status={config?.livekit.api_secret}
+              >
+                <SecretInput
+                  value={editData.livekit_api_secret || ''}
+                  onChange={(value) => setEditData({ ...editData, livekit_api_secret: value })}
+                  placeholder={config?.livekit.api_secret.configured && !editData.livekit_api_secret ? "********" : "輸入 API Secret"}
+                  disabled={!isEditing}
+                  showSecret={showSecrets['livekit']}
+                  onToggleSecret={() => setShowSecrets({ ...showSecrets, livekit: !showSecrets['livekit'] })}
+                />
+              </SettingRow>
+            </div>
+          </div>
+        </Card>
+
+        {/* AI 語音服務 (OpenAI) */}
+        <Card variant="glass" className="p-6 border-white/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                <Sparkles size={20} className="text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
+                  AI 語音服務 (OpenAI)
+                </h3>
+                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
+                  STT / TTS 引擎
+                </p>
+              </div>
+            </div>
+
+            <SettingRow
+              title="OpenAI API Key"
+              description="用於語音轉文字 (Whisper) 與文字轉語音"
+              status={config?.openai.api_key}
+            >
+              <SecretInput
+                value={editData.openai_api_key || ''}
+                onChange={(value) => setEditData({ ...editData, openai_api_key: value })}
+                placeholder={config?.openai.api_key.configured && !editData.openai_api_key ? "********" : "輸入 API Key"}
+                disabled={!isEditing}
+                showSecret={showSecrets['openai_key']}
+                onToggleSecret={() => setShowSecrets({ ...showSecrets, openai_key: !showSecrets['openai_key'] })}
+              />
+            </SettingRow>
           </div>
         </Card>
 

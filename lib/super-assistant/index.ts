@@ -7,3 +7,4 @@ export * from './orchestrator';
 export * from './tools';
 export * from './notification';
 export * from './google-calendar-sync';
+export * from './voice-processor';

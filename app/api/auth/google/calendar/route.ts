@@ -7,8 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserProfile } from '@/lib/permissions';
+
+import { getSystemSettings } from '@/lib/supabase/settings';
 
 // ==================== Constants ====================
 
@@ -20,39 +21,20 @@ const GOOGLE_SCOPES = [
 
 // ==================== Helpers ====================
 
-function getSupabaseAdmin() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-}
-
 async function getGoogleOAuthConfig(): Promise<{
     clientId: string;
     clientSecret: string;
     redirectUri: string;
 } | null> {
-    const supabase = getSupabaseAdmin();
+    const settings = await getSystemSettings({
+        'google_oauth_client_id': 'GOOGLE_OAUTH_CLIENT_ID',
+        'google_oauth_client_secret': 'GOOGLE_OAUTH_CLIENT_SECRET',
+        'google_oauth_redirect_uri': 'GOOGLE_OAUTH_REDIRECT_URI'
+    });
 
-    const { data } = await supabase
-        .from('system_settings')
-        .select('setting_key, setting_value')
-        .in('setting_key', [
-            'google_oauth_client_id',
-            'google_oauth_client_secret',
-            'google_oauth_redirect_uri',
-        ]);
-
-    if (!data) return null;
-
-    const settings: Record<string, string | null> = {};
-    for (const row of data) {
-        settings[row.setting_key] = row.setting_value;
-    }
-
-    const clientId = settings['google_oauth_client_id'];
-    const clientSecret = settings['google_oauth_client_secret'];
-    const redirectUri = settings['google_oauth_redirect_uri'] ||
+    const clientId = settings.google_oauth_client_id;
+    const clientSecret = settings.google_oauth_client_secret;
+    const redirectUri = settings.google_oauth_redirect_uri ||
         `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/calendar/callback`;
 
     if (!clientId || !clientSecret) {

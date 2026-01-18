@@ -79,6 +79,28 @@ export async function GET(_request: NextRequest) {
         },
         slack_webhook_url: getConfigStatus('slack_webhook_url', 'SLACK_WEBHOOK_URL'),
       },
+      // 新增：Google OAuth 設定
+      google_oauth: {
+        client_id: getConfigStatus('google_oauth_client_id', 'GOOGLE_OAUTH_CLIENT_ID'),
+        client_secret: getConfigStatus('google_oauth_client_secret', 'GOOGLE_OAUTH_CLIENT_SECRET'),
+        redirect_uri: {
+          value: settingsMap['google_oauth_redirect_uri']?.value || process.env.GOOGLE_OAUTH_REDIRECT_URI || '',
+          source: settingsMap['google_oauth_redirect_uri']?.value ? 'database' : (process.env.GOOGLE_OAUTH_REDIRECT_URI ? 'env' : 'none') as 'database' | 'env' | 'none',
+        }
+      },
+      // 新增：LiveKit 設定
+      livekit: {
+        url: {
+          value: settingsMap['livekit_url']?.value || process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
+          source: settingsMap['livekit_url']?.value ? 'database' : (process.env.NEXT_PUBLIC_LIVEKIT_URL ? 'env' : 'none') as 'database' | 'env' | 'none',
+        },
+        api_key: getConfigStatus('livekit_api_key', 'LIVEKIT_API_KEY'),
+        api_secret: getConfigStatus('livekit_api_secret', 'LIVEKIT_API_SECRET'),
+      },
+      // 新增：OpenAI 設定 (用於語音)
+      openai: {
+        api_key: getConfigStatus('openai_api_key', 'OPENAI_API_KEY'),
+      },
       // 新增：MCP 工具設定
       mcp: {
         web_search_api_key: getConfigStatus('web_search_api_key', 'WEB_SEARCH_API_KEY'),
@@ -131,6 +153,16 @@ export async function PUT(request: NextRequest) {
       line_channel_secret,
       line_webhook_enabled,
       slack_webhook_url,
+      // 新增：Google OAuth 設定
+      google_oauth_client_id,
+      google_oauth_client_secret,
+      google_oauth_redirect_uri,
+      // 新增：LiveKit 設定
+      livekit_url,
+      livekit_api_key,
+      livekit_api_secret,
+      // 新增：OpenAI 設定
+      openai_api_key,
       // 新增：MCP 工具設定
       web_search_api_key,
       cron_secret,
@@ -153,6 +185,11 @@ export async function PUT(request: NextRequest) {
     if (line_channel_token !== undefined) requireConfirmation.push('line_channel_token');
     if (line_channel_secret !== undefined) requireConfirmation.push('line_channel_secret');
     if (slack_webhook_url !== undefined) requireConfirmation.push('slack_webhook_url');
+    if (google_oauth_client_id !== undefined) requireConfirmation.push('google_oauth_client_id');
+    if (google_oauth_client_secret !== undefined) requireConfirmation.push('google_oauth_client_secret');
+    if (livekit_api_key !== undefined) requireConfirmation.push('livekit_api_key');
+    if (livekit_api_secret !== undefined) requireConfirmation.push('livekit_api_secret');
+    if (openai_api_key !== undefined) requireConfirmation.push('openai_api_key');
     if (web_search_api_key !== undefined) requireConfirmation.push('web_search_api_key');
     if (cron_secret !== undefined) requireConfirmation.push('cron_secret');
 
@@ -304,6 +341,37 @@ export async function PUT(request: NextRequest) {
 
     if (slack_webhook_url !== undefined) {
       updates.push({ key: 'slack_webhook_url', value: slack_webhook_url || null, encrypted: true });
+    }
+
+    // 新增：Google OAuth 設定
+    if (google_oauth_client_id !== undefined) {
+      updates.push({ key: 'google_oauth_client_id', value: google_oauth_client_id || null, encrypted: true });
+    }
+
+    if (google_oauth_client_secret !== undefined) {
+      updates.push({ key: 'google_oauth_client_secret', value: google_oauth_client_secret || null, encrypted: true });
+    }
+
+    if (google_oauth_redirect_uri !== undefined) {
+      updates.push({ key: 'google_oauth_redirect_uri', value: google_oauth_redirect_uri || null, encrypted: false });
+    }
+
+    // 新增：LiveKit 設定
+    if (livekit_url !== undefined) {
+      updates.push({ key: 'livekit_url', value: livekit_url || null, encrypted: false });
+    }
+
+    if (livekit_api_key !== undefined) {
+      updates.push({ key: 'livekit_api_key', value: livekit_api_key || null, encrypted: true });
+    }
+
+    if (livekit_api_secret !== undefined) {
+      updates.push({ key: 'livekit_api_secret', value: livekit_api_secret || null, encrypted: true });
+    }
+
+    // 新增：OpenAI 設定
+    if (openai_api_key !== undefined) {
+      updates.push({ key: 'openai_api_key', value: openai_api_key || null, encrypted: true });
     }
 
     // 新增：MCP 工具設定

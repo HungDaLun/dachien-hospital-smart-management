@@ -12,6 +12,7 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { getCachedUserProfile, getCachedUser } from '@/lib/cache/user-profile';
 import { Hexagon } from 'lucide-react';
+import SuperAssistantButton from '@/components/executive-assistant/SuperAssistantButton';
 
 export default async function DashboardLayout({
   children,
@@ -132,6 +133,9 @@ export default async function DashboardLayout({
           <div className="relative z-10">
             {children}
           </div>
+
+          {/* 超級管家懸浮按鈕 */}
+          <SuperAssistantButton />
         </main>
       </div >
     </ToastProvider >
