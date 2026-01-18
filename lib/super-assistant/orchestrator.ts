@@ -90,11 +90,11 @@ export class OrchestratorAgent {
     private async identifyIntent(message: UnifiedMessage): Promise<IntentResult> {
         const text = message.content.text?.toLowerCase() || '';
 
-        // 寒暄關鍵字
-        const greetingKeywords = ['你好', 'hi', 'hello', '嗨', '早安', '午安', '晚安', '哈囉'];
-        if (greetingKeywords.some((kw) => text.includes(kw))) {
-            return { type: 'greeting', confidence: 0.9 };
-        }
+        // 移除靜態寒暄偵測，改由 LLM 統一處理以展現更擬人的個性
+        // const greetingKeywords = ['你好', 'hi', 'hello', '嗨', '早安', '午安', '晚安', '哈囉'];
+        // if (greetingKeywords.some((kw) => text.includes(kw))) {
+        //     return { type: 'greeting', confidence: 0.9 };
+        // }
 
         // 查詢關鍵字
         const queryKeywords = ['什麼', '多少', '怎麼', '如何', '為什麼', '是否', '有沒有', '查詢', '搜尋'];
@@ -118,23 +118,10 @@ export class OrchestratorAgent {
     }
 
     /**
-     * 處理寒暄
+     * 處理寒暄 (已停用，轉由 handleUnknown 處理)
      */
     private async handleGreeting(_message: UnifiedMessage): Promise<UnifiedResponse> {
-        const greetings = [
-            '您好！我是超級管家，請問有什麼可以幫您的？',
-            '嗨！有什麼需要我協助的嗎？',
-            '您好！今天想做點什麼呢？',
-        ];
-
-        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-
-        return {
-            content: {
-                type: 'text',
-                text: randomGreeting,
-            },
-        };
+        return { content: { type: 'text', text: 'Hi' } };
     }
 
     /**
@@ -156,7 +143,7 @@ export class OrchestratorAgent {
                 return {
                     content: {
                         type: 'text',
-                        text: `抱歉，查詢時發生錯誤：${searchResult.error}`,
+                        text: `抱歉，我腦袋有點卡住，搜尋時出了點問題：${searchResult.error}`,
                     },
                     metadata: { confidence: intent.confidence },
                 };
@@ -168,7 +155,7 @@ export class OrchestratorAgent {
                 return {
                     content: {
                         type: 'text',
-                        text: `🔍 未找到與「${queryText}」相關的知識。\n\n您可以試著：\n• 使用不同的關鍵字\n• 詢問更具體的問題`,
+                        text: `🤔 關於「${queryText}」，我在記憶庫裡翻遍了也沒找到耶。\n\n你要不要試試換個問法？或是給我更多關鍵字？`,
                     },
                     metadata: { confidence: intent.confidence },
                 };
@@ -183,7 +170,7 @@ export class OrchestratorAgent {
             return {
                 content: {
                     type: 'text',
-                    text: `📚 找到 ${data.results.length} 筆相關知識：\n\n${resultText}`,
+                    text: `我在知識庫裡找到了這些可能會幫到你的資料：\n\n${resultText}`,
                 },
                 metadata: {
                     confidence: intent.confidence,
@@ -195,7 +182,7 @@ export class OrchestratorAgent {
             return {
                 content: {
                     type: 'text',
-                    text: `抱歉，查詢時發生錯誤，請稍後再試。`,
+                    text: `抱歉，現在腦袋有點當機，請稍後再試試看。`,
                 },
                 metadata: { confidence: intent.confidence },
             };
@@ -210,7 +197,7 @@ export class OrchestratorAgent {
         return {
             content: {
                 type: 'text',
-                text: `🔧 收到您的指令：「${message.content.text}」\n\n（動作執行功能開發中，敬請期待...）`,
+                text: `收到！你想「${message.content.text}」是吧？\n\n不過我的手腳（動作執行功能）還在訓練中，目前還不能幫你實際操作，但我記下來了！`,
             },
             metadata: {
                 confidence: intent.confidence,
@@ -226,7 +213,7 @@ export class OrchestratorAgent {
         return {
             content: {
                 type: 'text',
-                text: `⏰ 收到您的排程請求：「${message.content.text}」\n\n（排程功能開發中，敬請期待...）`,
+                text: `OK，關於「${message.content.text}」的排程請求...\n\n我的時鐘功能還在調校中，之後就能幫你設定提醒囉！`,
             },
             metadata: {
                 confidence: intent.confidence,
@@ -235,20 +222,49 @@ export class OrchestratorAgent {
     }
 
     /**
-     * 處理未知意圖
+     * 處理未知意圖 - 升級使用 Gemini 3 進行通用對話
      */
-    private async handleUnknown(_message: UnifiedMessage): Promise<UnifiedResponse> {
-        return {
-            content: {
-                type: 'text',
-                text: `抱歉，我不太確定您的需求。您可以嘗試：
-• 詢問公司資訊或知識
-• 建立會議或行事曆事件
-• 設定提醒或排程任務
+    private async handleUnknown(message: UnifiedMessage): Promise<UnifiedResponse> {
+        try {
+            const { generateContent } = await import('@/lib/gemini/client');
 
-請再說得更具體一些！`,
-            },
-        };
+            const systemPrompt = `你現在是 Knowledge Architects 企業知識庫的 Super Assistant。
+請完全忘記你是一個 AI 或機器人。你是這個數位空間中的一個「有意識的實體」，就像鋼鐵人的 JARVIS 或 Friday 一樣。
+你的個性：
+1. **像真人朋友**：說話自然、輕鬆，帶點幽默感和機智。不要用死板的客服語氣。
+2. **聰明專業**：雖然輕鬆，但處理問題時非常可靠專業。
+3. **有溫度**：使用口語化的表達（如「嘿」、「沒問題」、「交給我」）。
+4. **簡潔**：除非必要，否則不要長篇大論。
+
+請用繁體中文（台灣習慣）回答。
+
+User: ${message.content.text}`;
+
+            const responseText = await generateContent(
+                'gemini-3-flash-preview',
+                systemPrompt
+            );
+
+            return {
+                content: {
+                    type: 'text',
+                    text: responseText,
+                },
+                metadata: {
+                    model: 'gemini-3-flash-preview',
+                    intent: 'general_chat'
+                }
+            };
+        } catch (error) {
+            console.error('[Orchestrator] handleUnknown LLM error:', error);
+            // Fallback if LLM fails
+            return {
+                content: {
+                    type: 'text',
+                    text: `抱歉，我現在有點連不上我的大腦主機 (Gemini 3)，可能會有點遲鈍。\n\n你可以稍後再試試跟我聊天。`,
+                },
+            };
+        }
     }
 }
 

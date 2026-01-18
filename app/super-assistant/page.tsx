@@ -1,6 +1,6 @@
 /**
- * 超級管家模態視窗 (SuperAssistantModal)
- * 展示 JARVIS UI 並處理語音/文字對話邏輯
+ * Super Assistant Standalone Page
+ * 獨立頁面模式，支援多螢幕與全螢幕操作
  */
 
 'use client';
@@ -10,11 +10,7 @@ import { X, Mic, Send, MessageSquare, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceOrb from '@/components/executive-assistant/VoiceOrb';
 
-interface SuperAssistantModalProps {
-    onClose: () => void;
-}
-
-export default function SuperAssistantModal({ onClose }: SuperAssistantModalProps) {
+export default function SuperAssistantPage() {
     const [mode, setMode] = useState<'voice' | 'text'>('voice');
     const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error'>('idle');
     const [displayText, setDisplayText] = useState('系統連線完成。嘿，今天有什麼我可以幫忙的嗎？');
@@ -65,24 +61,15 @@ export default function SuperAssistantModal({ onClose }: SuperAssistantModalProp
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* 背景遮罩 */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                className="absolute inset-0 bg-black/80 backdrop-blur-xl"
-            />
+    // 關閉視窗
+    const handleClose = () => {
+        window.close();
+    };
 
-            {/* 視窗本體 */}
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="relative w-full max-w-4xl h-[80vh] bg-gradient-to-b from-slate-900/50 via-slate-950/80 to-black rounded-[2rem] border border-white/10 shadow-3xl overflow-hidden flex flex-col"
-            >
+    return (
+        <div className="min-h-screen bg-black text-white overflow-hidden flex flex-col">
+            <div className="flex-1 flex flex-col bg-gradient-to-b from-slate-900/50 via-slate-950/80 to-black relative">
+
                 {/* 頂部控制列 */}
                 <div className="flex items-center justify-between p-6">
                     <div className="flex items-center gap-3">
@@ -99,7 +86,7 @@ export default function SuperAssistantModal({ onClose }: SuperAssistantModalProp
                     </div>
 
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
                     >
                         <X size={24} />
@@ -144,8 +131,6 @@ export default function SuperAssistantModal({ onClose }: SuperAssistantModalProp
                                         </div>
                                     </div>
                                 </div>
-
-
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -199,7 +184,7 @@ export default function SuperAssistantModal({ onClose }: SuperAssistantModalProp
                         <span className="text-[10px] font-bold uppercase tracking-widest">Text</span>
                     </button>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 }

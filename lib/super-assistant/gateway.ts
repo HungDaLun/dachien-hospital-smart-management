@@ -63,6 +63,7 @@ export interface UnifiedResponse {
     metadata?: {
         confidence?: number;
         sources?: string[];
+        [key: string]: unknown;
     };
 }
 
