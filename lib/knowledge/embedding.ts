@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
 let genAI: GoogleGenerativeAI | null = null;
-let embeddingModel: any = null;
+let embeddingModel: GenerativeModel | null = null;
 
 function getEmbeddingModel() {
   if (embeddingModel) return embeddingModel;

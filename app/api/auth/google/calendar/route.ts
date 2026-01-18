@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserProfile } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+
 import { getSystemSettings } from '@/lib/supabase/settings';
 
 // ==================== Constants ====================
