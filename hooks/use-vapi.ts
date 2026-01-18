@@ -101,7 +101,7 @@ export const useVapi = () => {
                 await vapi.start(assistantId || process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || '');
             } else {
                 // 或者直接用程式碼定義配置 (不推薦生產環境，建議用 Dashboard 管理)
-                await vapi.start(startDetail);
+                await vapi.start(startDetail as any);
             }
 
         } catch (e) {
