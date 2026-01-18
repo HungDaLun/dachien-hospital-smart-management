@@ -102,15 +102,19 @@ export default function SuperAssistantPage() {
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="flex flex-col items-center gap-12"
+                                className="flex flex-col items-center" // Removed gap-12, effectively handling spacing manually or via fixed containers
                             >
-                                <VoiceOrb status={status} volume={volume} />
-                                <div className="max-w-xl text-center">
+                                <div className="mb-12">
+                                    <VoiceOrb status={status} volume={volume} />
+                                </div>
+
+                                {/* Fixed height text container to prevent overlap */}
+                                <div className="w-full max-w-xl h-24 flex items-center justify-center p-4">
                                     <motion.p
                                         key={displayText}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="text-2xl text-white/90 font-medium leading-relaxed"
+                                        className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed text-center line-clamp-3"
                                     >
                                         {displayText}
                                     </motion.p>
