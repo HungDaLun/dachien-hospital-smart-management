@@ -546,72 +546,7 @@ export default function ThirdPartyIntegrationConfig({ dict }: Props) {
           </div>
         </Card >
 
-        {/* LiveKit Server 設定 */}
-        < Card variant="glass" className="p-6 border-white/10 relative overflow-hidden" >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl pointer-events-none" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                <RefreshCw size={20} className="text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">
-                  LiveKit Server
-                </h3>
-                <p className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mt-0.5 opacity-60">
-                  語音通訊伺服器
-                </p>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <SettingRow
-                title="Websocket URL"
-                description="LiveKit Cloud 連線地址 (wss://...)"
-              >
-                <div className="flex gap-2">
-                  <input
-                    value={editData.livekit_url || config?.livekit.url.value || ''}
-                    onChange={(e) => setEditData({ ...editData, livekit_url: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder="wss://..."
-                    className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                    type="text"
-                  />
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full self-center whitespace-nowrap ${config?.livekit.url.source === 'database' ? 'bg-semantic-success/10 text-semantic-success' : 'bg-white/5 text-text-tertiary'}`}>
-                    {config?.livekit.url.source === 'database' ? 'DB' : 'ENV'}
-                  </span>
-                </div>
-              </SettingRow>
-              <SettingRow
-                title="API Key"
-                status={config?.livekit.api_key}
-              >
-                <input
-                  value={editData.livekit_api_key || ''}
-                  onChange={(e) => setEditData({ ...editData, livekit_api_key: e.target.value })}
-                  placeholder={config?.livekit.api_key.configured && !editData.livekit_api_key ? "********" : "輸入 API Key"}
-                  disabled={!isEditing}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                  type="text"
-                />
-              </SettingRow>
-              <SettingRow
-                title="API Secret"
-                status={config?.livekit.api_secret}
-              >
-                <SecretInput
-                  value={editData.livekit_api_secret || ''}
-                  onChange={(value) => setEditData({ ...editData, livekit_api_secret: value })}
-                  placeholder={config?.livekit.api_secret.configured && !editData.livekit_api_secret ? "********" : "輸入 API Secret"}
-                  disabled={!isEditing}
-                  showSecret={showSecrets['livekit']}
-                  onToggleSecret={() => setShowSecrets({ ...showSecrets, livekit: !showSecrets['livekit'] })}
-                />
-              </SettingRow>
-            </div>
-          </div>
-        </Card >
 
         {/* AI 語音服務 (OpenAI) */}
         < Card variant="glass" className="p-6 border-white/10 relative overflow-hidden" >
