@@ -299,6 +299,60 @@ export class GoogleCalendarSyncService {
             };
         }
     }
+
+    /**
+     * 從 Google Calendar 讀取事件清單
+     */
+    async listEvents(
+        userId: string,
+        options: {
+            timeMin?: string;
+            timeMax?: string;
+            maxResults?: number;
+        } = {}
+    ): Promise<{ success: boolean; events?: GoogleEvent[]; error?: string }> {
+        const accessToken = await this.getValidAccessToken(userId);
+        if (!accessToken) {
+            return { success: false, error: '無法取得 Google 授權' };
+        }
+
+        try {
+            const queryParams = new URLSearchParams({
+                singleEvents: 'true',
+                orderBy: 'startTime',
+            });
+
+            if (options.timeMin) queryParams.append('timeMin', options.timeMin);
+            if (options.timeMax) queryParams.append('timeMax', options.timeMax);
+            if (options.maxResults) queryParams.append('maxResults', options.maxResults.toString());
+
+            const response = await fetch(
+                `${GOOGLE_CALENDAR_API}/calendars/primary/events?${queryParams.toString()}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[GoogleSync] List events failed:', errorText);
+                return { success: false, error: `Google API 錯誤：${response.status}` };
+            }
+
+            const data = await response.json();
+            return { success: true, events: data.items || [] };
+        } catch (error) {
+            console.error('[GoogleSync] List events error:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    }
 }
 
 // ==================== Singleton ====================

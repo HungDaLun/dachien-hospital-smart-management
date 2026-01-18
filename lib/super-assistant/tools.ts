@@ -4,6 +4,8 @@
  */
 
 import { ANNSemanticSearchEngine, SearchResult } from '@/lib/knowledge/ann-search';
+import { getGoogleCalendarSyncService } from './google-calendar-sync';
+import { AgentDelegationTool, AgentDelegationParams } from './tools/agent-delegation';
 
 // ==================== Types ====================
 
@@ -12,6 +14,20 @@ export interface ToolExecutionResult {
     data?: unknown;
     error?: string;
 }
+
+export interface CreateEventParams {
+    title?: string;
+    summary?: string;
+    description?: string;
+    location?: string;
+    startTime?: string;
+    start?: string;
+    endTime?: string;
+    end?: string;
+    timezone?: string;
+    isAllDay?: boolean;
+}
+
 
 // ==================== Knowledge Search Tool ====================
 
@@ -182,6 +198,121 @@ export class WarRoomDataTool {
     }
 }
 
+// ==================== Calendar Tool ====================
+
+/**
+ * 行事曆工具
+ * 用於查詢與管理使用者的 Google Calendar 行程
+ */
+export class CalendarTool {
+    private syncService = getGoogleCalendarSyncService();
+
+    /**
+     * 讀取行程
+     */
+    async listEvents(userId: string, query?: string): Promise<ToolExecutionResult> {
+        if (!userId) {
+            return { success: false, error: '未提供使用者識別 ID' };
+        }
+
+        try {
+            // 目前簡單處理，獲取接下來 7 天的行程
+            const timeMin = new Date().toISOString();
+            const timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+            const result = await this.syncService.listEvents(userId, {
+                timeMin,
+                timeMax,
+                maxResults: 10
+            });
+
+            if (!result.success) {
+                return { success: false, error: result.error };
+            }
+
+            const events = result.events || [];
+
+            // 如果有 query，進行簡單過濾 (未來可由 LLM 處理更精準的過濾)
+            const filteredEvents = query
+                ? events.filter(e =>
+                    e.summary.toLowerCase().includes(query.toLowerCase()) ||
+                    (e.description && e.description.toLowerCase().includes(query.toLowerCase()))
+                )
+                : events;
+
+            return {
+                success: true,
+                data: {
+                    message: `找到 ${filteredEvents.length} 筆行程`,
+                    events: filteredEvents.map(e => ({
+                        id: e.id,
+                        summary: e.summary,
+                        start: e.start.dateTime || e.start.date,
+                        end: e.end.dateTime || e.end.date,
+                        location: e.location,
+                        description: e.description
+                    })),
+                },
+            };
+        } catch (error) {
+            console.error('[CalendarTool] List error:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '行事曆讀取失敗',
+            };
+        }
+    }
+
+    /**
+     * 建立行程
+     */
+    async createEvent(userId: string, eventData: CreateEventParams): Promise<ToolExecutionResult> {
+        if (!userId) {
+            return { success: false, error: '未提供使用者識別 ID' };
+        }
+
+        try {
+            const title = eventData.title || eventData.summary || '無標題行程';
+            const startTime = eventData.startTime || eventData.start;
+            const endTime = eventData.endTime || eventData.end;
+
+            if (!startTime || !endTime) {
+                return { success: false, error: '未提供開始或結束時間' };
+            }
+
+            // 轉換為 syncService 預期的格式
+            const result = await this.syncService.syncEventToGoogle(userId, {
+                id: crypto.randomUUID(), // 系統內部的 ID
+                title: title,
+                description: eventData.description,
+                location: eventData.location,
+                start_time: startTime,
+                end_time: endTime,
+                timezone: eventData.timezone || 'Asia/Taipei',
+                is_all_day: eventData.isAllDay || false,
+            });
+
+            if (!result.success) {
+                return { success: false, error: result.error };
+            }
+
+            return {
+                success: true,
+                data: {
+                    message: '行程建立成功',
+                    googleEventId: result.googleEventId,
+                },
+            };
+        } catch (error) {
+            console.error('[CalendarTool] Create error:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '行程建立失敗',
+            };
+        }
+    }
+}
+
 // ==================== Tool Registry ====================
 
 /**
@@ -191,10 +322,14 @@ export class WarRoomDataTool {
 export class ToolRegistry {
     private knowledgeSearch: KnowledgeSearchTool;
     private warRoomData: WarRoomDataTool;
+    private calendar: CalendarTool;
+    private agentDelegation: AgentDelegationTool;
 
     constructor() {
         this.knowledgeSearch = new KnowledgeSearchTool();
         this.warRoomData = new WarRoomDataTool();
+        this.calendar = new CalendarTool();
+        this.agentDelegation = new AgentDelegationTool();
     }
 
     /**
@@ -221,6 +356,16 @@ export class ToolRegistry {
                 description: '取得目前的風險警示和異常偵測結果',
                 category: 'query',
             },
+            {
+                name: 'list_calendar_events',
+                description: '查詢使用者的 Google Calendar 行程，可指定查詢關鍵字',
+                category: 'query',
+            },
+            {
+                name: 'create_calendar_event',
+                description: '在 Google Calendar 中建立新的行程',
+                category: 'action',
+            },
         ];
     }
 
@@ -246,6 +391,21 @@ export class ToolRegistry {
 
             case 'risk_alerts':
                 return this.warRoomData.getRiskAlerts();
+
+            case 'list_calendar_events':
+                return this.calendar.listEvents(
+                    params.userId as string,
+                    params.query as string
+                );
+
+            case 'create_calendar_event':
+                return this.calendar.createEvent(
+                    params.userId as string,
+                    params
+                );
+
+            case 'agent_delegation':
+                return this.agentDelegation.execute(params as unknown as AgentDelegationParams);
 
             default:
                 return {

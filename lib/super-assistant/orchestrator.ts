@@ -5,6 +5,7 @@
 
 import { UnifiedMessage, UnifiedResponse } from './gateway';
 import { getToolRegistry } from './tools';
+import { AgentDelegationTool, DelegationResult } from './tools/agent-delegation';
 
 // ==================== Types ====================
 
@@ -16,6 +17,7 @@ export type IntentType =
     | 'action' // 動作類：執行操作
     | 'scheduled' // 排程類：定時任務
     | 'greeting' // 寒暄類：打招呼
+    | 'delegate' // 調度類：委派給專家
     | 'unknown'; // 未知
 
 /**
@@ -26,6 +28,10 @@ export interface IntentResult {
     confidence: number;
     entities?: Record<string, string | string[]>;
     suggestedTools?: string[];
+    subType?: 'calendar' | 'knowledge' | 'warroom'; // 意圖子類型
+    targetAgentId?: string;     // 若為 delegate，指定目標 Agent
+    targetAgentName?: string;   // 人類可讀名稱
+    reason?: string;            // 路由決策原因
 }
 
 /**
@@ -38,6 +44,19 @@ export interface OrchestratorConfig {
     companyId?: string;
     departmentId?: string;
 }
+
+interface CalendarData {
+    message: string;
+    events: Array<{
+        id: string;
+        summary: string;
+        start: string;
+        end: string;
+        location?: string;
+        description?: string;
+    }>;
+}
+
 
 // ==================== Orchestrator Class ====================
 
@@ -63,10 +82,18 @@ export class OrchestratorAgent {
      * 處理統一訊息並產生回應
      */
     async processMessage(message: UnifiedMessage): Promise<UnifiedResponse> {
-        // 1. 意圖識別
-        const intent = await this.identifyIntent(message);
+        // 1. 取得可用 Agent 列表
+        const availableAgents = await this.fetchAvailableAgents();
 
-        // 2. 根據意圖執行對應處理
+        // 2. 意圖識別 (優先使用 LLM 判斷是否需要調度)
+        const intent = await this.identifyIntentWithLLM(message, availableAgents);
+
+        // 3. 若需要調度專家
+        if (intent.type === 'delegate' && intent.targetAgentId) {
+            return this.handleDelegationWithFallback(message, intent);
+        }
+
+        // 4. 根據意圖執行對應處理
         switch (intent.type) {
             case 'greeting':
                 return this.handleGreeting(message);
@@ -86,26 +113,98 @@ export class OrchestratorAgent {
     }
 
     /**
-     * 意圖識別 (簡易版本)
-     * TODO: 未來替換為 LLM 意圖分類
+     * 使用 LLM 進行智慧路由判斷
+     */
+    private async identifyIntentWithLLM(
+        message: UnifiedMessage,
+        availableAgents: Array<{ id: string; name: string; description: string }>
+    ): Promise<IntentResult> {
+        // 為了效能，可以先用規則過濾簡單意圖，但為了展示 Multi-Agent 能力，這裡優先讓 LLM 決策
+        try {
+            const { generateContent } = await import('@/lib/gemini/client');
+
+            const agentList = availableAgents
+                .map(a => `- ${a.name} (ID: ${a.id}): ${a.description}`)
+                .join('\n');
+
+            const prompt = `你是企業 AI 系統的調度中心。根據使用者問題，決定該如何處理。
+
+## 可用的專家 Agent：
+${agentList}
+
+## 你自己（超級管家）擅長：
+- 一般性寒暄與問候
+- 行程安排與會議管理 (行事曆)
+- 跨部門的概括性問題
+- 系統操作指引
+
+## 使用者問題：
+${message.content.text}
+
+## 決策規則：
+1. 若問題明確涉及特定部門專業（如財務報表、人事假勤、法律合約），選擇 "delegate" 並指定對應專家。
+2. 若問題是一般性問候或你能直接回答的，選擇 "self"（後續會再細分 query/action 等）。
+3. 若不確定，優先選擇 "delegate" 找最相關的專家（正確優先於速度）。
+
+請回覆以下 JSON 格式（不要用 Markdown code block，直接回覆 JSON）：
+{
+  "action": "delegate" | "self",
+  "targetAgentId": "若 delegate，填入 Agent ID",
+  "targetAgentName": "若 delegate，填入 Agent 名稱",
+  "reason": "簡短說明決策原因"
+}`;
+
+            const response = await generateContent('gemini-2.0-flash', prompt);
+
+            // 嘗試解析 JSON (處理可能的 Markdown code block 標記)
+            const cleanJson = response.replace(/```json\n?|```/g, '').trim();
+            const decision = JSON.parse(cleanJson);
+
+            if (decision.action === 'delegate') {
+                return {
+                    type: 'delegate',
+                    confidence: 0.9,
+                    targetAgentId: decision.targetAgentId,
+                    targetAgentName: decision.targetAgentName,
+                    reason: decision.reason,
+                };
+            }
+
+            // 自己處理，繼續使用既有邏輯判斷細分類型
+            return this.identifyIntent(message);
+
+        } catch (error) {
+            console.error('[Orchestrator] LLM routing error:', error);
+            // 降級：使用規則判斷
+            return this.identifyIntent(message);
+        }
+    }
+
+    /**
+     * 意圖識別 (簡易規則版本 - Fallback 用)
      */
     private async identifyIntent(message: UnifiedMessage): Promise<IntentResult> {
         const text = message.content.text?.toLowerCase() || '';
 
-        // 移除靜態寒暄偵測，改由 LLM 統一處理以展現更擬人的個性
-        // const greetingKeywords = ['你好', 'hi', 'hello', '嗨', '早安', '午安', '晚安', '哈囉'];
-        // if (greetingKeywords.some((kw) => text.includes(kw))) {
-        //     return { type: 'greeting', confidence: 0.9 };
-        // }
+        // 行事曆關鍵字 (優先權高)
+        const calendarKeywords = ['行事曆', '行程', '會議', '約', '排', '幾點', '什麼時候', '行程表'];
+        if (calendarKeywords.some((kw) => text.includes(kw))) {
+            const isAction = ['約', '排', '建立', '設定'].some(kw => text.includes(kw));
+            return {
+                type: isAction ? 'action' : 'query',
+                confidence: 0.9,
+                subType: 'calendar'
+            };
+        }
 
         // 查詢關鍵字
         const queryKeywords = ['什麼', '多少', '怎麼', '如何', '為什麼', '是否', '有沒有', '查詢', '搜尋'];
         if (queryKeywords.some((kw) => text.includes(kw))) {
-            return { type: 'query', confidence: 0.8 };
+            return { type: 'query', confidence: 0.8, subType: 'knowledge' };
         }
 
         // 動作關鍵字
-        const actionKeywords = ['幫我', '請', '設定', '建立', '刪除', '修改', '發送', '寄送', '約', '排'];
+        const actionKeywords = ['幫我', '請', '設定', '建立', '刪除', '修改', '發送', '寄送'];
         if (actionKeywords.some((kw) => text.includes(kw))) {
             return { type: 'action', confidence: 0.8 };
         }
@@ -134,7 +233,38 @@ export class OrchestratorAgent {
         const toolRegistry = getToolRegistry();
 
         try {
-            // 使用知識庫搜尋工具
+            // 優先處理行事曆查詢
+            if (intent.subType === 'calendar' && this._config.systemUserId) {
+                const calendarResult = await toolRegistry.executeTool('list_calendar_events', {
+                    userId: this._config.systemUserId,
+                    query: queryText,
+                });
+
+                if (calendarResult.success) {
+                    const data = calendarResult.data as CalendarData;
+                    if (data.events.length === 0) {
+                        return {
+                            content: {
+                                type: 'text',
+                                text: `📅 報告主管，我在接下來一週的行程表裡，沒有看到關於「${queryText}」的安排耶。`,
+                            },
+                        };
+                    }
+
+                    const eventsText = data.events
+                        .map((e) => `- ${new Date(e.start).toLocaleString('zh-TW', { hour12: false })}: ${e.summary}${e.location ? ` (@${e.location})` : ''}`)
+                        .join('\n');
+
+                    return {
+                        content: {
+                            type: 'text',
+                            text: `📅 好的，已為您查到相關行程：\n\n${eventsText}`,
+                        },
+                    };
+                }
+            }
+
+            // 使用知識庫搜尋工具 (Fallback)
             const searchResult = await toolRegistry.executeTool('knowledge_search', {
                 query: queryText,
                 topK: 5,
@@ -154,6 +284,16 @@ export class OrchestratorAgent {
             const data = searchResult.data as { message: string; results: Array<{ title: string; content: string; relevance: number }> };
 
             if (data.results.length === 0) {
+                // 如果關鍵字看起來跟行事曆有關但沒搜尋到，給予提示
+                if (intent.subType === 'calendar' && !this._config.systemUserId) {
+                    return {
+                        content: {
+                            type: 'text',
+                            text: `📅 您似乎想查詢行程，但我還沒有您的行事曆授權喔。請先在系統設定中完成 Google Calendar 綁定！`,
+                        }
+                    };
+                }
+
                 return {
                     content: {
                         type: 'text',
@@ -195,11 +335,24 @@ export class OrchestratorAgent {
      * 處理動作
      */
     private async handleAction(message: UnifiedMessage, intent: IntentResult): Promise<UnifiedResponse> {
-        // TODO: 整合行事曆、Email、工具執行等
+        const text = message.content.text || '';
+
+        // 處理行事曆建立 (目前為初步實作，之後應配合 LLM 提取參數)
+        if (intent.subType === 'calendar' && this._config.systemUserId) {
+            // TODO: 未來在此處呼叫 toolRegistry.executeTool('create_calendar_event', ...)
+            // 目前由於需要 LLM 精準提取時間參數，暫以提示回應
+            return {
+                content: {
+                    type: 'text',
+                    text: `📅 收到！您想安排「${text}」。\n\n目前我已具備連結行事曆的能力，但我還需要整合一個「參數提取器」來精準識別會議時間與標題。這項功能即將上線，敬請期待！`,
+                }
+            };
+        }
+
         return {
             content: {
                 type: 'text',
-                text: `收到！你想「${message.content.text}」是吧？\n\n不過我的手腳（動作執行功能）還在訓練中，目前還不能幫你實際操作，但我記下來了！`,
+                text: `收到！你想「${message.content.text}」是吧？\n\n目前我正在逐步解鎖各項動作權限。雖然還不能立刻幫你完成，但我已經在串接相關 API 了！`,
             },
             metadata: {
                 confidence: intent.confidence,
@@ -276,7 +429,124 @@ User: ${message.content.text}
             };
         }
     }
+
+    /**
+     * 處理調度請求
+     */
+    /**
+     * 處理調度請求（含降級機制）
+     */
+    private async handleDelegationWithFallback(
+        message: UnifiedMessage,
+        intent: IntentResult
+    ): Promise<UnifiedResponse> {
+        const delegationTool = new AgentDelegationTool();
+
+        // 第一次嘗試：執行調度
+        const result = await delegationTool.execute({
+            targetAgentId: intent.targetAgentId!,
+            query: message.content.text || '',
+            userId: this._config.systemUserId || '',
+        });
+
+        if (!result.success) {
+            return {
+                content: {
+                    type: 'text',
+                    text: `抱歉，我嘗試請教 ${intent.targetAgentName}，但遇到了一點問題。讓我試著自己回答...\n\n（系統提示：${result.error}）`,
+                },
+            };
+        }
+
+        const delegationData = result.data as DelegationResult;
+
+        // 驗證回應
+        const validation = await this.validateDelegationResponse(
+            message.content.text || '',
+            delegationData.response || ''
+        );
+
+        if (!validation.isValid) {
+            // 降級處理
+            return {
+                content: {
+                    type: 'text',
+                    text: `我詢問了 ${intent.targetAgentName}，但回答似乎不太完整。\n\n根據我目前掌握的資訊，我無法確定完整答案。建議您直接到相關部門確認，或提供更多細節讓我再試一次。`,
+                },
+                metadata: {
+                    confidence: 0.3,
+                    needsReview: true,
+                    delegatedTo: intent.targetAgentName,
+                },
+            };
+        }
+
+        // 整合專家回答
+        return {
+            content: {
+                type: 'text',
+                text: delegationData.response,
+            },
+            metadata: {
+                delegatedTo: intent.targetAgentName,
+                confidence: delegationData.confidence,
+                sources: delegationData.sources,
+            },
+        };
+    }
+
+    /**
+     * 驗證專家回應的品質
+     */
+    private async validateDelegationResponse(
+        originalQuery: string,
+        expertResponse: string
+    ): Promise<{ isValid: boolean; issue?: string }> {
+        const { generateContent } = await import('@/lib/gemini/client');
+
+        const prompt = `判斷以下回答是否合理回應了使用者問題：
+
+使用者問題：${originalQuery}
+
+專家回答：${expertResponse}
+
+請回覆 JSON：
+{
+  "isValid": true/false,
+  "issue": "若不合理，簡述問題"
 }
+使用繁體中文回覆 issue 內容。`;
+
+        try {
+            const response = await generateContent('gemini-2.0-flash', prompt);
+            const cleanJson = response.replace(/```json\n?|```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch {
+            return { isValid: true }; // 預設信任
+        }
+    }
+
+    /**
+     * 取得可用 Agent 列表
+     */
+    private async fetchAvailableAgents(): Promise<Array<{
+        id: string;
+        name: string;
+        description: string;
+    }>> {
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            const response = await fetch(`${baseUrl}/api/agents/available`);
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.agents || [];
+        } catch (error) {
+            console.warn('[Orchestrator] fetchAvailableAgents error:', error);
+            return [];
+        }
+    }
+}
+
 
 // ==================== Factory Function ====================
 
