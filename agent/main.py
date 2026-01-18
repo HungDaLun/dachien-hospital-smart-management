@@ -33,12 +33,10 @@ class SuperAssistantLLM(llm.LLM):
         # Call Next.js API
         async with aiohttp.ClientSession() as session:
             # Get base URL from environment
-            base_url = os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
+            base_url = os.getenv("NEXT_PUBLIC_APP_URL", "https://nexus-ai.zeabur.app")
             async with session.post(
                 f"{base_url}/api/super-assistant/chat",
                 json={"text": user_msg, "sessionId": "voice-dev"},
-                # Add headers if needed, e.g. mock auth for dev
-                # headers={"Authorization": "Bearer ..."} 
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
