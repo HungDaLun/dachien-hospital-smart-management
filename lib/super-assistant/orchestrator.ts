@@ -79,8 +79,14 @@ export class OrchestratorAgent {
         const availableAgents = await this.fetchAvailableAgents();
         const agentsContext = availableAgents.map(a => `- ${a.name} (ID: ${a.id}): ${a.description}`).join('\n');
 
+        const now = new Date();
+        const currentDateTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
         const systemPrompt = `你是一個專業的企業超級管家 (Super Assistant)。
 你的目標是協助使用者解決問題，你可以使用多種工具來達成任務。
+
+## 當前時間資訊 (台北時間):
+- 現在時間: ${currentDateTime} (請根據此時間推算 "下午三點"、"明天"、"下週" 等相對時間)
 
 ## 可用工具與用途：
 - knowledge_search: 搜尋企業知識庫。當問題涉及公司規章、流程、文件內容時使用。

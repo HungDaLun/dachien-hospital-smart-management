@@ -23,7 +23,6 @@ interface Message {
 export default function SuperAssistantPage() {
     const [mode, setMode] = useState<'voice' | 'text'>('text');
 
-    // 初始化訊息
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 'init',
@@ -33,6 +32,7 @@ export default function SuperAssistantPage() {
         }
     ]);
     const [inputText, setInputText] = useState('');
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // 使用 Vapi Hook
@@ -71,10 +71,16 @@ export default function SuperAssistantPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: userMsg.content,
+                    sessionId: sessionId // 傳遞目前的 sessionId 以維持記憶
                 }),
             });
 
             const data = await response.json();
+
+            // 更新 Session ID
+            if (data.sessionId && data.sessionId !== sessionId) {
+                setSessionId(data.sessionId);
+            }
             const assistantMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
