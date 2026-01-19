@@ -18,7 +18,8 @@ export default function SkillImporter({ onImportComplete }: SkillImporterProps) 
         setError(null);
 
         try {
-            const response = await fetch('/api/agents/templates', {
+            // 修正：使用正確的 Skills API 端點，將 Skills 寫入 skills_library
+            const response = await fetch('/api/skills', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ import_content: importContent }),
@@ -27,7 +28,7 @@ export default function SkillImporter({ onImportComplete }: SkillImporterProps) 
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Import failed');
+                throw new Error(result.error?.message || result.error || 'Import failed');
             }
 
             setIsOpen(false);

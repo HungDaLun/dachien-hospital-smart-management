@@ -117,30 +117,9 @@ export const getCachedSystemSettings = unstable_cache(
     }
 );
 
-/**
- * 快取 Agent 模板列表
- * 模板資料變動頻率低
- * 快取時間：1 小時
- */
-export const getCachedAgentTemplates = unstable_cache(
-    async () => {
-        const supabase = createAdminClient();
-        const { data, error } = await supabase
-            .from('agent_templates')
-            .select('id, name, description, icon, category, default_system_prompt')
-            .order('category', { ascending: true })
-            .order('name', { ascending: true });
-
-        if (error) {
-            console.error('[Cache] 獲取 Agent 模板失敗:', error);
-            return [];
-        }
-
-        return data || [];
-    },
-    ['agent-templates'],
-    {
-        revalidate: 3600,
-        tags: ['agent-templates']
-    }
-);
+// 注意：getCachedAgentTemplates 函式已移除
+// 原因：
+// 1. 查詢了不存在的欄位（icon, default_system_prompt）
+// 2. 實際欄位為 system_prompt_template（不是 default_system_prompt）
+// 3. 未被任何地方引用
+// 如需快取 Agent 模板，請使用正確的欄位名稱並確保有實際使用場景

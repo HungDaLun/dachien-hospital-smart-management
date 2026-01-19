@@ -8,10 +8,11 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'; // Check if a
 interface Skill {
     id: string;
     name: string;
+    display_name: string; // skills_library 使用 display_name
     description: string;
     category: string;
-    author: string;
-    tags: string[];
+    author?: string;
+    tags?: string[];
     is_official: boolean;
     // ... other fields
 }
@@ -36,7 +37,8 @@ export default function SkillsMarketplace({ onSelectSkill }: SkillsMarketplacePr
             if (searchTerm) params.append('search', searchTerm);
             if (categoryFilter !== 'All') params.append('category', categoryFilter);
 
-            const res = await fetch(`/api/agents/templates?${params.toString()}`);
+            // 修正：使用正確的 Skills API 端點
+            const res = await fetch(`/api/skills?${params.toString()}`);
             const data = await res.json();
             if (data.success) {
                 setSkills(data.data);
@@ -126,14 +128,14 @@ export default function SkillsMarketplace({ onSelectSkill }: SkillsMarketplacePr
                                 </div>
 
                                 <h3 className="font-bold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
-                                    {skill.name}
+                                    {skill.display_name || skill.name}
                                 </h3>
                                 <p className="text-sm text-gray-500 line-clamp-2 mb-4 h-10">
                                     {skill.description || 'No description provided.'}
                                 </p>
 
                                 <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
-                                    <span>by {skill.author}</span>
+                                    <span>by {skill.author || 'Unknown'}</span>
                                     <div className="flex gap-1">
                                         {skill.tags?.slice(0, 2).map(tag => (
                                             <span key={tag} className="bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">

@@ -161,14 +161,23 @@ export default function SuperAssistantPage() {
                                 </div>
 
                                 {/* Status Text / Transcription */}
-                                <div className="min-h-[60px] text-center px-4 w-full">
-                                    <p className="text-lg md:text-xl text-white/90 font-medium leading-relaxed line-clamp-3">
+                                <div className="min-h-[80px] text-center px-4 w-full flex flex-col items-center justify-center gap-3">
+                                    <p className={`text-lg md:text-xl font-medium leading-relaxed line-clamp-3 ${status === VapiStatus.ERROR ? 'text-red-400' : 'text-white/90'}`}>
                                         {status === VapiStatus.CONNECTING ? "正在連線..." :
                                             status === VapiStatus.LISTENING ? "我在聽..." :
                                                 status === VapiStatus.SPEAKING ? "正在回應..." :
                                                     status === VapiStatus.ERROR ? (errorMessage || "發生錯誤") :
                                                         "等待指令..."}
                                     </p>
+
+                                    {status === VapiStatus.ERROR && (
+                                        <button
+                                            onClick={() => window.location.reload()}
+                                            className="text-xs px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 transition-all border border-white/10"
+                                        >
+                                            重新整理頁面
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 

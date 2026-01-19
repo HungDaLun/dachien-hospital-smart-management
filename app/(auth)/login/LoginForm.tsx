@@ -26,13 +26,25 @@ function LoginFormContent({ dict }: LoginFormProps) {
             setTimeout(() => setRegistered(false), 3000);
         }
 
-        // 在 Client 端 Mount 時清除 session，確保是全新的登入狀態
-        const clearSession = async () => {
-            const supabase = createClient();
-            await supabase.auth.signOut();
-        };
-        clearSession();
+        // 移除自動清空 Session 的邏輯，這在行動裝置上可能會導致循環導向或快取問題
+        // 當使用者在登入頁面進行登入時，signInWithPassword 會自動處理 Session 更新
     }, [searchParams]);
+
+    const handleRedirect = (profileStatus: string | undefined) => {
+        // 使用 window.location.href 作為最後手段，確保徹底重新整理頁面狀態
+        const destination = profileStatus === 'PENDING' ? '/dashboard/pending' : '/dashboard';
+
+        // 先嘗試 Next.js 路由
+        router.push(destination);
+        router.refresh();
+
+        // 如果 2 秒後還沒跳轉，執行強制跳轉（處理行動裝置快取卡死）
+        setTimeout(() => {
+            if (window.location.pathname === '/login') {
+                window.location.href = destination;
+            }
+        }, 2000);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,18 +66,16 @@ function LoginFormContent({ dict }: LoginFormProps) {
         setError(null);
 
         try {
-            // 先清除任何現有的 session，確保是全新的登入
             const supabase = createClient();
-            await supabase.auth.signOut();
 
-            // 然後進行登入
+            // 直接進行登入，不再先進行 signOut 以避免網路波動導致的延遲
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
                 email: email.trim(),
                 password: password.trim(),
             });
 
             if (signInError) {
-                // 翻譯錯誤訊息
+                // ...
                 let errorMessage = signInError.message;
                 if (errorMessage === 'Invalid login credentials') {
                     errorMessage = '帳號或密碼錯誤，請檢查後重新輸入';
@@ -86,13 +96,7 @@ function LoginFormContent({ dict }: LoginFormProps) {
                     .eq('id', data.user.id)
                     .single();
 
-                // 如果狀態為 PENDING，導向待審核頁面
-                if (profile?.status === 'PENDING') {
-                    router.push('/dashboard/pending');
-                } else {
-                    router.push('/dashboard');
-                }
-                router.refresh();
+                handleRedirect(profile?.status);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : dict.auth.login_failed);

@@ -78,18 +78,37 @@ export const useVapi = () => {
             setVolumeLevel(level);
         });
 
-        vapi.on('message', (message: { type: string; transcriptType?: string; transcript?: string }) => {
+        vapi.on('message', (message: Record<string, unknown>) => {
             if (message.type === 'transcript' && message.transcriptType === 'final') {
                 console.log('[Vapi] User said:', message.transcript);
             }
         });
 
-        vapi.on('error', (e: Error | { message?: string }) => {
-            const errorMsg = e instanceof Error ? e.message : (e?.message || '未知錯誤');
-            console.error('[Vapi] Error:', errorMsg);
+        vapi.on('error', (e: Error | { message?: string } | unknown) => {
+            let errorMsg = '未知錯誤';
+            if (e instanceof Error) {
+                errorMsg = e.message;
+            } else if (e && typeof e === 'object' && 'message' in e) {
+                errorMsg = String((e as { message: unknown }).message);
+            } else if (typeof e === 'string') {
+                errorMsg = e;
+            } else {
+                errorMsg = JSON.stringify(e) || '未知錯誤';
+            }
+
+            console.error('[Vapi] Detailed Error:', e);
             setStatus(VapiStatus.ERROR);
             setIsSessionActive(false);
-            setErrorMessage(errorMsg);
+
+            // 針對行動裝置提供更友善的錯誤提示
+            let friendlyMsg = errorMsg;
+            if (errorMsg.includes('NotAllowedError') || errorMsg.includes('Permission')) {
+                friendlyMsg = '請在瀏覽器設定中允許麥克風權限，然後重新整理頁面。';
+            } else if (errorMsg.includes('AudioContext')) {
+                friendlyMsg = '音訊初始化失敗，請嘗試重新整理頁面或檢查靜音模式。';
+            }
+
+            setErrorMessage(friendlyMsg);
         });
 
         // 清理函數
