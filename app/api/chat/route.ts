@@ -384,7 +384,7 @@ ${safeguardProcessor.getSystemPromptSuffix()}
             // 原有的純文字對話邏輯 (無工具) + 增強型 Metadata 解析
             // ============================================
             const model = genAI.getGenerativeModel({
-                model: agent.model_version || 'gemini-3-flash-preview', // Default updated to newer model
+                model: agent.model_version || 'gemini-3-flash-preview',
                 systemInstruction: fullSystemPrompt,
             });
 

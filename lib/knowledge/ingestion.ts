@@ -152,13 +152,17 @@ export async function processUploadedFile(fileId: string, fileBuffer?: Buffer, s
         console.log(`[Ingestion] Completed for ${file.filename}`);
 
         // 8. 最終步驟：自動觸發「分析」(Mapper Agent)
-        // 既然使用者希望自動化到底，我們就自動把檔案對映到知識星系
-        console.log(`[Ingestion] Auto-triggering Analysis for ${file.id}`);
-        try {
-            await autoMapDocumentToFrameworks(fileId, supabase);
-        } catch (mapErr) {
-            console.error(`[Ingestion] Auto-mapping failed for ${fileId}:`, mapErr);
-            // 分析失敗不影響前面的同步結果
+        // 可透過環境變數停用以節省 Token
+        if (process.env.NEXT_PUBLIC_ENABLE_KNOWLEDGE_GALAXY === 'true') {
+            console.log(`[Ingestion] Auto-triggering Analysis for ${file.id}`);
+            try {
+                await autoMapDocumentToFrameworks(fileId, supabase);
+            } catch (mapErr) {
+                console.error(`[Ingestion] Auto-mapping failed for ${fileId}:`, mapErr);
+                // 分析失敗不影響前面的同步結果
+            }
+        } else {
+            console.log(`[Ingestion] Skipping Framework Mapping (NEXT_PUBLIC_ENABLE_KNOWLEDGE_GALAXY=${process.env.NEXT_PUBLIC_ENABLE_KNOWLEDGE_GALAXY})`);
         }
 
     } catch (err: unknown) {

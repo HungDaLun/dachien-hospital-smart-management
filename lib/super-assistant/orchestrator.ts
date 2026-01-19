@@ -123,7 +123,8 @@ ${agentsContext}
 
 
         const model = genAI.getGenerativeModel({
-            model: 'gemini-3-pro-preview', // User mandated: Use Gemini 3 Pro Preview
+            // 超級管家必須使用 gemini-3-pro-preview
+            model: 'gemini-3-pro-preview',
             systemInstruction: systemPrompt,
             tools: [{
                 functionDeclarations: toolsForGemini

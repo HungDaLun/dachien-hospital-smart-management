@@ -8,23 +8,28 @@ import { Dictionary } from '@/lib/i18n/dictionaries';
 import { Spinner, Button } from '@/components/ui';
 import { BrainCircuit, Layout, UploadCloud } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-// Dynamic import GalaxyGraph
-const GalaxyGraph = dynamic(
-    () => import('@/components/visualization/GalaxyGraph'),
-    {
-        loading: () => (
-            <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                <div className="flex flex-col items-center gap-4">
-                    <Spinner size="lg" />
-                    <span className="text-gray-400 animate-pulse">Initializing Galaxy...</span>
-                </div>
-            </div>
-        ),
-        ssr: false
-    }
-);
 import { FileData } from '@/components/files/FileCard';
+
+// 知識星系圖功能開關
+const ENABLE_GALAXY = process.env.NEXT_PUBLIC_ENABLE_KNOWLEDGE_GALAXY === 'true';
+
+// Dynamic import GalaxyGraph (只在啟用時載入)
+const GalaxyGraph = ENABLE_GALAXY
+    ? dynamic(
+        () => import('@/components/visualization/GalaxyGraph'),
+        {
+            loading: () => (
+                <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                    <div className="flex flex-col items-center gap-4">
+                        <Spinner size="lg" />
+                        <span className="text-gray-400 animate-pulse">Initializing Galaxy...</span>
+                    </div>
+                </div>
+            ),
+            ssr: false
+        }
+    )
+    : null;
 
 interface ControlCenterProps {
     canUpload: boolean;
@@ -58,8 +63,8 @@ export default function ControlCenter({
     }, []);
 
     const handleFileSelect = useCallback((id: string) => {
-        // 點擊檔案時直接跳轉到星系圖視圖
-        if (viewMode === 'list') {
+        // 只有啟用星系圖時才跳轉
+        if (ENABLE_GALAXY && viewMode === 'list') {
             setViewMode('graph');
         }
         setSelectedFileId(id);
@@ -87,36 +92,38 @@ export default function ControlCenter({
             ref={containerRef}
             className="flex h-full w-full overflow-hidden bg-background-primary relative group/app text-text-primary"
         >
-            {/* View Mode Controls (Docked Bottom Center) */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 opacity-90 hover:opacity-100 pointer-events-auto">
-                <div className="flex gap-2 p-2 bg-background-tertiary/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-floating shadow-black/50">
-                    <Button
-                        size="sm"
-                        variant={viewMode === 'list' ? 'primary' : 'ghost'}
-                        onClick={() => setViewMode('list')}
-                        className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'list' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
-                        title="檔案列表 (List View)"
-                    >
-                        <Layout size={18} />
-                    </Button>
+            {/* View Mode Controls (Docked Bottom Center) - 只在啟用星系圖時顯示 */}
+            {ENABLE_GALAXY && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 opacity-90 hover:opacity-100 pointer-events-auto">
+                    <div className="flex gap-2 p-2 bg-background-tertiary/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-floating shadow-black/50">
+                        <Button
+                            size="sm"
+                            variant={viewMode === 'list' ? 'primary' : 'ghost'}
+                            onClick={() => setViewMode('list')}
+                            className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'list' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
+                            title="檔案列表 (List View)"
+                        >
+                            <Layout size={18} />
+                        </Button>
 
-                    <Button
-                        size="sm"
-                        variant={viewMode === 'graph' ? 'primary' : 'ghost'}
-                        onClick={() => setViewMode('graph')}
-                        className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'graph' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
-                        title="沉浸式大腦 (Immersion)"
-                    >
-                        <BrainCircuit size={18} />
-                    </Button>
+                        <Button
+                            size="sm"
+                            variant={viewMode === 'graph' ? 'primary' : 'ghost'}
+                            onClick={() => setViewMode('graph')}
+                            className={`rounded-xl w-10 h-10 p-0 transition-all ${viewMode === 'graph' ? 'bg-primary-500 text-background-primary shadow-glow-cyan scale-110' : 'text-text-tertiary hover:text-white hover:bg-white/10'}`}
+                            title="沉浸式大腦 (Immersion)"
+                        >
+                            <BrainCircuit size={18} />
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Left Panel: File List */}
             <div
                 className={`
                     h-full flex flex-col bg-background-secondary/30 backdrop-blur-sm z-20 relative transition-[width] ease-linear border-r border-white/5
-                    ${viewMode === 'list' ? 'w-full' : 'w-0 overflow-hidden border-none opacity-0'}
+                    ${!ENABLE_GALAXY || viewMode === 'list' ? 'w-full' : 'w-0 overflow-hidden border-none opacity-0'}
                 `}
             >
                 {/* File List Area (Include Header Actions) */}
@@ -127,31 +134,31 @@ export default function ControlCenter({
                         refreshTrigger={refreshTrigger}
                         initialFiles={initialFiles}
                         initialTotal={initialTotal}
-                        onFileSelect={handleFileSelect}
+                        onFileSelect={ENABLE_GALAXY ? handleFileSelect : undefined}
                         headerActions={renderHeaderActions}
                     />
                 </div>
             </div>
 
-
-
-            {/* Right Panel: Galaxy Graph */}
-            <div
-                className={`
-                    h-full bg-background-primary transition-all duration-300 ease-in-out relative overflow-hidden
-                    ${viewMode === 'list' ? 'w-0 opacity-0' : 'w-full flex-1 opacity-100'}
-                `}
-            >
-                <div className="absolute inset-0 w-full h-full">
-                    <GalaxyGraph
-                        initialDepartments={initialDepartments}
-                        currentUserRole={currentUserRole}
-                        focusNodeId={selectedFileId}
-                        refreshTrigger={refreshTrigger}
-                        isVisible={viewMode === 'graph'}
-                    />
+            {/* Right Panel: Galaxy Graph - 只在啟用時渲染 */}
+            {ENABLE_GALAXY && GalaxyGraph && (
+                <div
+                    className={`
+                        h-full bg-background-primary transition-all duration-300 ease-in-out relative overflow-hidden
+                        ${viewMode === 'list' ? 'w-0 opacity-0' : 'w-full flex-1 opacity-100'}
+                    `}
+                >
+                    <div className="absolute inset-0 w-full h-full">
+                        <GalaxyGraph
+                            initialDepartments={initialDepartments}
+                            currentUserRole={currentUserRole}
+                            focusNodeId={selectedFileId}
+                            refreshTrigger={refreshTrigger}
+                            isVisible={viewMode === 'graph'}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Upload Dialog */}
             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
