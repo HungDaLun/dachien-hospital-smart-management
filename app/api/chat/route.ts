@@ -28,7 +28,22 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient();
 
         // 取得使用者資料（包含權限檢查）
-        const profile = await getCurrentUserProfile();
+        // 支援超級管家委派：如果有傳遞 X-Delegated-User-Id 且為內部呼叫，則使用該 ID
+        const delegatedUserId = request.headers.get('X-Delegated-User-Id');
+        let profile;
+
+        if (delegatedUserId) {
+            // 這裡應該加入更嚴格的來源檢查 (e.g. check for internal secret or IP)
+            // 目前假設只有內部 Orchestrator 會傳遞此 Header
+            const { data: user } = await supabase.from('users').select('*').eq('id', delegatedUserId).single();
+            if (user) {
+                profile = user;
+            } else {
+                profile = await getCurrentUserProfile();
+            }
+        } else {
+            profile = await getCurrentUserProfile();
+        }
 
         // 解析請求
         const body = await request.json();

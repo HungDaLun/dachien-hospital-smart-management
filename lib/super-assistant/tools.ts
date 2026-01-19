@@ -3,6 +3,7 @@
  * 提供 Orchestrator 可用的工具函式
  */
 
+import { createClient } from '@/lib/supabase/server';
 import { ANNSemanticSearchEngine, SearchResult } from '@/lib/knowledge/ann-search';
 import { getGoogleCalendarSyncService } from './google-calendar-sync';
 import { AgentDelegationTool, AgentDelegationParams } from './tools/agent-delegation';
@@ -291,20 +292,52 @@ export class CalendarTool {
                 return { success: false, error: '未提供開始或結束時間' };
             }
 
-            // 轉換為 syncService 預期的格式
+            // 0. 準備資料
+            const eventId = crypto.randomUUID();
+            const timezone = eventData.timezone || 'Asia/Taipei';
+            const isAllDay = eventData.isAllDay || false;
+
+
+            // 1. 先寫入資料庫
+            const supabase = await createClient();
+            const { error: insertError } = await supabase
+                .from('calendar_events')
+                .insert({
+                    id: eventId,
+                    organizer_id: userId, // Fix: Schema uses 'organizer_id', not 'user_id'
+                    title: title,
+                    description: eventData.description,
+                    location: eventData.location,
+                    start_time: startTime,
+                    end_time: endTime,
+                    timezone: timezone,
+                    is_all_day: isAllDay,
+                    status: 'scheduled', // Fix: Use 'scheduled' as per schema comment
+                    created_at: new Date().toISOString()
+                });
+
+            if (insertError) {
+                console.error('[CalendarTool] DB Insert Error:', insertError);
+                return { success: false, error: `資料庫寫入失敗: ${insertError.message}` };
+            }
+
+            // 2. 同步到 Google
             const result = await this.syncService.syncEventToGoogle(userId, {
-                id: crypto.randomUUID(), // 系統內部的 ID
+                id: eventId,
                 title: title,
                 description: eventData.description,
                 location: eventData.location,
                 start_time: startTime,
                 end_time: endTime,
-                timezone: eventData.timezone || 'Asia/Taipei',
-                is_all_day: eventData.isAllDay || false,
+                timezone: timezone,
+                is_all_day: isAllDay,
             });
 
             if (!result.success) {
-                return { success: false, error: result.error };
+                // 如果同步失敗，標記資料庫中的記錄為未同步或刪除？
+                // 這裡暫時保留，但記錄錯誤
+                console.error('[CalendarTool] Google Sync Failed:', result.error);
+                return { success: false, error: `Google 行事曆同步失敗: ${result.error}` };
             }
 
             return {
@@ -471,6 +504,44 @@ export class ToolRegistry {
                         }
                     },
                     required: [], // userId 通常由系統 context 注入，這裡暫不強制 LLM 輸出
+                }
+            },
+            {
+                name: 'create_calendar_event',
+                description: '建立行事曆行程。必須包含標題、開始與結束時間。location 和 description 為可選。',
+                parameters: {
+                    type: 'OBJECT',
+                    properties: {
+                        userId: {
+                            type: 'STRING',
+                            description: 'System User ID',
+                        },
+                        title: {
+                            type: 'STRING',
+                            description: '行程標題 (Title/Summary)',
+                        },
+                        startTime: {
+                            type: 'STRING',
+                            description: '開始時間 (ISO 8601, e.g. 2026-01-20T14:00:00+08:00)',
+                        },
+                        endTime: {
+                            type: 'STRING',
+                            description: '結束時間 (ISO 8601)',
+                        },
+                        location: {
+                            type: 'STRING',
+                            description: '地點 (Location)',
+                        },
+                        description: {
+                            type: 'STRING',
+                            description: '詳細描述 (Content)',
+                        },
+                        isAllDay: {
+                            type: 'BOOLEAN',
+                            description: '是否為全天行程',
+                        }
+                    },
+                    required: ['title', 'startTime', 'endTime']
                 }
             },
             {

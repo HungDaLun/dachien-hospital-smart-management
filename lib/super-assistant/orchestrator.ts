@@ -7,6 +7,7 @@ import { UnifiedMessage, UnifiedResponse } from './gateway';
 import { getToolRegistry } from './tools';
 import { createGeminiClientAsync } from '@/lib/gemini/client';
 import { FunctionDeclarationSchema, Part, Content } from '@google/generative-ai';
+import { createClient } from '@/lib/supabase/server';
 
 // ==================== Types ====================
 
@@ -84,6 +85,7 @@ export class OrchestratorAgent {
 ## 可用工具與用途：
 - knowledge_search: 搜尋企業知識庫。當問題涉及公司規章、流程、文件內容時使用。
 - list_calendar_events: 查詢行程。請自動根據語意推斷 timeMin/timeMax (例如"下週"就是未來7天)。
+- create_calendar_event: 建立新行程。當使用者要求"安排"、"新增"或"預約"行程時使用。
 - send_line_message: 發送 Line 通知。
 - agent_delegation: 將問題委派給其他專業 Agent。當問題超出你的能力範圍，或屬於特定領域(如財務、法律、HR)時使用。
 
@@ -113,8 +115,9 @@ ${agentsContext}
             parameters: tool.parameters as unknown as FunctionDeclarationSchema
         }));
 
+
         const model = genAI.getGenerativeModel({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3-pro-preview', // User mandated: Use Gemini 3 Pro Preview
             systemInstruction: systemPrompt,
             tools: [{
                 functionDeclarations: toolsForGemini
@@ -132,7 +135,7 @@ ${agentsContext}
         // 第一次呼叫
         let result = await chat.sendMessage(userMsg);
 
-        const MAX_STEPS = 5;
+        const MAX_STEPS = 8; // Increase steps for complex reasoning
         let step = 0;
 
         while (step < MAX_STEPS) {
@@ -196,17 +199,34 @@ ${agentsContext}
     /**
      * 取得可用 Agent 列表
      */
+    /**
+     * 取得可用 Agent 列表
+     */
     private async fetchAvailableAgents(): Promise<Array<{
         id: string;
         name: string;
         description: string;
     }>> {
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-            const response = await fetch(`${baseUrl}/api/agents/available`);
-            if (!response.ok) return [];
-            const data = await response.json();
-            return data.agents || [];
+            // 改為直接查詢資料庫，避免 Server-Side 自我呼叫 API 造成的網絡問題
+            const supabase = await createClient();
+
+            const { data: agents, error } = await supabase
+                .from('agents')
+                .select('id, name, description')
+                .eq('is_active', true)
+                .neq('name', '超級管家'); // 排除自己
+
+            if (error || !agents) {
+                console.error('[Orchestrator] fetchAvailableAgents DB error:', error);
+                return [];
+            }
+
+            return agents.map((a: { id: string; name: string; description: string | null }) => ({
+                id: a.id,
+                name: a.name,
+                description: a.description || ''
+            }));
         } catch (error) {
             console.warn('[Orchestrator] fetchAvailableAgents error:', error);
             return [];

@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
                 getAll() {
                     return request.cookies.getAll();
                 },
-                setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+                setAll(cookiesToSet: { name: string; value: string; options: { path?: string; domain?: string; maxAge?: number; expires?: Date; sameSite?: "lax" | "strict" | "none" | boolean; secure?: boolean; httpOnly?: boolean; priority?: "low" | "medium" | "high" } }[]) {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     );
@@ -71,7 +71,11 @@ export async function middleware(request: NextRequest) {
                         request,
                     });
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, options)
+                        response.cookies.set(name, value, {
+                            ...options,
+                            sameSite: 'lax',
+                            secure: process.env.NODE_ENV === 'production' ? true : options.secure,
+                        })
                     );
                 },
             },

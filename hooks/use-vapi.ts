@@ -174,13 +174,28 @@ export const useVapi = () => {
         }
     }, [isSessionActive, startSession, stopSession]);
 
+    const [isMuted, setIsMuted] = useState(false);
+
+    // ... (existing code)
+
+    const toggleMute = useCallback(() => {
+        const vapi = vapiRef.current;
+        if (vapi) {
+            const newMutedState = !isMuted;
+            vapi.setMuted(newMutedState);
+            setIsMuted(newMutedState);
+        }
+    }, [isMuted]);
+
     return {
         status,
         isSessionActive,
         volumeLevel,
         errorMessage,
+        isMuted,
         startSession,
         stopSession,
         toggleSession,
+        toggleMute,
     };
 };
