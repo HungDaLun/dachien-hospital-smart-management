@@ -1,18 +1,10 @@
--- Enable the pgvector extension to work with embedding vectors
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Fix semantic_search_ann function vector dimension to 768
+-- The function was incorrectly defined with vector(1536) but the actual
+-- content_embedding column uses vector(768) with text-embedding-004 model
+-- This migration ensures the function signature matches the actual column dimension
 
--- Create an HNSW index for high-performance approximate nearest neighbor search
--- Note: 'vector_cosine_ops' is typical for cosine similarity which we usually want for embeddings
--- 'm' and 'ef_construction' are HNSW parameters matching standard defaults or adjusted for performance
-CREATE INDEX IF NOT EXISTS idx_files_content_embedding_hnsw 
-ON files USING hnsw (content_embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 64);
-
--- Create the ANN semantic search function using the HNSW index
--- This replaces/complements the standard exact nearest neighbor search (KNN)
--- Note: Uses 768-dimensional vectors matching text-embedding-004 model
 CREATE OR REPLACE FUNCTION semantic_search_ann(
-    query_embedding vector(768),  -- Fixed: changed from 1536 to 768 to match actual column dimension
+    query_embedding vector(768),  -- Fixed: changed from 1536 to 768
     match_threshold float,
     match_count int,
     filter_department uuid DEFAULT NULL,
@@ -50,6 +42,5 @@ BEGIN
 END;
 $$;
 
--- Comments
-COMMENT ON INDEX idx_files_content_embedding_hnsw IS 'HNSW index for fast approximate nearest neighbor search on content embeddings.';
+-- Update comment to reflect correct dimension
 COMMENT ON FUNCTION semantic_search_ann IS 'Performs high-performance semantic search using HNSW index and optional filters. Uses 768-dimensional vectors from text-embedding-004 model.';
